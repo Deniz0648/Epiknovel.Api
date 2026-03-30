@@ -25,6 +25,10 @@ public class Endpoint(
         Post("/wallet/admin/orders/{OrderId}/invoice");
         Policies(PolicyNames.AdminAccess);
         AllowFileUploads();
+        Summary(s => {
+            s.Summary = "Fatura yükle ve mail at (Admin).";
+            s.Description = "Adminin bir siparişe fatura yüklemesini ve sonucunda ilgili kullanıcıya e-posta dahil bildirim gönderilmesini sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

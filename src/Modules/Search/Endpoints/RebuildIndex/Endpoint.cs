@@ -19,6 +19,10 @@ public class Endpoint(
     {
         Post("/search/rebuild"); // Sadece Admin tetikleyebilir
         Policies(PolicyNames.SuperAdminOnly);
+        Summary(s => {
+            s.Summary = "Arama indeksini yeniden oluştur.";
+            s.Description = "Super Admin yetkisine sahip kullanıcıların sistemdeki tüm kitap ve yazar verilerini çekerek Full-Text Search (PostgreSQL) indeksini sıfırdan oluşturmasını sağlar.";
+        });
     }
 
     public override async Task HandleAsync(CancellationToken ct)

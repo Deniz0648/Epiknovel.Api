@@ -17,6 +17,10 @@ public class Endpoint(WalletDbContext dbContext, IWebHostEnvironment env) : Endp
     public override void Configure()
     {
         Post("/wallet/deposit");
+        Summary(s => {
+            s.Summary = "Geliştirici ortamında bakiye yükle.";
+            s.Description = "Sadece Development ortamında kullanıcı test hesabına sanal coin yüklenmesini sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

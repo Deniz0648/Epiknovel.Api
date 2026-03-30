@@ -20,6 +20,10 @@ public class Endpoint(WalletDbContext dbContext, IIyzicoService iyzicoService) :
     {
         Post("/wallet/orders/callback");
         AllowAnonymous(); // Iyzico Webhook/Callback için anonim olmalı
+        Summary(s => {
+            s.Summary = "Iyzico ödeme bildirimini (callback) işle.";
+            s.Description = "Sistem tarafından başlatılan ödemenin başarı durumunu doğrulayarak işlemi tamamlar ve kullanıcının cüzdanına coini yükler.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

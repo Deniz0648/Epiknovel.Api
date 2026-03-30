@@ -18,6 +18,10 @@ public class Endpoint(WalletDbContext dbContext, IFileService fileService) : End
     public override void Configure()
     {
         Get("/wallet/orders/{OrderId}/invoice");
+        Summary(s => {
+            s.Summary = "Sipariş faturasını indir.";
+            s.Description = "Kullanıcının satın aldığı coin paketine ait daha önceden yüklenmiş faturasını güvenli bir şekilde bilgisayarına indirmesini sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

@@ -19,6 +19,10 @@ public class Endpoint(ManagementDbContext dbContext) : Endpoint<Request, Result<
     public override void Configure()
     {
         Post("/management/author/apply");
+        Summary(s => {
+            s.Summary = "Yazarlık başvurusu yap.";
+            s.Description = "Kullanıcıların platformda yazar olmak için başvuru yapmasını sağlar. Örnek içerik ve tecrübe bilgilerini içerir.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

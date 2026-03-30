@@ -35,6 +35,10 @@ public class Endpoint(WalletDbContext dbContext) : Endpoint<Request, Result<Resp
     {
         Get("/wallet/transactions");
         // Authorize is default
+        Summary(s => {
+            s.Summary = "Cüzdan işlem geçmişini getir.";
+            s.Description = "Kullanıcının veya yazarın hesaplarında gerçekleşen tüm coin ve TL hareketlerini (Transaction) sayfalı olarak listeler.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

@@ -37,6 +37,10 @@ public partial class Endpoint(SearchDbContext dbContext) : Endpoint<Request, Res
         AllowAnonymous();
         // RateLimiting: Saniyede çok fazla arama yapılmasını engellemek için önceden tanımlı kural:
         Options(x => x.RequireRateLimiting("GlobalPolicy")); 
+        Summary(s => {
+            s.Summary = "Global arama yap.";
+            s.Description = "PostgreSQL Full-Text Search altyapısını kullanarak site genelinde kitap, yazar ve kategori araması yapar. Hızlı ve optimize edilmiş sonuçlar döner.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

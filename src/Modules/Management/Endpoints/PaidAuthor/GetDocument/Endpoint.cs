@@ -20,6 +20,10 @@ public class Endpoint(ManagementDbContext dbContext, IFileService fileService) :
     {
         Get("/management/paid-author/documents/{ApplicationId}/{DocumentType}");
         Policies(PolicyNames.AdminAccess);
+        Summary(s => {
+            s.Summary = "Ücretli yazarlık başvuru belgesini getir.";
+            s.Description = "Adminlerin, yapılan ücretli yazarlık başvurularına ait 'Exemption' veya 'Bank' belgelerini görüntülemasını veya indirmesini sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

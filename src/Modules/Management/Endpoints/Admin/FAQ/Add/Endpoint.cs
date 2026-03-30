@@ -20,6 +20,10 @@ public class Endpoint(ManagementDbContext dbContext) : Endpoint<Request, Result<
     {
         Post("/management/admin/faq");
         Policies(PolicyNames.AdminAccess);
+        Summary(s => {
+            s.Summary = "Sıkça sorulan soru (SSS) ekle.";
+            s.Description = "Sisteme yeni bir Sıkça Sorulan Soru ve cevabını ekler.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

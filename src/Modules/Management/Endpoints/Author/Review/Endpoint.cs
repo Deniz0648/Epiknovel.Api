@@ -28,6 +28,10 @@ public class Endpoint(
     {
         Post("/management/author/review");
         Policies(PolicyNames.AdminAccess);
+        Summary(s => {
+            s.Summary = "Yazarlık başvurusunu incele.";
+            s.Description = "Adminlerin kullanıcıların normal yazarlık başvurularını onaylamasını veya reddetmesini sağlar. Onay durumunda kullanıcı yazar rolü kazanır.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

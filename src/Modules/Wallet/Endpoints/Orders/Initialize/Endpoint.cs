@@ -24,6 +24,10 @@ public class Endpoint(WalletDbContext dbContext, IIyzicoService iyzicoService) :
     public override void Configure()
     {
         Post("/wallet/orders/initialize");
+        Summary(s => {
+            s.Summary = "Coin paketi satın alma işlemini başlat.";
+            s.Description = "Kullanıcı bir coin paketi seçtiğinde Iyzico ödeme formunu başlatır ve geçici bir sipariş kaydı oluşturur.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

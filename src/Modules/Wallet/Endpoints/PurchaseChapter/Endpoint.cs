@@ -19,6 +19,10 @@ public class Endpoint(WalletDbContext dbContext, IBookProvider bookProvider, ISy
     {
         Post("/wallet/purchase-chapter");
         // Varsayılan authorize
+        Summary(s => {
+            s.Summary = "Bölüm satın al (Kilidi aç).";
+            s.Description = "Kullanıcının coin bakiyesini kullanarak ücretli bir bölümün kilidini açmasını sağlar. Yazara net TL olarak gelir aktarılır.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

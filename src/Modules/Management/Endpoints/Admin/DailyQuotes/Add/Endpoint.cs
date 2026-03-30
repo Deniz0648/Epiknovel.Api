@@ -19,6 +19,10 @@ public class Endpoint(ManagementDbContext dbContext) : Endpoint<Request, Result<
     {
         Post("/management/admin/daily-quotes");
         Policies(PolicyNames.AdminAccess);
+        Summary(s => {
+            s.Summary = "Günün sözünü ekle.";
+            s.Description = "Adminlerin sisteme günün sözü olarak yayınlanabilecek yeni bir alıntı eklemesini sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

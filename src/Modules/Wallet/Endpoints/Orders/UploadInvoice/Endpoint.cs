@@ -23,6 +23,10 @@ public class Endpoint(WalletDbContext dbContext, IFileService fileService, IMedi
         Post("/wallet/orders/upload-invoice");
         AllowFileUploads();
         Policies(PolicyNames.AdminAccess);
+        Summary(s => {
+            s.Summary = "Ödeme emrine fatura yükle (Event tabanlı).";
+            s.Description = "Admin yetkisine sahip kullanıcıların Iyzico ödemesi sonrası fatura belgesini yüklemesini ve sisteme bildirim göndermesini sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)

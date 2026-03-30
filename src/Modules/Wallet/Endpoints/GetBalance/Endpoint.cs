@@ -17,6 +17,10 @@ public class Endpoint(WalletDbContext dbContext) : EndpointWithoutRequest<Result
     {
         Get("/wallet/balance");
         // Varsayılan olarak authorize olacak (RequireAuthenticatedUser)
+        Summary(s => {
+            s.Summary = "Cüzdan bakiyesini getir.";
+            s.Description = "Kullanıcının mevcut Coin bakiyesini ve eğer yazar ise elde ettiği cüzdandaki Net TL bakiyesini getirir.";
+        });
     }
 
     public override async Task HandleAsync(CancellationToken ct)

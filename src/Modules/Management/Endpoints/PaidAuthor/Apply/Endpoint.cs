@@ -23,6 +23,10 @@ public class Endpoint(ManagementDbContext dbContext, IFileService fileService) :
     {
         Post("/management/paid-author/apply");
         AllowFileUploads();
+        Summary(s => {
+            s.Summary = "Ücretli yazarlık başvurusu yap.";
+            s.Description = "Kullanıcıların ücretli yazar olabilmek için gerekli belge ve IBAN bilgilerini yükleyerek başvuru yapmasını sağlar.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
