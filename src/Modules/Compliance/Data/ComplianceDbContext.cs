@@ -9,6 +9,8 @@ public class ComplianceDbContext(DbContextOptions<ComplianceDbContext> options) 
     public DbSet<TaxExemptionInfo> TaxExemptionInfos => Set<TaxExemptionInfo>();
     public DbSet<VerifiedIBAN> VerifiedIBANs => Set<VerifiedIBAN>();
     public DbSet<SecureDocument> SecureDocuments => Set<SecureDocument>();
+    public DbSet<ModerationTicket> ModerationTickets => Set<ModerationTicket>();
+    public DbSet<UserStrike> UserStrikes => Set<UserStrike>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,5 +24,7 @@ public class ComplianceDbContext(DbContextOptions<ComplianceDbContext> options) 
         modelBuilder.Entity<TaxExemptionInfo>(b => b.ToTable("TaxExemptionInfos"));
         modelBuilder.Entity<VerifiedIBAN>(b => b.ToTable("VerifiedIBANs"));
         modelBuilder.Entity<SecureDocument>(b => b.ToTable("SecureDocuments"));
+        modelBuilder.Entity<ModerationTicket>(b => b.ToTable("ModerationTickets"));
+        modelBuilder.Entity<UserStrike>(b => b.ToTable("UserStrikes"));
     }
 }
