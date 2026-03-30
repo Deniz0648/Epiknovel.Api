@@ -3,52 +3,8 @@
   "WorkspaceRootPath": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{550B8397-C676-6F15-7906-CB320526E97A}|src\\Shared\\Epiknovel.Shared.Core\\Epiknovel.Shared.Core.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\shared\\epiknovel.shared.core\\epiknovel.shared.core.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{550B8397-C676-6F15-7906-CB320526E97A}|src\\Shared\\Epiknovel.Shared.Core\\Epiknovel.Shared.Core.csproj|solutionrelative:src\\shared\\epiknovel.shared.core\\epiknovel.shared.core.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{FF91744E-E5EB-68B4-9EE0-57159E1D4354}|src\\Shared\\Epiknovel.Shared.Infrastructure\\Epiknovel.Shared.Infrastructure.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\shared\\epiknovel.shared.infrastructure\\epiknovel.shared.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{FF91744E-E5EB-68B4-9EE0-57159E1D4354}|src\\Shared\\Epiknovel.Shared.Infrastructure\\Epiknovel.Shared.Infrastructure.csproj|solutionrelative:src\\shared\\epiknovel.shared.infrastructure\\epiknovel.shared.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{777B4758-B1A3-5201-6576-257F698BABE9}|src\\Modules\\Wallet\\Epiknovel.Modules.Wallet.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\wallet\\epiknovel.modules.wallet.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{777B4758-B1A3-5201-6576-257F698BABE9}|src\\Modules\\Wallet\\Epiknovel.Modules.Wallet.csproj|solutionrelative:src\\modules\\wallet\\epiknovel.modules.wallet.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{4BBE2CEE-2481-E0FA-DC2C-07DF2F715F24}|src\\Modules\\Users\\Epiknovel.Modules.Users.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\users\\epiknovel.modules.users.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{4BBE2CEE-2481-E0FA-DC2C-07DF2F715F24}|src\\Modules\\Users\\Epiknovel.Modules.Users.csproj|solutionrelative:src\\modules\\users\\epiknovel.modules.users.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{39BA634C-7586-DCC4-3A0B-6635023342B8}|src\\Modules\\Social\\Epiknovel.Modules.Social.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\social\\epiknovel.modules.social.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{39BA634C-7586-DCC4-3A0B-6635023342B8}|src\\Modules\\Social\\Epiknovel.Modules.Social.csproj|solutionrelative:src\\modules\\social\\epiknovel.modules.social.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B2FBA9C5-E8E3-5804-1379-2911901CEFD0}|src\\Modules\\Search\\Epiknovel.Modules.Search.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\search\\epiknovel.modules.search.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{B2FBA9C5-E8E3-5804-1379-2911901CEFD0}|src\\Modules\\Search\\Epiknovel.Modules.Search.csproj|solutionrelative:src\\modules\\search\\epiknovel.modules.search.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{BCA2B8D4-CFC5-EB3A-4F85-8B26E768CD86}|src\\Modules\\Management\\Epiknovel.Modules.Management.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\management\\epiknovel.modules.management.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{BCA2B8D4-CFC5-EB3A-4F85-8B26E768CD86}|src\\Modules\\Management\\Epiknovel.Modules.Management.csproj|solutionrelative:src\\modules\\management\\epiknovel.modules.management.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{3B2E044A-DFA1-CA0B-6079-E6BB252ED7CB}|src\\Modules\\Infrastructure\\Epiknovel.Modules.Infrastructure.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\infrastructure\\epiknovel.modules.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{3B2E044A-DFA1-CA0B-6079-E6BB252ED7CB}|src\\Modules\\Infrastructure\\Epiknovel.Modules.Infrastructure.csproj|solutionrelative:src\\modules\\infrastructure\\epiknovel.modules.infrastructure.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{83F4331A-274C-DE78-A5F7-81BBAD4508DC}|src\\Modules\\Identity\\Epiknovel.Modules.Identity.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\identity\\epiknovel.modules.identity.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{83F4331A-274C-DE78-A5F7-81BBAD4508DC}|src\\Modules\\Identity\\Epiknovel.Modules.Identity.csproj|solutionrelative:src\\modules\\identity\\epiknovel.modules.identity.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{90EAA7DC-C9FF-27DB-E330-1A8175414C31}|src\\Modules\\Compliance\\Epiknovel.Modules.Compliance.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\compliance\\epiknovel.modules.compliance.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{90EAA7DC-C9FF-27DB-E330-1A8175414C31}|src\\Modules\\Compliance\\Epiknovel.Modules.Compliance.csproj|solutionrelative:src\\modules\\compliance\\epiknovel.modules.compliance.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{235AEEA6-4801-26AB-2EEE-DB4BBCA181D3}|src\\Modules\\Books\\Epiknovel.Modules.Books.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\src\\modules\\books\\epiknovel.modules.books.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{235AEEA6-4801-26AB-2EEE-DB4BBCA181D3}|src\\Modules\\Books\\Epiknovel.Modules.Books.csproj|solutionrelative:src\\modules\\books\\epiknovel.modules.books.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{77817335-2AA1-C316-F745-EE2C2D5EC53F}|Epiknovel.api\\Epiknovel.api.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\epiknovel.api\\epiknovel.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{77817335-2AA1-C316-F745-EE2C2D5EC53F}|Epiknovel.api\\Epiknovel.api.csproj|solutionrelative:epiknovel.api\\epiknovel.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+      "AbsoluteMoniker": "D:0:0:{77817335-2AA1-C316-F745-EE2C2D5EC53F}|Epiknovel.api\\Epiknovel.api.csproj|c:\\users\\deniz\\source\\repos\\epiknovel\\epiknovel.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{77817335-2AA1-C316-F745-EE2C2D5EC53F}|Epiknovel.api\\Epiknovel.api.csproj|solutionrelative:epiknovel.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -58,162 +14,19 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Epiknovel.Shared.Infrastructure",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Shared\\Epiknovel.Shared.Infrastructure\\Epiknovel.Shared.Infrastructure.csproj",
-              "RelativeDocumentMoniker": "src\\Shared\\Epiknovel.Shared.Infrastructure\\Epiknovel.Shared.Infrastructure.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Shared\\Epiknovel.Shared.Infrastructure\\Epiknovel.Shared.Infrastructure.csproj",
-              "RelativeToolTip": "src\\Shared\\Epiknovel.Shared.Infrastructure\\Epiknovel.Shared.Infrastructure.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:56:13.626Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "Epiknovel.Shared.Core",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Shared\\Epiknovel.Shared.Core\\Epiknovel.Shared.Core.csproj",
-              "RelativeDocumentMoniker": "src\\Shared\\Epiknovel.Shared.Core\\Epiknovel.Shared.Core.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Shared\\Epiknovel.Shared.Core\\Epiknovel.Shared.Core.csproj",
-              "RelativeToolTip": "src\\Shared\\Epiknovel.Shared.Core\\Epiknovel.Shared.Core.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:56:10.224Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Epiknovel.Modules.Wallet",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Wallet\\Epiknovel.Modules.Wallet.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Wallet\\Epiknovel.Modules.Wallet.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Wallet\\Epiknovel.Modules.Wallet.csproj",
-              "RelativeToolTip": "src\\Modules\\Wallet\\Epiknovel.Modules.Wallet.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:56:05.555Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "Epiknovel.Modules.Users",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Users\\Epiknovel.Modules.Users.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Users\\Epiknovel.Modules.Users.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Users\\Epiknovel.Modules.Users.csproj",
-              "RelativeToolTip": "src\\Modules\\Users\\Epiknovel.Modules.Users.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:56:02.414Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "Epiknovel.Modules.Social",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Social\\Epiknovel.Modules.Social.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Social\\Epiknovel.Modules.Social.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Social\\Epiknovel.Modules.Social.csproj",
-              "RelativeToolTip": "src\\Modules\\Social\\Epiknovel.Modules.Social.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:58.543Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Epiknovel.Modules.Search",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Search\\Epiknovel.Modules.Search.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Search\\Epiknovel.Modules.Search.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Search\\Epiknovel.Modules.Search.csproj",
-              "RelativeToolTip": "src\\Modules\\Search\\Epiknovel.Modules.Search.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:55.243Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Epiknovel.Modules.Management",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Management\\Epiknovel.Modules.Management.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Management\\Epiknovel.Modules.Management.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Management\\Epiknovel.Modules.Management.csproj",
-              "RelativeToolTip": "src\\Modules\\Management\\Epiknovel.Modules.Management.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:51.8Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "Epiknovel.Modules.Infrastructure",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Infrastructure\\Epiknovel.Modules.Infrastructure.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Infrastructure\\Epiknovel.Modules.Infrastructure.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Infrastructure\\Epiknovel.Modules.Infrastructure.csproj",
-              "RelativeToolTip": "src\\Modules\\Infrastructure\\Epiknovel.Modules.Infrastructure.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:48.219Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "Epiknovel.Modules.Identity",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Identity\\Epiknovel.Modules.Identity.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Identity\\Epiknovel.Modules.Identity.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Identity\\Epiknovel.Modules.Identity.csproj",
-              "RelativeToolTip": "src\\Modules\\Identity\\Epiknovel.Modules.Identity.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:43.801Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "Epiknovel.Modules.Compliance",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Compliance\\Epiknovel.Modules.Compliance.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Compliance\\Epiknovel.Modules.Compliance.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Compliance\\Epiknovel.Modules.Compliance.csproj",
-              "RelativeToolTip": "src\\Modules\\Compliance\\Epiknovel.Modules.Compliance.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:38.898Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "Epiknovel.Modules.Books",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Books\\Epiknovel.Modules.Books.csproj",
-              "RelativeDocumentMoniker": "src\\Modules\\Books\\Epiknovel.Modules.Books.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\src\\Modules\\Books\\Epiknovel.Modules.Books.csproj",
-              "RelativeToolTip": "src\\Modules\\Books\\Epiknovel.Modules.Books.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:55:07.475Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "Epiknovel.api",
-              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\Epiknovel.api\\Epiknovel.api.csproj",
-              "RelativeDocumentMoniker": "Epiknovel.api\\Epiknovel.api.csproj",
-              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\Epiknovel.api\\Epiknovel.api.csproj",
-              "RelativeToolTip": "Epiknovel.api\\Epiknovel.api.csproj",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAaAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2026-03-29T11:54:47.344Z",
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\Epiknovel.api\\Program.cs",
+              "RelativeDocumentMoniker": "Epiknovel.api\\Program.cs",
+              "ToolTip": "C:\\Users\\DENIZ\\Source\\repos\\Epiknovel\\Epiknovel.api\\Program.cs",
+              "RelativeToolTip": "Epiknovel.api\\Program.cs",
+              "ViewState": "AgIAAE0AAAAAAAAAAAAgwGcAAABEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-03-29T13:37:07.559Z",
               "EditorCaption": ""
             }
           ]

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Epiknovel.Modules.Users")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6baa765822b8db658d989df83a3e5bf1b6f3d987")]
 [assembly: System.Reflection.AssemblyProductAttribute("Epiknovel.Modules.Users")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Epiknovel.Modules.Users")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

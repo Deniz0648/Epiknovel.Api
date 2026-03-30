@@ -28,6 +28,10 @@ public class Endpoint(InfrastructureDbContext dbContext) : EndpointWithoutReques
     public override void Configure()
     {
         Get("/infrastructure/notifications");
+        Summary(s => {
+            s.Summary = "Kullanıcı bildirimlerini listele.";
+            s.Description = "Giriş yapmış kullanıcının bildirimlerini tarihe göre azalan sırada sayfalamasız olarak (en fazla 50 adet) getirir.";
+        });
     }
 
     public override async Task HandleAsync(CancellationToken ct)

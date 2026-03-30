@@ -16,6 +16,10 @@ public class Endpoint(InfrastructureDbContext dbContext) : Endpoint<Request, Res
     public override void Configure()
     {
         Post("/infrastructure/notifications/{NotificationId}/read");
+        Summary(s => {
+            s.Summary = "Bildirimi okundu yap.";
+            s.Description = "Belirtilen bildirim ID'sine ait bildirimi okundu olarak işaretler.";
+        });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
