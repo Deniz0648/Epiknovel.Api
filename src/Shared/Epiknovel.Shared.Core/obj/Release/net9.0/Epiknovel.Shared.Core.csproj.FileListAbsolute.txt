@@ -1,0 +1,12 @@
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\bin\Release\net9.0\Epiknovel.Shared.Core.deps.json
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\bin\Release\net9.0\Epiknovel.Shared.Core.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\bin\Release\net9.0\Epiknovel.Shared.Core.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.csproj.AssemblyReference.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.AssemblyInfoInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.AssemblyInfo.cs
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.csproj.CoreCompileInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\refint\Epiknovel.Shared.Core.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\Epiknovel.Shared.Core.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Shared\Epiknovel.Shared.Core\obj\Release\net9.0\ref\Epiknovel.Shared.Core.dll

@@ -1,0 +1,17 @@
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Modules.Search.deps.json
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Modules.Search.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Modules.Search.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Shared.Core.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Shared.Infrastructure.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Shared.Infrastructure.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\bin\Release\net9.0\Epiknovel.Shared.Core.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.csproj.AssemblyReference.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.AssemblyInfoInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.AssemblyInfo.cs
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.csproj.CoreCompileInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknove.065A8F6F.Up2Date
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\refint\Epiknovel.Modules.Search.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\Epiknovel.Modules.Search.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Search\obj\Release\net9.0\ref\Epiknovel.Modules.Search.dll

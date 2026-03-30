@@ -1,0 +1,62 @@
+services:
+  # 🐘 Veritabanı (PostgreSQL) - Dış portlar KAPATILDI
+  postgres_db:
+    image: postgres:17-alpine
+    container_name: epiknovel_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 🚄 Önbellek & Oturum (Redis) - Dış portlar KAPATILDI
+  redis_cache:
+    image: redis:8-alpine
+    container_name: epiknovel_cache
+    # ports: - "6379:6379" # Sadece iç ağdan erişilebilir.
+    volumes:
+      - redis_data:/data
+
+  # 🚀 Ana API (Epiknovel.api) - Dış portlar KAPATILDI
+  epiknovel_api:
+    build:
+      context: .
+      dockerfile: Epiknovel.api/Dockerfile
+    container_name: epiknovel_api
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      redis_cache:
+        condition: service_started
+    volumes:
+      - ./Uploads:/app/Uploads # Yerel dosya depolama (Hardening)
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DB_CONNECTION: ${DB_CONNECTION}
+      REDIS_CONNECTION: ${REDIS_CONNECTION}
+      JWT_SECRET: ${JWT_SECRET}
+
+  # 🛡️ Proxy (Caddy H3) - TEK GİRİŞ KAPISI
+  caddy_proxy:
+    image: caddy:latest
+    container_name: epiknovel_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp" # HTTP/3 (QUIC)
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+    depends_on:
+      - epiknovel_api
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:

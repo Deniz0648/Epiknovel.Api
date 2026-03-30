@@ -1,0 +1,41 @@
+using Microsoft.EntityFrameworkCore;
+using Epiknovel.Modules.Management.Domain;
+
+namespace Epiknovel.Modules.Management.Data;
+
+public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) : DbContext(options)
+{
+    public DbSet<AuthorApplication> AuthorApplications => Set<AuthorApplication>();
+    public DbSet<PaidAuthorApplication> PaidAuthorApplications => Set<PaidAuthorApplication>();
+    public DbSet<PayoutRequest> PayoutRequests => Set<PayoutRequest>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportTicketMessage> SupportTicketMessages => Set<SupportTicketMessage>();
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<Discount> Discounts => Set<Discount>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<DailyQuote> DailyQuotes => Set<DailyQuote>();
+    public DbSet<FAQ> FAQs => Set<FAQ>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        
+        // Modüler Monolit: Her modülün kendi şeması vardır
+        modelBuilder.HasDefaultSchema("management");
+
+        // Konfigürasyonlar
+        modelBuilder.Entity<AuthorApplication>(b => b.ToTable("AuthorApplications"));
+        modelBuilder.Entity<PaidAuthorApplication>(b => b.ToTable("PaidAuthorApplications"));
+        modelBuilder.Entity<PayoutRequest>(b => b.ToTable("PayoutRequests"));
+        modelBuilder.Entity<SupportTicket>(b => b.ToTable("SupportTickets"));
+        modelBuilder.Entity<SupportTicketMessage>(b => b.ToTable("SupportTicketMessages"));
+        modelBuilder.Entity<SystemSetting>(b => {
+            b.ToTable("SystemSettings");
+            b.HasKey(x => x.Key);
+        });
+        modelBuilder.Entity<Discount>(b => b.ToTable("Discounts"));
+        modelBuilder.Entity<AuditLog>(b => b.ToTable("AuditLogs"));
+        modelBuilder.Entity<DailyQuote>(b => b.ToTable("DailyQuotes"));
+        modelBuilder.Entity<FAQ>(b => b.ToTable("FAQs"));
+    }
+}

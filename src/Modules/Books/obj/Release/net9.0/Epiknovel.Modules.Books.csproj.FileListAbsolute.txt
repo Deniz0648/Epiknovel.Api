@@ -1,0 +1,17 @@
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Modules.Books.deps.json
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Modules.Books.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Modules.Books.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Shared.Core.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Shared.Infrastructure.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Shared.Infrastructure.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\bin\Release\net9.0\Epiknovel.Shared.Core.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.csproj.AssemblyReference.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.AssemblyInfoInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.AssemblyInfo.cs
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.csproj.CoreCompileInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknove.39F2058A.Up2Date
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\refint\Epiknovel.Modules.Books.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\Epiknovel.Modules.Books.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Books\obj\Release\net9.0\ref\Epiknovel.Modules.Books.dll

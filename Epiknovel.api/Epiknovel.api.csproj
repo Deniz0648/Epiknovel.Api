@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>039f514b-eeeb-4c76-8b9e-14e10feb1afc</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+    <PackageReference Include="FastEndpoints" Version="8.1.0" />
+    <PackageReference Include="FastEndpoints.Security" Version="8.1.0" />
+    <PackageReference Include="FastEndpoints.Swagger" Version="8.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.13.16" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\Modules\Identity\Epiknovel.Modules.Identity.csproj" />
+    <ProjectReference Include="..\src\Modules\Users\Epiknovel.Modules.Users.csproj" />
+    <ProjectReference Include="..\src\Modules\Books\Epiknovel.Modules.Books.csproj" />
+    <ProjectReference Include="..\src\Modules\Social\Epiknovel.Modules.Social.csproj" />
+    <ProjectReference Include="..\src\Modules\Search\Epiknovel.Modules.Search.csproj" />
+    <ProjectReference Include="..\src\Modules\Wallet\Epiknovel.Modules.Wallet.csproj" />
+    <ProjectReference Include="..\src\Modules\Management\Epiknovel.Modules.Management.csproj" />
+    <ProjectReference Include="..\src\Modules\Compliance\Epiknovel.Modules.Compliance.csproj" />
+    <ProjectReference Include="..\src\Modules\Infrastructure\Epiknovel.Modules.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
+

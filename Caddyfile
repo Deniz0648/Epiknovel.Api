@@ -1,0 +1,22 @@
+# :443 {
+#     reverse_proxy epiknovel_api:8080
+#     tls internal  # Otomatik yerel sertifika yönetimi
+#     encode zstd gzip
+#     
+#     # 🚅 H3 / QUIC Desteği (Caddy v2 ile otomatik)
+#     header {
+#         Alt-Svc "h3=\":443\"; ma=86400"
+#     }
+# }
+
+http://localhost, http://127.0.0.1 {
+    reverse_proxy epiknovel_api:8080
+    encode zstd gzip
+    log
+    
+    header {
+        Access-Control-Allow-Origin *
+        Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    }
+}

@@ -1,0 +1,34 @@
+<Solution>
+  <!-- Host App -->
+  <Project Path="Epiknovel.api/Epiknovel.api.csproj" Folder="/src/" />
+
+  <!-- Shared Libs -->
+  <Project Path="src/Shared/Epiknovel.Shared.Core/Epiknovel.Shared.Core.csproj" Folder="/src/Shared/" />
+  <Project Path="src/Shared/Epiknovel.Shared.Infrastructure/Epiknovel.Shared.Infrastructure.csproj" Folder="/src/Shared/" />
+
+  <!-- The 9 Modules -->
+  <Project Path="src/Modules/Identity/Epiknovel.Modules.Identity.csproj" Folder="/src/Modules/Identity/" />
+  <Project Path="src/Modules/Users/Epiknovel.Modules.Users.csproj" Folder="/src/Modules/Users/" />
+  <Project Path="src/Modules/Books/Epiknovel.Modules.Books.csproj" Folder="/src/Modules/Books/" />
+  <Project Path="src/Modules/Social/Epiknovel.Modules.Social.csproj" Folder="/src/Modules/Social/" />
+  <Project Path="src/Modules/Search/Epiknovel.Modules.Search.csproj" Folder="/src/Modules/Search/" />
+  <Project Path="src/Modules/Wallet/Epiknovel.Modules.Wallet.csproj" Folder="/src/Modules/Wallet/" />
+  <Project Path="src/Modules/Management/Epiknovel.Modules.Management.csproj" Folder="/src/Modules/Management/" />
+  <Project Path="src/Modules/Compliance/Epiknovel.Modules.Compliance.csproj" Folder="/src/Modules/Compliance/" />
+  <Project Path="src/Modules/Infrastructure/Epiknovel.Modules.Infrastructure.csproj" Folder="/src/Modules/Infrastructure/" />
+
+  <!-- Solution Folders -->
+  <Folder Name="/src/" />
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Shared/" />
+  <Folder Name="/src/Modules/Identity/" />
+  <Folder Name="/src/Modules/Users/" />
+  <Folder Name="/src/Modules/Books/" />
+  <Folder Name="/src/Modules/Social/" />
+  <Folder Name="/src/Modules/Search/" />
+  <Folder Name="/src/Modules/Wallet/" />
+  <Folder Name="/src/Modules/Management/" />
+  <Folder Name="/src/Modules/Compliance/" />
+  <Folder Name="/src/Modules/Infrastructure/" />
+
+</Solution>

@@ -1,0 +1,17 @@
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Modules.Infrastructure.deps.json
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Modules.Infrastructure.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Modules.Infrastructure.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Shared.Core.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Shared.Infrastructure.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Shared.Infrastructure.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\bin\Debug\net10.0\Epiknovel.Shared.Core.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.AssemblyInfo.cs
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknove.FEF735CF.Up2Date
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\refint\Epiknovel.Modules.Infrastructure.dll
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\Epiknovel.Modules.Infrastructure.pdb
+C:\Users\DENIZ\Source\repos\Epiknovel\src\Modules\Infrastructure\obj\Debug\net10.0\ref\Epiknovel.Modules.Infrastructure.dll

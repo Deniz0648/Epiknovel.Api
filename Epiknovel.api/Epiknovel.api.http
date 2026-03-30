@@ -1,0 +1,6 @@
+@Epiknovel.api_HostAddress = http://localhost:5075
+
+GET {{Epiknovel.api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
