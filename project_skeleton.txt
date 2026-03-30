@@ -1,0 +1,169 @@
+Folder PATH listing
+Volume serial number is 187F-2537
+C:\USERS\DENIZ\SOURCE\REPOS\EPIKNOVEL\SRC
++---Modules
+|   +---Books
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   +---AddChapter
+|   |   |   +---CreateBook
+|   |   |   +---CreateCategory
+|   |   |   +---DeleteBook
+|   |   |   +---DeleteChapter
+|   |   |   +---GetBookList
+|   |   |   +---GetChapter
+|   |   |   \---UpdateChapter
+|   |   +---Handlers
+|   |   +---Services
+|   |   \---Workers
+|   +---Compliance
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   \---SecureDocuments
+|   |   |       +---GetUrl
+|   |   |       \---Upload
+|   |   \---Services
+|   +---Identity
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   +---AssignRole
+|   |   |   +---ChangeEmail
+|   |   |   +---ChangePassword
+|   |   |   +---ConfirmChangeEmail
+|   |   |   +---ConfirmEmail
+|   |   |   +---ForgotPassword
+|   |   |   +---GetSessions
+|   |   |   +---Login
+|   |   |   +---Logout
+|   |   |   +---LogoutAll
+|   |   |   +---RefreshToken
+|   |   |   +---Register
+|   |   |   +---ResetPassword
+|   |   |   \---RevokeSession
+|   |   \---Services
+|   +---Infrastructure
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   \---Notifications
+|   |   |       +---GetList
+|   |   |       \---MarkAsRead
+|   |   +---Handlers
+|   |   +---Migrations
+|   |   +---Services
+|   |   \---Workers
+|   +---Management
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   +---Admin
+|   |   |   |   +---DailyQuotes
+|   |   |   |   |   \---Add
+|   |   |   |   \---FAQ
+|   |   |   |       \---Add
+|   |   |   +---Author
+|   |   |   |   +---Apply
+|   |   |   |   \---Review
+|   |   |   \---PaidAuthor
+|   |   |       +---Apply
+|   |   |       +---GetDocument
+|   |   |       \---Review
+|   |   +---Events
+|   |   \---Migrations
+|   +---Search
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   +---GlobalSearch
+|   |   |   \---RebuildIndex
+|   |   +---Handlers
+|   |   \---Migrations
+|   +---Social
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   +---Admin
+|   |   |   |   \---Comments
+|   |   |   |       \---Delete
+|   |   |   +---Comments
+|   |   |   |   +---Add
+|   |   |   |   +---GetList
+|   |   |   |   +---Like
+|   |   |   |   +---Report
+|   |   |   |   \---Update
+|   |   |   +---InlineComments
+|   |   |   |   +---Add
+|   |   |   |   +---GetByChapter
+|   |   |   |   +---Like
+|   |   |   |   \---Report
+|   |   |   +---Library
+|   |   |   |   +---Add
+|   |   |   |   +---GetList
+|   |   |   |   +---Remove
+|   |   |   |   \---UpdateStatus
+|   |   |   +---Reviews
+|   |   |   |   +---Add
+|   |   |   |   +---GetList
+|   |   |   |   +---Like
+|   |   |   |   \---Report
+|   |   |   \---Votes
+|   |   |       \---Add
+|   |   +---Handlers
+|   |   \---Migrations
+|   +---Users
+|   |   +---Data
+|   |   +---Domain
+|   |   +---Endpoints
+|   |   |   +---FollowUser
+|   |   |   +---GetMyProfile
+|   |   |   +---GetPublicProfile
+|   |   |   +---UnfollowUser
+|   |   |   +---UpdateAvatar
+|   |   |   \---UpdateProfile
+|   |   +---Events
+|   |   +---Migrations
+|   |   \---Services
+|   \---Wallet
+|       +---Data
+|       +---Domain
+|       +---Endpoints
+|       |   +---Admin
+|       |   |   \---UploadInvoice
+|       |   +---Deposit
+|       |   +---GetBalance
+|       |   +---GetTransactions
+|       |   +---Orders
+|       |   |   +---Callback
+|       |   |   +---GetOrderInvoice
+|       |   |   +---Initialize
+|       |   |   \---UploadInvoice
+|       |   \---PurchaseChapter
+|       +---EventHandlers
+|       +---Migrations
+|       \---Services
+\---Shared
+    +---Epiknovel.Shared.Core
+    |   +---Attributes
+    |   +---Common
+    |   +---Constants
+    |   +---Domain
+    |   +---Events
+    |   +---Interfaces
+    |   |   +---Books
+    |   |   \---Wallet
+    |   +---Models
+    |   +---Queries
+    |   \---Services
+    \---Epiknovel.Shared.Infrastructure
+        +---Endpoints
+        |   \---MediaUpload
+        +---Hubs
+        +---Logging
+        +---Mapping
+        +---Middleware
+        +---Monitoring
+        +---Security
+        \---Services

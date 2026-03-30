@@ -4,6 +4,9 @@ using Epiknovel.Modules.Social.Data;
 using Epiknovel.Modules.Social.Domain;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
+using Epiknovel.Shared.Core.Enums;
+using Epiknovel.Shared.Core.Events;
+using MediatR;
 
 namespace Epiknovel.Modules.Social.Endpoints.InlineComments.Report;
 
@@ -14,7 +17,7 @@ public record Request
     public string? Description { get; init; }
 }
 
-public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<string>>
+public class Endpoint(SocialDbContext dbContext, IPublisher publisher) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -41,18 +44,8 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<stri
             return;
         }
 
-        var report = new InlineCommentReport
-        {
-            InlineCommentId = req.InlineCommentId,
-            UserId = userId,
-            Reason = req.Reason,
-            Description = req.Description,
-            CreatedAt = DateTime.UtcNow,
-            IsReviewed = false
-        };
-
-        dbContext.InlineCommentReports.Add(report);
-        await dbContext.SaveChangesAsync(ct);
+        var @event = new ContentReportedEvent(userId, req.InlineCommentId, TargetContentType.InlineComment, req.Reason, req.Description, DateTime.UtcNow);
+        await publisher.Publish(@event, ct);
 
         await Send.ResponseAsync(Result<string>.Success("Bildiriminiz kaydedildi."), 200, ct);
     }

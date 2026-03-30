@@ -11,12 +11,9 @@ public class SocialDbContext(DbContextOptions<SocialDbContext> options) : DbCont
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<InlineComment> InlineComments => Set<InlineComment>();
     public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
-    public DbSet<CommentReport> CommentReports => Set<CommentReport>();
     public DbSet<LibraryEntry> LibraryEntries => Set<LibraryEntry>();
     public DbSet<ReadingProgress> ReadingProgresses => Set<ReadingProgress>();
-    public DbSet<ReviewReport> ReviewReports => Set<ReviewReport>();
     public DbSet<InlineCommentLike> InlineCommentLikes => Set<InlineCommentLike>();
-    public DbSet<InlineCommentReport> InlineCommentReports => Set<InlineCommentReport>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,11 +29,8 @@ public class SocialDbContext(DbContextOptions<SocialDbContext> options) : DbCont
         modelBuilder.Entity<Comment>(b => b.ToTable("Comments"));
         modelBuilder.Entity<InlineComment>(b => b.ToTable("InlineComments"));
         modelBuilder.Entity<CommentLike>(b => b.ToTable("CommentLikes"));
-        modelBuilder.Entity<CommentReport>(b => b.ToTable("CommentReports"));
         modelBuilder.Entity<LibraryEntry>(b => b.ToTable("LibraryEntries"));
         modelBuilder.Entity<ReadingProgress>(b => b.ToTable("ReadingProgresses"));
-        modelBuilder.Entity<ReviewReport>(b => b.ToTable("ReviewReports"));
         modelBuilder.Entity<InlineCommentLike>(b => b.ToTable("InlineCommentLikes"));
-        modelBuilder.Entity<InlineCommentReport>(b => b.ToTable("InlineCommentReports"));
     }
 }
