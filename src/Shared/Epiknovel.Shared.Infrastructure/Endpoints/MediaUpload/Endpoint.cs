@@ -11,6 +11,7 @@ namespace Epiknovel.Shared.Infrastructure.Endpoints.MediaUpload;
 /// </summary>
 public class MediaUploadEndpoint(IFileService fileService) : FastEndpoints.Endpoint<Request, Result<Response>>
 {
+    // Belgeler (Local Secure Storage)
     public override void Configure()
     {
         Post("/media/upload");
@@ -37,7 +38,9 @@ public class MediaUploadEndpoint(IFileService fileService) : FastEndpoints.Endpo
             return;
         }
 
-        // 2. S3 / MinIO'ya Yükle (Auto WebP & Resize)
+        // 2. Güvenli Yükleme (Local Secure Storage)
+        // GUID ile saklanır (Sanitization)
+
         try
         {
             var fileName = await fileService.SaveImageAsync(
@@ -60,4 +63,3 @@ public class MediaUploadEndpoint(IFileService fileService) : FastEndpoints.Endpo
         }
     }
 }
-

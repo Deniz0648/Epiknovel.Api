@@ -12,16 +12,19 @@ using System.Threading.Tasks;
 
 namespace Epiknovel.Modules.Compliance.Endpoints.Moderation.ResolveTicket;
 
-public record Request(Guid TicketId, string Action, string? Reason, Guid? TargetUserId);
+public record Request(Guid TicketId, string Action, string? Reason, Guid? TargetUserId, bool? DeleteReplies = false);
 
-public class Endpoint(ComplianceDbContext dbContext, IPublisher publisher) : Endpoint<Request, Result<string>>
+public class Endpoint(
+    ComplianceDbContext dbContext, 
+    IPublisher publisher, 
+    Epiknovel.Shared.Core.Interfaces.INotificationService notificationService) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
         Post("/compliance/moderation/tickets/{ticketId}/resolve");
         Summary(s => {
             s.Summary = "Şikayet biletini karara bağlar.";
-            s.Description = "Action tipleri: Ignore, DeleteContent, WarnUser. 'WarnUser' gönderildiğinde 3 uyarı (strike) limiti kontrol edilir ve aşılmışsa Identity sistemine Ban Event'i gönderilir.";
+            s.Description = "Action tipleri: Ignore, DeleteContent, WarnUser. 'WarnUser' gönderildiğinde 3 uyarı (strike) limiti kontrol edilir ve aşılmışsa Identity sistemine Ban Event'i gönderilir. DeleteReplies true ise alt yorumlar da silinir.";
         });
     }
 
@@ -46,7 +49,7 @@ public class Endpoint(ComplianceDbContext dbContext, IPublisher publisher) : End
         {
             ticket.Status = Domain.TicketStatus.Resolved;
             ticket.ResolutionAction = "DeletedContent";
-            await publisher.Publish(new ContentModeratedEvent(ticket.ContentId, ticket.ContentType, true, req.Reason ?? "Community rules violation", DateTime.UtcNow, adminId), ct);
+            await publisher.Publish(new ContentModeratedEvent(ticket.ContentId, ticket.ContentType, true, req.Reason ?? "Community rules violation", DateTime.UtcNow, adminId, req.DeleteReplies ?? false), ct);
         }
         else if (req.Action == "WarnUser" && req.TargetUserId.HasValue)
         {
@@ -62,7 +65,7 @@ public class Endpoint(ComplianceDbContext dbContext, IPublisher publisher) : End
             });
             
             // Eğer uyarı verildiyse içeriği büyük ihtimal silmek/gizlemek isteriz
-            await publisher.Publish(new ContentModeratedEvent(ticket.ContentId, ticket.ContentType, true, req.Reason ?? "Community rules violation", DateTime.UtcNow, adminId), ct);
+            await publisher.Publish(new ContentModeratedEvent(ticket.ContentId, ticket.ContentType, true, req.Reason ?? "Community rules violation", DateTime.UtcNow, adminId, req.DeleteReplies ?? false), ct);
             
             // 3 Strike Ban Logic
             var userStrikeCount = await dbContext.UserStrikes
@@ -84,6 +87,18 @@ public class Endpoint(ComplianceDbContext dbContext, IPublisher publisher) : End
         ticket.ResolvedAt = DateTime.UtcNow;
         
         await dbContext.SaveChangesAsync(ct);
+
+        // 4. Bildirim Gönder (Tüm Şikayetçilere)
+        foreach (var reporterId in ticket.ReporterIds)
+        {
+            await notificationService.SendSystemNotificationAsync(
+                reporterId,
+                "Şikayetiniz Çözümlendi",
+                $"'{ticket.ContentType}' hakkındaki şikayetiniz incelendi ve '{req.Action}' aksiyonu alındı.",
+                $"/compliance/tickets/{ticket.Id}",
+                ct);
+        }
+        
         await Send.ResponseAsync(Result<string>.Success($"Bilet '{req.Action}' olarak başarıyla çözümlendi."), 200, ct);
     }
 }

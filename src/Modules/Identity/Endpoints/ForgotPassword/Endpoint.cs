@@ -5,8 +5,11 @@ using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Services;
 
+using Epiknovel.Shared.Core.Attributes;
+
 namespace Epiknovel.Modules.Identity.Endpoints.ForgotPassword;
 
+[AuditLog("Şifre Sıfırlama İstendi")]
 public class Endpoint(UserManager<User> userManager, IEmailService emailService) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()

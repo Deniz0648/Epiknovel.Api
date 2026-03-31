@@ -7,6 +7,7 @@ using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Modules.Identity.Data;
 using Microsoft.Extensions.Configuration;
+using System.Security.Claims;
 
 namespace Epiknovel.Modules.Identity.Endpoints.RefreshToken;
 
@@ -44,15 +45,16 @@ public class Endpoint(
             return;
         }
 
-        // 2. Token Rotaion: Eski session'ı sil ve yenisini oluştur
+        // 2. Token Rotation: Eski session'ı sil ve yenisini oluştur
+        var jti = Guid.NewGuid().ToString(); // JTI'yı şimdi üretiyoruz ki session'a kaydedelim
         dbContext.UserSessions.Remove(session);
         
         var newRefreshToken = Guid.NewGuid().ToString("N");
-        var newExpiryDate = DateTime.UtcNow.AddMinutes(15);
         var newSession = new UserSession
         {
             UserId = user.Id,
             RefreshToken = newRefreshToken,
+            AccessTokenJti = jti, // Yeni JWT'yi kaydediyoruz
             ExpiryDate = DateTime.UtcNow.AddDays(7),
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
@@ -61,20 +63,31 @@ public class Endpoint(
         dbContext.UserSessions.Add(newSession);
         await dbContext.SaveChangesAsync(ct);
 
-        // 3. Yeni JWT Üretimi
+        // 3. Yeni JWT Üretimi (Roller Dahil!)
+        var roles = await userManager.GetRolesAsync(user);
+        var expiryDate = DateTime.UtcNow.AddMinutes(60);
+        
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? configuration["JWT_SECRET"]
+            ?? throw new InvalidOperationException("CRITICAL: JWT_SECRET environment variable is missing!");
+
         var jwtToken = JwtBearer.CreateToken(o =>
         {
-            o.SigningKey = configuration["Jwt:Secret"]!;
-            o.ExpireAt = newExpiryDate;
-            o.User.Claims.Add(new("sub", user.Id.ToString()));
-            o.User.Claims.Add(new("email", user.Email!));
+            o.SigningKey = jwtSecret;
+            o.ExpireAt = expiryDate;
+            o.User.Claims.Add(new(ClaimTypes.NameIdentifier, user.Id.ToString()));
+            o.User.Claims.Add(new(ClaimTypes.Email, user.Email!));
+            o.User.Claims.Add(new(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, jti));
+            foreach (var role in roles)
+            {
+                o.User.Claims.Add(new(ClaimTypes.Role, role));
+            }
         });
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {
             AccessToken = jwtToken,
             RefreshToken = newRefreshToken,
-            ExpiryDate = newExpiryDate
+            ExpiryDate = expiryDate
         }), 200, ct);
     }
 }

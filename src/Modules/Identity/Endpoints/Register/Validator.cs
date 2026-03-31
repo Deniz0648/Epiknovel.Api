@@ -16,7 +16,7 @@ public class Validator : Validator<Request>
             .MinimumLength(6).WithMessage("Şifre en az 6 karakter olmalıdır.");
 
         RuleFor(x => x.DisplayName)
-            .NotEmpty().WithMessage("Görünen ad gereklidir.")
-            .MinimumLength(3).WithMessage("Görünen ad en az 3 karakter olmalıdır.");
+            .MinimumLength(3).WithMessage("Görünen ad en az 3 karakter olmalıdır.")
+            .When(x => !string.IsNullOrWhiteSpace(x.DisplayName));
     }
 }

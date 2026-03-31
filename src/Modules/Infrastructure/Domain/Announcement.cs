@@ -13,16 +13,4 @@ public class Announcement : BaseEntity, ISoftDelete
     public bool IsPinned { get; set; }
     
     public DateTime? ExpiresAt { get; set; }
-
-    // ISoftDelete Implementation
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
-    {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
-    }
 }

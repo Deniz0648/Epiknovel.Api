@@ -45,5 +45,26 @@ public class BOLAValidationPreProcessor : IGlobalPreProcessor
                 ownable.UserId = currentUserId;
             }
         }
+
+        // --- IMPERSONATION SECURITY CHECK ---
+        var isImpersonated = context.HttpContext.User.HasClaim(c => c.Type == "IsImpersonated" && c.Value == "true");
+        if (isImpersonated)
+        {
+            var path = context.HttpContext.Request.Path.Value?.ToLowerInvariant() ?? "";
+            
+            // Financial or Security related endpoints
+            var isSensitive = path.Contains("/wallet") || 
+                              path.Contains("/payout") || 
+                              path.Contains("/purchase") || 
+                              path.Contains("/password") || 
+                              path.Contains("/security") ||
+                              path.Contains("/withdraw");
+
+            if (isSensitive)
+            {
+                await context.HttpContext.Response.SendAsync(Result<object>.Failure("Görüntüleme modunda finansal veya güvenlik işlemleri yapılamaz."), 403, cancellation: ct);
+                return;
+            }
+        }
     }
 }

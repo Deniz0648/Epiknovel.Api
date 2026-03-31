@@ -3,6 +3,13 @@ using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Management.Domain;
 
+public enum DiscountScope
+{
+    Global,
+    Category,
+    Book
+}
+
 public enum DiscountType
 {
     Percentage,
@@ -11,7 +18,9 @@ public enum DiscountType
 
 public class Discount : BaseEntity, ISoftDelete
 {
-    public string Code { get; set; } = string.Empty; // Kupon Kodu
+    public string? Code { get; set; } // Kupon Kodu (Optional)
+    public DiscountScope Scope { get; set; } = DiscountScope.Global;
+    public Guid? TargetId { get; set; } // CategoryId or BookId
     public DiscountType Type { get; set; }
     public decimal Value { get; set; } // %20 veya 50 Coin indirim
     
@@ -21,15 +30,4 @@ public class Discount : BaseEntity, ISoftDelete
     public int? UsageLimit { get; set; }
     public int UsedCount { get; set; }
     public bool IsActive { get; set; } = true;
-
-    // ISoftDelete Implementation
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
-    {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
-    }
 }

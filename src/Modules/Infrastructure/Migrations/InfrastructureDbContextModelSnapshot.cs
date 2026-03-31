@@ -57,6 +57,9 @@ namespace Epiknovel.Modules.Infrastructure.Migrations
                     b.Property<bool>("IsPinned")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");
@@ -86,6 +89,12 @@ namespace Epiknovel.Modules.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
@@ -94,6 +103,9 @@ namespace Epiknovel.Modules.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
 
                     b.Property<string>("Question")
                         .IsRequired()

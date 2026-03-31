@@ -25,15 +25,4 @@ public class SupportTicket : BaseEntity, ISoftDelete, IOwnable
 
     // Modül içi navigasyon
     public virtual ICollection<SupportTicketMessage> Messages { get; set; } = new List<SupportTicketMessage>();
-
-    // ISoftDelete Implementation
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
-    {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
-    }
 }

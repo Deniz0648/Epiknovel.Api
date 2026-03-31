@@ -14,13 +14,19 @@ public class ReviewCreatedHandler(BooksDbContext dbContext) : INotificationHandl
 
         if (book == null) return;
 
-        // Gerçek zamanlı Ortalama Puan Hesaplama (veya sonradan asenkron olarak da yapılabilir)
-        // Burada basitçe (EskiToplam + YeniPuan) / (EskiCount + 1) yapıyoruz.
-        // Not: Review bazlı rating genelde Reviews tablosundan SUM/COUNT ile çekilse daha sağlıklı olur ama cache olarak tutuyoruz.
-        
-        var totalRating = book.AverageRating * book.VoteCount;
-        book.VoteCount++;
-        book.AverageRating = (totalRating + notification.Rating) / book.VoteCount;
+        if (notification.OldRating.HasValue)
+        {
+            // Güncelleme Durumu: VoteCount artmaz, sadece toplam değer değişir
+            var currentTotal = book.AverageRating * book.VoteCount;
+            book.AverageRating = (currentTotal - notification.OldRating.Value + notification.Rating) / book.VoteCount;
+        }
+        else
+        {
+            // Yeni İnceleme Durumu
+            var currentTotal = book.AverageRating * book.VoteCount;
+            book.VoteCount++;
+            book.AverageRating = (currentTotal + notification.Rating) / book.VoteCount;
+        }
 
         await dbContext.SaveChangesAsync(ct);
     }

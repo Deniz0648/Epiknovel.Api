@@ -74,8 +74,14 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("LikeCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
 
                     b.Property<Guid?>("ParentCommentId")
                         .HasColumnType("uuid");
@@ -136,8 +142,14 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("LikeCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ParagraphId")
                         .HasColumnType("uuid");
@@ -253,8 +265,14 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<bool>("IsEditorChoice")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("LikeCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
 
                     b.Property<double>("Rating")
                         .HasColumnType("double precision");

@@ -24,6 +24,7 @@ public class Endpoint(
     {
         Post("/identity/login");
         AllowAnonymous();
+        Throttle(6, 60); // 1 dakikada 6 giriş denemesi (Kaba kuvvet saldırı koruması)
         Summary(s => {
             s.Summary = "Kullanıcı girişi yapar.";
             s.Description = "E-posta ve şifre ile JWT ve Refresh Token üretir.";
@@ -40,8 +41,14 @@ public class Endpoint(
             return;
         }
 
-        // 1. Şifre Kontrolü
-        var result = await signInManager.CheckPasswordSignInAsync(user, req.Password, false);
+        // 1. Şifre Kontrolü (Lockout aktif edildi)
+        var result = await signInManager.CheckPasswordSignInAsync(user, req.Password, true);
+
+        if (result.IsLockedOut)
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Hesabınız çok sayıda hatalı giriş denemesi nedeniyle geçici olarak kilitlenmiştir. Lütfen 15 dakika sonra tekrar deneyin."), 403, ct);
+            return;
+        }
 
         // 2FA Koruması (Hardening)
         if (result.RequiresTwoFactor)
@@ -61,13 +68,18 @@ public class Endpoint(
 
         // 3. Access Token (JWT) Üretimi + JTI (Blacklisting için)
         var jti = Guid.NewGuid().ToString();
-        var expiryDate = DateTime.UtcNow.AddMinutes(15);
+        var expiryDate = DateTime.UtcNow.AddMinutes(60);
+        // JWT Secret Okuma (Strict .env Enforcement)
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? configuration["JWT_SECRET"]
+            ?? throw new InvalidOperationException("CRITICAL: JWT_SECRET environment variable is missing!");
+
         var jwtToken = JwtBearer.CreateToken(o =>
         {
-            o.SigningKey = configuration["Jwt:Secret"]!;
+            o.SigningKey = jwtSecret;
             o.ExpireAt = expiryDate;
-            o.User.Claims.Add(new("sub", user.Id.ToString()));
-            o.User.Claims.Add(new("email", user.Email!));
+            o.User.Claims.Add(new(ClaimTypes.NameIdentifier, user.Id.ToString()));
+            o.User.Claims.Add(new(ClaimTypes.Email, user.Email!));
+            o.User.Claims.Add(new("sub", user.Id.ToString())); // sub claimi bazı middleware'ler için gerekebilir
             o.User.Claims.Add(new(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, jti));
             foreach (var role in roles)
             {
@@ -81,6 +93,7 @@ public class Endpoint(
         {
             UserId = user.Id,
             RefreshToken = refreshToken,
+            AccessTokenJti = jti, // JWT'yi oturuma bağla
             ExpiryDate = DateTime.UtcNow.AddDays(7),
             IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             UserAgent = HttpContext.Request.Headers.UserAgent.ToString()

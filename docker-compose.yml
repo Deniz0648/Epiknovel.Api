@@ -1,7 +1,9 @@
 services:
-  # 🐘 Veritabanı (PostgreSQL) - Dış portlar KAPATILDI
+  # 🐘 Veritabanı (PostgreSQL)
   postgres_db:
     image: postgres:17-alpine
+    ports:
+      - "5432:5432"
     container_name: epiknovel_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -10,53 +12,60 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # 🚄 Önbellek & Oturum (Redis) - Dış portlar KAPATILDI
+  # 🚄 Önbellek & Oturum (Redis)
   redis_cache:
     image: redis:8-alpine
     container_name: epiknovel_cache
-    # ports: - "6379:6379" # Sadece iç ağdan erişilebilir.
     volumes:
       - redis_data:/data
 
-  # 🚀 Ana API (Epiknovel.api) - Dış portlar KAPATILDI
+  # 🚀 Ana API
   epiknovel_api:
     build:
       context: .
       dockerfile: Epiknovel.api/Dockerfile
     container_name: epiknovel_api
+    ports:
+      - "8080:8080"
     depends_on:
       postgres_db:
         condition: service_healthy
       redis_cache:
         condition: service_started
     volumes:
-      - ./Uploads:/app/Uploads # Yerel dosya depolama (Hardening)
+      - ./Uploads:/app/wwwroot/uploads
+      - ./SecureDocs:/app/SecureDocs
+      - ./Keys:/app/Keys
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       DB_CONNECTION: ${DB_CONNECTION}
       REDIS_CONNECTION: ${REDIS_CONNECTION}
       JWT_SECRET: ${JWT_SECRET}
+      Jwt__Secret: ${JWT_SECRET}
+      API_KEY: ${API_KEY}
+      MEDIATR_LICENSE_KEY: ${MEDIATR_LICENSE_KEY}
 
-  # 🛡️ Proxy (Caddy H3) - TEK GİRİŞ KAPISI
-  caddy_proxy:
-    image: caddy:latest
-    container_name: epiknovel_proxy
+  # 💻 Kullanıcı Arayüzü (Next.js)
+  epiknovel_web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: epiknovel_web
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp" # HTTP/3 (QUIC)
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
+      - "3000:3000"
     depends_on:
       - epiknovel_api
+    environment:
+      - NODE_ENV=production
+      - API_BASE_URL=http://epiknovel_api:8080/api
 
 volumes:
   postgres_data:
   redis_data:
-  caddy_data:
+  epiknovel_keys:
+

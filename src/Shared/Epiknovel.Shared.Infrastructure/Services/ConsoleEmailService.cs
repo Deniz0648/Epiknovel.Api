@@ -6,7 +6,7 @@ namespace Epiknovel.Shared.Infrastructure.Services;
 
 public class ConsoleEmailService(ILogger<ConsoleEmailService> logger) : IEmailService
 {
-    public Task SendEmailAsync(string to, string subject, string body)
+    public Task SendEmailAsync(string to, string subject, string body, CancellationToken ct = default)
     {
         logger.LogInformation("================ EMAIL SENT ================");
         logger.LogInformation("To: {To}", to);

@@ -8,4 +8,5 @@ public class Response
     public string? AvatarUrl { get; set; }
     public int FollowersCount { get; set; }
     public int FollowingCount { get; set; }
+    public bool EmailConfirmed { get; set; }
 }

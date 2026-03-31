@@ -11,7 +11,7 @@ public static class WalletModuleExtensions
     public static IServiceCollection AddWalletModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<WalletDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "wallet")));
 
         services.AddScoped<IWalletProvider, WalletProvider>();
         services.AddScoped<IIyzicoService, IyzicoService>();

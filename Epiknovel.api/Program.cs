@@ -33,10 +33,7 @@ var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "super-secre
 var redisConn = Environment.GetEnvironmentVariable("REDIS_CONNECTION") ?? "localhost:6379";
 var dbConn = Environment.GetEnvironmentVariable("DB_CONNECTION") ?? "Host=localhost;Database=epiknovel_db;Username=postgres;Password=password";
 
-// 2. Altyapı ve Modüllerin Kaydı
-builder.Services.AddSharedInfrastructure(jwtSecret, redisConn, dbConn);
-
-// Tüm Modülleri Kendi Yapılandırmalarıyla Kaydediyoruz
+// 2. Modüllerin Kaydı
 builder.Services.AddIdentityModule(dbConn);
 builder.Services.AddUsersModule(dbConn);
 builder.Services.AddBooksModule(dbConn);
@@ -47,15 +44,28 @@ builder.Services.AddSearchModule(dbConn);
 builder.Services.AddWalletModule(dbConn);
 builder.Services.AddManagementModule(dbConn);
 
-// 3. FastEndpoints (Assembly Scanning)
+// 2.1 Altyapının Kaydı (Tüm modüllerden sonra olmalı ki Auth ayarları ezilmesin)
+builder.Services.AddSharedInfrastructure(builder.Configuration, redisConn, dbConn);
+
+// 3. FastEndpoints (Açık Montaj Taraması - Modüler Monolith için en güvenli yöntem)
 builder.Services.AddFastEndpoints(o =>
 {
-    o.Assemblies = AppDomain.CurrentDomain.GetAssemblies()
-        .Where(a => a.FullName != null && 
-                   (a.FullName.StartsWith("Epiknovel.Modules") || 
-                    a.FullName.StartsWith("Epiknovel.Shared.Infrastructure")))
-        .ToArray();
+    o.Assemblies = new[]
+    {
+        typeof(Epiknovel.Modules.Identity.IdentityModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Users.UsersModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Books.BooksModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Social.SocialModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Infrastructure.InfrastructureModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Management.ManagementModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Compliance.ComplianceModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Search.SearchModuleExtensions).Assembly,
+        typeof(Epiknovel.Modules.Wallet.WalletModuleExtensions).Assembly,
+        typeof(Epiknovel.Shared.Infrastructure.InfrastructureExtensions).Assembly
+
+    };
 });
+
 
 var app = builder.Build();
 
@@ -76,28 +86,38 @@ using (var scope = app.Services.CreateScope())
         services.GetRequiredService<InfrastructureDbContext>()
     };
 
+    Console.WriteLine($"[DB INIT] Running in environment: {app.Environment.EnvironmentName}");
+
     foreach (var context in contexts)
     {
+        var contextName = context.GetType().Name;
         try 
         {
-            // Npgsql için şemaları elle oluştur (EnsureCreated her zaman şemayı oluşturmayabilir)
-            var schema = context.Model.GetDefaultSchema();
-            if (!string.IsNullOrEmpty(schema))
-            {
-                // SQL-injection warning (EF1002) avoidance: Identifiers can't be parameterized, but we know schema is from model
-                await context.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS \"" + schema + "\";");
-            }
-            
-            await context.Database.EnsureCreatedAsync();
+            var schema = context.Model.GetDefaultSchema() ?? "public";
+            Console.WriteLine($"[DB INIT] Processing {contextName} (Schema: {schema})...");
+
+            // Use raw string formatting for schema creation (safe as schema names are controlled)
+            #pragma warning disable EF1002
+            await context.Database.ExecuteSqlRawAsync($"CREATE SCHEMA IF NOT EXISTS \"{schema}\";");
+            #pragma warning restore EF1002
+
+            // 🚀 Otomatik Migration Uygulama 🚀
+            await context.Database.MigrateAsync();
+            Console.WriteLine($"[DB INIT] {contextName} migrated successfully.");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DB Init Error] {context.GetType().Name}: {ex.Message}");
+             Console.WriteLine($"[DB GLOBAL ERROR] {contextName}: {ex.Message}");
         }
     }
     
-    // Rollerimizi Oluşturalım
-    await IdentityModuleExtensions.SeedRolesAsync(services);
+    // Rollerimizi ve Şablonlarımızı Oluşturalım
+    try {
+        await IdentityModuleExtensions.SeedRolesAsync(services);
+        await ManagementModuleExtensions.SeedTemplatesAsync(services);
+    } catch (Exception ex) {
+        Console.WriteLine($"[DB SEED ERROR]: {ex.Message}");
+    }
 }
 
 // 5. Pipeline & Scalar UI
@@ -115,5 +135,8 @@ if (app.Environment.IsDevelopment() || true)
 }
 
 app.UseSharedPipeline();
+
+// Real-time Support Module Map
+app.MapHub<Epiknovel.Modules.Management.Hubs.SupportTicketHub>("/hubs/support");
 
 app.Run();

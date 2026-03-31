@@ -6,6 +6,7 @@ using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
 using MediatR;
 using Epiknovel.Shared.Core.Events;
+using Microsoft.AspNetCore.Builder;
 
 namespace Epiknovel.Modules.Social.Endpoints.Reviews.Add;
 
@@ -16,14 +17,15 @@ public record Request
     public double Rating { get; init; } // 1-5
 }
 
-public class Endpoint(SocialDbContext dbContext, IMediator mediator) : Endpoint<Request, Result<Guid>>
+public class Endpoint(SocialDbContext dbContext, IMediator mediator, Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider) : Endpoint<Request, Result<Guid>>
 {
     public override void Configure()
     {
         Post("/social/reviews");
+        Options(x => x.RequireRateLimiting("SocialPolicy"));
         Summary(s => {
             s.Summary = "Kitap incelemesi ekle";
-            s.Description = "Kullanıcıların bir kitap hakkında puan verip detaylı inceleme yazmasını sağlar.";
+            s.Description = "Kullanıcıların bir kitap hakkında puan verip detaylı inceleme yazmasını sağlar (Dakikada 15 işlem limiti).";
         });
     }
 
@@ -36,34 +38,51 @@ public class Endpoint(SocialDbContext dbContext, IMediator mediator) : Endpoint<
             return;
         }
 
-        // Bir kullanıcı her kitaba sadece 1 inceleme yapabilir? (Genel kural)
-        var existing = await dbContext.Reviews
-            .AnyAsync(r => r.BookId == req.BookId && r.UserId == userId, ct);
-
-        if (existing)
+        // Kitap silinmiş mi? (Soft Deleted kitaba inceleme yazılamaz)
+        var bookActive = await bookProvider.IsBookActiveAsync(req.BookId, ct);
+        if (!bookActive)
         {
-            await Send.ResponseAsync(Result<Guid>.Failure("Bu kitaba zaten bir inceleme yapmışsınız."), 400, ct);
+            await Send.ResponseAsync(Result<Guid>.Failure("Kitap bulunamadı veya silinmiş."), 404, ct);
             return;
         }
 
-        var review = new Review
-        {
-            UserId = userId,
-            BookId = req.BookId,
-            Content = req.Content,
-            Rating = Math.Clamp(req.Rating, 1, 5),
-            CreatedAt = DateTime.UtcNow
-        };
+        // Bir kullanıcı her kitaba sadece 1 inceleme yapabilir. Eğer varsa güncelle.
+        var review = await dbContext.Reviews
+            .FirstOrDefaultAsync(r => r.BookId == req.BookId && r.UserId == userId, ct);
 
-        dbContext.Reviews.Add(review);
+        double? oldRating = null;
+        bool isUpdate = review != null;
+        if (!isUpdate)
+        {
+            review = new Review
+            {
+                UserId = userId,
+                BookId = req.BookId,
+            };
+            dbContext.Reviews.Add(review);
+        }
+        else 
+        {
+            oldRating = review!.Rating;
+        }
+
+        // 4. İncelemeyi Kaydet (XSS Koruması)
+        var sanitizer = new Ganss.Xss.HtmlSanitizer();
+        review.Content = sanitizer.Sanitize(req.Content);
+        review.Rating = Math.Clamp(req.Rating, 1, 5);
+        review.CreatedAt = DateTime.UtcNow; 
+
         await dbContext.SaveChangesAsync(ct);
 
         // Domain Event'i yayınla (Books modülünün ortalama puanı güncellemesi için)
+        // Tabakaları ayırmak için her durumda 'ReviewCreatedEvent' (veya isterseniz 'ReviewUpdatedEvent') fırlatıyoruz.
+        // Books modülündeki handler her iki durumu da puanı yeniden hesaplayarak yönetebilir.
         await mediator.Publish(new ReviewCreatedEvent(
             review.Id,
             review.BookId,
             review.UserId,
             review.Rating,
+            oldRating, // Eski puanı (varsa) gönder
             review.Content,
             review.CreatedAt), ct);
 

@@ -5,9 +5,11 @@ namespace Epiknovel.Modules.Books.Domain;
 
 public enum BookStatus
 {
-    Ongoing,
-    Completed,
-    Hiatus
+    Draft,      // Henüz yayınlanmamış, sadece yazar görür
+    Ongoing,    // Devam eden
+    Completed,  // Tamamlanmış
+    Hiatus,     // Ara verilmiş
+    Published   // Halka açık keşif sayfasında görünür
 }
 
 public enum ContentRating
@@ -52,14 +54,9 @@ public class Book : BaseEntity, ISoftDelete, IOwnable, ISlugified
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 
-    // ISoftDelete Implementation (BaseEntity.IsDeleted kullanılıyor)
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
+    public override void UndoDelete()
     {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
+        base.UndoDelete();
+        IsHidden = false;
     }
 }

@@ -11,7 +11,7 @@ public static class UsersModuleExtensions
     public static IServiceCollection AddUsersModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<UsersDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "users")));
 
         // 1. Services Register
         services.AddScoped<IFileUsageProvider, UsersFileUsageProvider>();

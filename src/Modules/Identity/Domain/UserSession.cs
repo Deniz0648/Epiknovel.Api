@@ -9,6 +9,7 @@ public class UserSession : IOwnable
     public Guid UserId { get; set; }
     
     public string RefreshToken { get; set; } = string.Empty;
+    public string? AccessTokenJti { get; set; } // İlişkili JWT'nin benzersiz ID'si
     public string UserAgent { get; set; } = string.Empty;
     public string IpAddress { get; set; } = string.Empty;
 

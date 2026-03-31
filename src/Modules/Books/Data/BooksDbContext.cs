@@ -22,15 +22,16 @@ public class BooksDbContext(DbContextOptions<BooksDbContext> options) : DbContex
         // 3. Konfigürasyonlar
         modelBuilder.Entity<Book>(b => {
             b.ToTable("Books");
-            b.HasIndex(x => x.Slug).IsUnique();
+            b.HasIndex(x => x.Slug).IsUnique().HasFilter("\"IsDeleted\" = false");
             b.HasQueryFilter(x => !x.IsDeleted); // Çöp kutusu filtreleme
         });
 
         modelBuilder.Entity<Chapter>(b => {
            b.ToTable("Chapters");
-           b.HasIndex(x => x.Slug).IsUnique();
-           b.HasIndex(x => new { x.BookId, x.Order }).IsUnique(); // Race condition prevention
-           b.HasQueryFilter(x => !x.IsDeleted);
+           b.HasIndex(x => x.Slug).IsUnique().HasFilter("\"IsDeleted\" = false");
+           // Kitap içindeki bölüm sırası benzersiz olmalı (Aktif bölümler için)
+           b.HasIndex(x => new { x.BookId, x.Order }).IsUnique().HasFilter("\"IsDeleted\" = false"); 
+           b.HasQueryFilter(x => !x.IsDeleted && !x.Book.IsDeleted);
         });
 
         modelBuilder.Entity<Paragraph>(b => b.ToTable("Paragraphs"));

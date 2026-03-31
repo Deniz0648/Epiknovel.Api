@@ -5,8 +5,11 @@ using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
 
+using Epiknovel.Shared.Core.Attributes;
+
 namespace Epiknovel.Modules.Identity.Endpoints.ConfirmChangeEmail;
 
+[AuditLog("E-posta Değiştirme Onaylandı")]
 public class Endpoint(UserManager<User> userManager) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()

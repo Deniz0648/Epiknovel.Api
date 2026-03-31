@@ -18,14 +18,14 @@ public class Review : BaseEntity, ISoftDelete, IOwnable
     public int LikeCount { get; set; }
     public bool IsEditorChoice { get; set; }
 
-    // ISoftDelete Implementation
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
+    public bool IsHidden { get; set; }
 
-    public void UndoDelete()
+    public override void UndoDelete()
     {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
+        base.UndoDelete();
+        IsHidden = false;
     }
+
+    // IOwnable Implementation
+    public Guid OwnerId => UserId;
 }

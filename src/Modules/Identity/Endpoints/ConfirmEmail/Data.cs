@@ -9,4 +9,6 @@ public class Request
 public class Response 
 {
     public string Message { get; set; } = string.Empty;
+    public string? AccessToken { get; set; }
+    public string? RefreshToken { get; set; }
 }

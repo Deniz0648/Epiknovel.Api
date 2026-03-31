@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="epik-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5b6cff" />
+      <stop offset="100%" stop-color="#ff5f7a" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#141926" />
+  <path d="M18 22c0-2.21 1.79-4 4-4h20a4 4 0 0 1 4 4v20c0 2.21-1.79 4-4 4H22a4 4 0 0 1-4-4V22Z" fill="url(#epik-gradient)" opacity="0.9" />
+  <path d="M26 24h14c3.31 0 6 2.69 6 6v4c0 5.52-4.48 10-10 10h-10V24Z" fill="#f8fafc" opacity="0.95" />
+  <path d="M30 28h9.5a3.5 3.5 0 1 1 0 7H30v-7Zm0 11h12" fill="none" stroke="#141926" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

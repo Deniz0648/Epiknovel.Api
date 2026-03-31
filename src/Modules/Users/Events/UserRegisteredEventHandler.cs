@@ -11,8 +11,15 @@ public class UserRegisteredEventHandler(UsersDbContext dbContext) : INotificatio
 {
     public async Task Handle(UserRegisteredEvent notification, CancellationToken ct)
     {
+        var resolvedDisplayName = ResolveDisplayName(notification.DisplayName);
+
         // 1. Temel Slug Üretimi
-        var baseSlug = SlugHelper.ToSlug(notification.DisplayName);
+        var baseSlug = SlugHelper.ToSlug(resolvedDisplayName);
+        if (string.IsNullOrWhiteSpace(baseSlug))
+        {
+            baseSlug = "okur";
+        }
+
         var slug = baseSlug;
         var suffix = 1;
 
@@ -26,7 +33,7 @@ public class UserRegisteredEventHandler(UsersDbContext dbContext) : INotificatio
         var profile = new UserProfile
         {
             UserId = notification.UserId,
-            DisplayName = notification.DisplayName,
+            DisplayName = resolvedDisplayName,
             Slug = slug,
             Bio = "Yeni okur/yazar merhaba diyor!",
             TotalFollowers = 0,
@@ -35,5 +42,15 @@ public class UserRegisteredEventHandler(UsersDbContext dbContext) : INotificatio
 
         dbContext.UserProfiles.Add(profile);
         await dbContext.SaveChangesAsync(ct);
+    }
+
+    private static string ResolveDisplayName(string? displayName)
+    {
+        if (!string.IsNullOrWhiteSpace(displayName))
+        {
+            return displayName.Trim();
+        }
+
+        return "Okur";
     }
 }

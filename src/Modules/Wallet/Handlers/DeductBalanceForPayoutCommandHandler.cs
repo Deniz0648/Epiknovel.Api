@@ -1,0 +1,45 @@
+using Epiknovel.Modules.Wallet.Data;
+using Epiknovel.Modules.Wallet.Domain;
+using Epiknovel.Shared.Core.Commands.Wallet;
+using Epiknovel.Shared.Core.Models;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+
+namespace Epiknovel.Modules.Wallet.Handlers;
+
+public class DeductBalanceForPayoutCommandHandler(WalletDbContext dbContext) : IRequestHandler<DeductBalanceForPayoutCommand, Result<string>>
+{
+    public async Task<Result<string>> Handle(DeductBalanceForPayoutCommand request, CancellationToken ct)
+    {
+        var wallet = await dbContext.Wallets
+            .Include(w => w.Transactions)
+            .FirstOrDefaultAsync(w => w.UserId == request.UserId, ct);
+
+        if (wallet == null)
+            return Result<string>.Failure("Wallet not found for the user.");
+
+        if (wallet.RevenueBalance < request.Amount)
+            return Result<string>.Failure("Insufficient balance.");
+
+        // Deduct balance
+        wallet.RevenueBalance -= request.Amount;
+
+        // Log transaction
+        wallet.Transactions.Add(new WalletTransaction
+        {
+            UserId = request.UserId,
+            CoinAmount = 0, // It's a revenue (fiat) withdrawal
+            FiatAmount = -request.Amount,
+            Type = TransactionType.Withdrawal,
+            ReferenceId = request.PayoutRequestId,
+            Description = $"Payout request approved. Request ID: {request.PayoutRequestId}",
+            CreatedAt = DateTime.UtcNow
+        });
+
+        var result = await dbContext.SaveChangesAsync(ct);
+        
+        return result > 0 
+            ? Result<string>.Success("Balance deducted successfully.") 
+            : Result<string>.Failure("Failed to persist balance changes.");
+    }
+}

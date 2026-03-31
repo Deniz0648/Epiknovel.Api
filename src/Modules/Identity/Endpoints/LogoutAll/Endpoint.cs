@@ -10,14 +10,16 @@ using Epiknovel.Shared.Core.Attributes;
 namespace Epiknovel.Modules.Identity.Endpoints.LogoutAll;
 
 [AuditLog("Tüm Oturumlardan Çıkış Yapıldı")]
-public class Endpoint(IdentityDbContext dbContext) : EndpointWithoutRequest<Result<Response>>
+public class Endpoint(
+    IdentityDbContext dbContext,
+    StackExchange.Redis.IConnectionMultiplexer redis) : EndpointWithoutRequest<Result<Response>>
 {
     public override void Configure()
     {
         Delete("/identity/sessions/all");
         Summary(s => {
             s.Summary = "Tüm cihazlardan çıkış yapar.";
-            s.Description = "Kullanıcıya ait tüm aktif Refresh Token'ları silerek tüm oturumları kapatır.";
+            s.Description = "Kullanıcıya ait tüm aktif Refresh Token'ları siler ve aktif JWT'leri kara listeye alır.";
         });
     }
 
@@ -32,13 +34,24 @@ public class Endpoint(IdentityDbContext dbContext) : EndpointWithoutRequest<Resu
 
         var userId = Guid.Parse(userIdString);
 
-        // 1. Kullanıcıya ait tüm session'ları bul ve sil
+        // 1. Kullanıcıya ait tüm session'ları bul
         var sessions = await dbContext.UserSessions
             .Where(x => x.UserId == userId)
             .ToListAsync(ct);
 
         if (sessions.Any())
         {
+            // 2. TÜM AKTİF JWT'LERİ REDIS BAZLI İPTAL ET (Hardening)
+            var db = redis.GetDatabase();
+            foreach (var s in sessions)
+            {
+                if (!string.IsNullOrEmpty(s.AccessTokenJti))
+                {
+                    // Her cihazdaki aktif JWT'yi 60 dk boyunca kara listeye al
+                    await db.StringSetAsync($"revoked_token:{s.AccessTokenJti}", "1", TimeSpan.FromMinutes(60));
+                }
+            }
+
             dbContext.UserSessions.RemoveRange(sessions);
             await dbContext.SaveChangesAsync(ct);
         }

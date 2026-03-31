@@ -17,7 +17,7 @@ public record Request
     public string? Description { get; init; }
 }
 
-public class Endpoint(SocialDbContext dbContext, IPublisher publisher) : Endpoint<Request, Result<string>>
+public class Endpoint(IPublisher publisher) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {

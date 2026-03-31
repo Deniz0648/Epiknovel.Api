@@ -13,6 +13,10 @@ public class Request : IOwnable
     public bool IsFree { get; set; }
     public int Price { get; set; }
     
+    public bool IsTitleSpoiler { get; set; }
+    public ChapterStatus Status { get; set; } = ChapterStatus.Published;
+    public DateTime? ScheduledPublishDate { get; set; }
+
     /// <summary>
     /// Bölüm içeriği. Her bir eleman bir Paragraph (satır) oluşturur.
     /// </summary>

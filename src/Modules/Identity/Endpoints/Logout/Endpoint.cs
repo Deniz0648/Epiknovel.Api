@@ -40,8 +40,8 @@ public class Endpoint(
         if (!string.IsNullOrEmpty(jti))
         {
             var db = redis.GetDatabase();
-            // JWT 15 dk geçerli olduğu için 15 dk blacklist yeterli
-            await db.StringSetAsync($"jwt:blacklist:{jti}", "1", TimeSpan.FromMinutes(15));
+            // JWT 60 dk geçerli olduğu için 60 dk blacklist yeterli
+            await db.StringSetAsync($"revoked_token:{jti}", "1", TimeSpan.FromMinutes(60));
         }
 
         // 2. Refresh Token'ı bul ve sil

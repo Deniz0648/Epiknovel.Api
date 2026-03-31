@@ -1,0 +1,146 @@
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace Epiknovel.Modules.Users.Migrations
+{
+    /// <inheritdoc />
+    public partial class InitialUsers : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.EnsureSchema(
+                name: "users");
+
+            migrationBuilder.CreateTable(
+                name: "UserAddresses",
+                schema: "users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    FullName = table.Column<string>(type: "text", nullable: false),
+                    Country = table.Column<string>(type: "text", nullable: false),
+                    City = table.Column<string>(type: "text", nullable: false),
+                    District = table.Column<string>(type: "text", nullable: false),
+                    AddressLine = table.Column<string>(type: "text", nullable: false),
+                    ZipCode = table.Column<string>(type: "text", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "text", nullable: false),
+                    TaxNumber = table.Column<string>(type: "text", nullable: true),
+                    TaxOffice = table.Column<string>(type: "text", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    ModerationNote = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserAddresses", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserProfiles",
+                schema: "users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    DisplayName = table.Column<string>(type: "text", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    Bio = table.Column<string>(type: "text", nullable: true),
+                    AvatarUrl = table.Column<string>(type: "text", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastRewardClaimedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    TotalFollowers = table.Column<int>(type: "integer", nullable: false),
+                    TotalFollowing = table.Column<int>(type: "integer", nullable: false),
+                    IsAuthor = table.Column<bool>(type: "boolean", nullable: false),
+                    IsPaidAuthor = table.Column<bool>(type: "boolean", nullable: false),
+                    VerifiedIban = table.Column<string>(type: "text", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    ModerationNote = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserProfiles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Follows",
+                schema: "users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    FollowerId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FollowingId = table.Column<Guid>(type: "uuid", nullable: false),
+                    FollowedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ModerationNote = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Follows", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Follows_UserProfiles_FollowerId",
+                        column: x => x.FollowerId,
+                        principalSchema: "users",
+                        principalTable: "UserProfiles",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Follows_UserProfiles_FollowingId",
+                        column: x => x.FollowingId,
+                        principalSchema: "users",
+                        principalTable: "UserProfiles",
+                        principalColumn: "Id");
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_FollowerId_FollowingId",
+                schema: "users",
+                table: "Follows",
+                columns: new[] { "FollowerId", "FollowingId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Follows_FollowingId",
+                schema: "users",
+                table: "Follows",
+                column: "FollowingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserProfiles_Slug",
+                schema: "users",
+                table: "UserProfiles",
+                column: "Slug",
+                unique: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropTable(
+                name: "Follows",
+                schema: "users");
+
+            migrationBuilder.DropTable(
+                name: "UserAddresses",
+                schema: "users");
+
+            migrationBuilder.DropTable(
+                name: "UserProfiles",
+                schema: "users");
+        }
+    }
+}

@@ -12,15 +12,17 @@ public static class BooksModuleExtensions
     {
         // 1. DbContext Kaydı
         services.AddDbContext<BooksDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "books")));
 
-        // 2. Background Workers (İstatistik Senkronizasyonu)
+        // 2. Background Workers (İstatistik Senkronizasyonu + Zamanlanmış Yayın)
         services.AddHostedService<Epiknovel.Modules.Books.Workers.ChapterStatsSyncWorker>();
+        services.AddHostedService<Epiknovel.Modules.Books.Workers.ScheduledPublishWorker>();
 
         // 3. Services Register
         services.AddScoped<IFileUsageProvider, BooksFileUsageProvider>();
         services.AddScoped<IBookSearchProvider, BookSearchProvider>();
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Books.IBookProvider, BookProvider>();
+        services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IManagementBookProvider, ManagementBookProvider>();
         
         return services;
     }

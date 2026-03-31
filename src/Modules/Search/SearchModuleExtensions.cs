@@ -9,7 +9,7 @@ public static class SearchModuleExtensions
     public static IServiceCollection AddSearchModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<SearchDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "search")));
 
         return services;
     }

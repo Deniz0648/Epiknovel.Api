@@ -5,6 +5,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Formats.Webp;
 using Microsoft.AspNetCore.Hosting;
+using Epiknovel.Shared.Infrastructure.Background;
 
 namespace Epiknovel.Shared.Infrastructure.Services;
 
@@ -14,13 +15,19 @@ public class LocalFileService : IFileService
     private readonly string _secureRootPath;
     private readonly string _baseUrl;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IImageProcessingQueue _imageQueue;
 
-    public LocalFileService(IWebHostEnvironment env, IConfiguration config, IHttpContextAccessor httpContextAccessor)
+    public LocalFileService(
+        IWebHostEnvironment env, 
+        IConfiguration config, 
+        IHttpContextAccessor httpContextAccessor, 
+        IImageProcessingQueue imageQueue)
     {
         _webRootPath = env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        _secureRootPath = config["FileStorage:SecurePath"] ?? @"C:\Epiknovel\SecureDocs";
+        _secureRootPath = config["FileStorage:SecurePath"] ?? "/app/SecureDocs";
         _baseUrl = config["FileStorage:BaseUrl"] ?? string.Empty;
         _httpContextAccessor = httpContextAccessor;
+        _imageQueue = imageQueue;
 
         if (!Directory.Exists(_secureRootPath)) Directory.CreateDirectory(_secureRootPath);
         var publicUploadsPath = Path.Combine(_webRootPath, "uploads");
@@ -41,46 +48,37 @@ public class LocalFileService : IFileService
         if (!await ValidateFileSignature(file))
             throw new InvalidOperationException("Geçersiz dosya içeriği.");
 
-        // 2. Yol Hazırlığı (Public: wwwroot/uploads/category)
+        // 2. Yol Hazırlığı
         var uploadDir = Path.Combine(_webRootPath, "uploads", category);
+        var tempDir = Path.Combine(_webRootPath, "uploads", "temp");
         if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+        if (!Directory.Exists(tempDir)) Directory.CreateDirectory(tempDir);
 
-        // 3. Güvenli İsimlendirme (GUID.webp) - Path Traversal Koruması
-        var fileName = $"{Guid.NewGuid():N}.webp";
-        var fullPath = Path.Combine(uploadDir, fileName);
+        var id = Guid.NewGuid().ToString("N");
+        var fileName = $"{id}.webp";
+        var tempFileName = $"{id}.tmp";
+        
+        var tempPath = Path.Combine(tempDir, tempFileName);
+        var targetPath = Path.Combine(uploadDir, fileName);
 
-        // 4. Görsel İşleme (ImageSharp Policy Check)
-        using (var inputStream = file.OpenReadStream())
-        using (var image = await Image.LoadAsync(inputStream))
+        // 3. Dosyayı Ham Haliyle Geçici Olarak Kaydet (Çok Hızlı)
+        using (var outputStream = new FileStream(tempPath, FileMode.Create))
         {
-            // Eğer özel width/height verilmemişse politikadan al
-            if (width == 0 && height == 0 && _imagePolicies.TryGetValue(category, out var policy))
-            {
-                width = policy.Width;
-                height = policy.Height;
-
-                image.Mutate(x => x.Resize(new ResizeOptions
-                {
-                    Size = new Size(width, height),
-                    Mode = policy.Mode // Crop, Pad veya Max
-                }));
-            }
-            else if (width > 0 || height > 0)
-            {
-                // Manuel boyutlandırma isteği (Eski usul fallback)
-                image.Mutate(x => x.Resize(new ResizeOptions
-                {
-                    Size = new Size(width, height),
-                    Mode = ResizeMode.Max
-                }));
-            }
-
-            // 5. WebP Dönüşümü ve Performans Sıkıştırması
-            // Kaliteyi %80 yaparak hem yüksek hız hem de iyi görsel kalite elde ediyoruz.
-            var encoder = new WebpEncoder { Quality = 80 };
-            await image.SaveAsync(fullPath, encoder);
+            await file.CopyToAsync(outputStream);
         }
 
+        // 4. Arka Plan İşleme Kuyruğuna At (CPU Yükünü Request Thread'den temizle)
+        var mode = ResizeMode.Max;
+        if (width == 0 && height == 0 && _imagePolicies.TryGetValue(category, out var policy))
+        {
+            width = policy.Width;
+            height = policy.Height;
+            mode = policy.Mode;
+        }
+
+        await _imageQueue.EnqueueAsync(new ImageProcessingTask(tempPath, targetPath, width, height, mode));
+
+        // 🚀 İşlem bitmeden ismini dönebiliriz, bir saniye içinde WebP hazır olacaktır.
         return fileName;
     }
 

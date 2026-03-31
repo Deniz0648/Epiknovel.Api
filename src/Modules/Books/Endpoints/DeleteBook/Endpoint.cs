@@ -20,13 +20,18 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        // 1. Kitabı Getir (BOLA: Kendi kitabı mı?)
-        var book = await dbContext.Books
-            .FirstOrDefaultAsync(x => x.Id == req.Id && x.AuthorId == req.UserId, ct);
+        // 1. Kitabı Getir (BOLA: Yetki Kontrolü)
+        var book = await dbContext.Books.FirstOrDefaultAsync(x => x.Id == req.Id, ct);
 
         if (book == null)
         {
-            await Send.ResponseAsync(Result<Response>.Failure("Kitap bulunamadı veya yetkiniz yok."), 404, ct);
+            await Send.ResponseAsync(Result<Response>.Failure("Kitap bulunamadı."), 404, ct);
+            return;
+        }
+
+        if (book.AuthorId != req.UserId)
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Bu işlem için yetkiniz yok."), 403, ct);
             return;
         }
 

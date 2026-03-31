@@ -1,0 +1,149 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes:
+    light --default,
+    dark --prefersdark,
+    acid,
+    autumn,
+    bumblebee,
+    caramellatte,
+    cmyk,
+    corporate,
+    cupcake,
+    cyberpunk,
+    emerald,
+    fantasy,
+    garden,
+    lemonade,
+    lofi,
+    nord,
+    pastel,
+    retro,
+    silk,
+    valentine,
+    winter,
+    wireframe,
+    abyss,
+    aqua,
+    black,
+    business,
+    coffee,
+    dim,
+    dracula,
+    forest,
+    halloween,
+    luxury,
+    night,
+    sunset,
+    synthwave;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 8% -12%, color-mix(in oklab, var(--color-primary) 26%, transparent) 0%, transparent 42%),
+    radial-gradient(circle at 88% 4%, color-mix(in oklab, var(--color-secondary) 26%, transparent) 0%, transparent 40%),
+    linear-gradient(
+      145deg,
+      color-mix(in oklab, var(--color-base-100) 92%, black 8%) 0%,
+      var(--color-base-200) 48%,
+      color-mix(in oklab, var(--color-base-300) 78%, black 22%) 100%
+    );
+  color: var(--color-base-content);
+}
+
+.glass-frame {
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 14%, transparent);
+  background: color-mix(in oklab, var(--color-base-100) 68%, transparent);
+  box-shadow: 0 24px 60px rgba(8, 14, 24, 0.18);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border-radius: 1.5rem;
+}
+
+.glass-island {
+  border: 1px solid color-mix(in oklab, var(--color-base-content) 18%, transparent);
+  background: color-mix(in oklab, var(--color-base-100) 78%, transparent);
+  box-shadow: 0 20px 52px rgba(8, 14, 24, 0.16);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+.glass-dropdown {
+  background: color-mix(in oklab, var(--color-base-100) 84%, transparent);
+}
+
+.header-link {
+  color: color-mix(in oklab, var(--color-base-content) 88%, transparent);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  text-underline-offset: 0.32em;
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.header-link:hover,
+.header-link:focus-visible {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--color-primary) 74%, transparent);
+}
+
+.header-link-filled,
+.header-link-filled:hover,
+.header-link-filled:focus-visible {
+  color: var(--color-primary-content);
+  text-decoration: none;
+}
+
+@keyframes hero-slide-enter {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--slide-offset, 22px), 0, 0) scale(0.99);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.hero-slide-enter {
+  animation: hero-slide-enter 560ms cubic-bezier(0.22, 1, 0.36, 1) 90ms both;
+  will-change: opacity, transform, filter;
+}
+
+.hero-title-gradient {
+  background-image: linear-gradient(
+    98deg,
+    var(--color-base-content) 0%,
+    color-mix(in oklab, var(--color-base-content) 72%, var(--color-primary) 28%) 34%,
+    var(--color-primary) 68%,
+    var(--color-secondary) 100%
+  );
+  background-size: 120% 100%;
+  background-position: left center;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.auth-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slide-enter {
+    animation: none;
+  }
+}

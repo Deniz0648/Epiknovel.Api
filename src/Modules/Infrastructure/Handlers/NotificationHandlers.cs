@@ -3,6 +3,7 @@ using Epiknovel.Shared.Core.Events;
 using Epiknovel.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.SignalR;
 using Epiknovel.Shared.Infrastructure.Hubs;
+using Polly;
 
 namespace Epiknovel.Modules.Infrastructure.Handlers;
 
@@ -14,12 +15,32 @@ public class NotificationHandlers(
     INotificationHandler<PaidAuthorApplicationReviewedEvent>,
     INotificationHandler<InvoiceUploadedEvent>,
     INotificationHandler<OrderPaidEvent>,
-    INotificationHandler<UserRoleUpdatedEvent>
+    INotificationHandler<UserRoleUpdatedEvent>,
+    INotificationHandler<CommentCreatedEvent>
 {
+    // Polly Resiliency Policy: 3 kez dene, her seferinde bekleme süresini artır (Exponential Backoff)
+    private readonly IAsyncPolicy _retryPolicy = Policy
+        .Handle<Exception>()
+        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
+
     private async Task PushRealTimeAsync(Guid userId, string method, object data, CancellationToken ct)
     {
-        // SignalR üzerinden kullanıcıya anlık bildirim fırlat
-        await hubContext.Clients.User(userId.ToString()).SendAsync(method, data, ct);
+        await _retryPolicy.ExecuteAsync(async () => 
+        {
+            // SignalR üzerinden kullanıcıya anlık bildirim fırlat
+            await hubContext.Clients.User(userId.ToString()).SendAsync(method, data, ct);
+        });
+    }
+
+    public async Task Handle(CommentCreatedEvent notification, CancellationToken ct)
+    {
+        // Yorum bildirimini kitaba göre veya bölüme göre yazara gönder
+        // Şimdilik sadece sistemi denemek için bir notification atalım
+        if (notification.BookId.HasValue)
+        {
+            // TODO: Kitap sahibini (AuthorId) bulup ona gönder
+            // Şimdilik sadece log ve dummy push
+        }
     }
 
     public async Task Handle(UserRoleUpdatedEvent notification, CancellationToken ct)

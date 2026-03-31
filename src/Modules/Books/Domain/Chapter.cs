@@ -1,3 +1,4 @@
+using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Books.Domain;
@@ -9,10 +10,8 @@ public enum ChapterStatus
     Scheduled
 }
 
-public class Chapter : ISoftDelete, IOwnable, ISlugified
+public class Chapter : BaseEntity, IOwnable, ISlugified
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-
     public Guid BookId { get; set; }
     public virtual Book Book { get; set; } = null!;
 
@@ -24,11 +23,11 @@ public class Chapter : ISoftDelete, IOwnable, ISlugified
     public int Order { get; set; }
     
     public int Price { get; set; } // Coin cinsinden
+    public int? DiscountedPrice { get; set; } // Coin cinsinden (Pre-calculated)
     public bool IsFree { get; set; }
     
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PublishedAt { get; set; }
+    public DateTime? ScheduledPublishDate { get; set; } // Zamanlanmış yayın tarihi
     public ChapterStatus Status { get; set; }
     public bool IsTitleSpoiler { get; set; }
     public long ViewCount { get; set; }
@@ -36,15 +35,11 @@ public class Chapter : ISoftDelete, IOwnable, ISlugified
     // Modül içi Navigasyonlar
     public virtual ICollection<Paragraph> Paragraphs { get; set; } = new List<Paragraph>();
 
-    // ISoftDelete Implementation
-    public bool IsDeleted { get; set; }
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
+    public bool IsHidden { get; set; }
 
-    public void UndoDelete()
+    public override void UndoDelete()
     {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
+        base.UndoDelete();
+        IsHidden = false;
     }
 }

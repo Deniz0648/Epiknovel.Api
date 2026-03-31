@@ -25,14 +25,8 @@ public class AuthorApplication : BaseEntity, ISoftDelete, IOwnable
     public DateTime? ReviewedAt { get; set; }
     public Guid? ReviewedByUserId { get; set; }
 
-    // ISoftDelete Implementation
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
+    public override void UndoDelete()
     {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
+        base.UndoDelete();
     }
 }

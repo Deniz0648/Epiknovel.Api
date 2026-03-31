@@ -6,11 +6,12 @@ using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Infrastructure.Services;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Interfaces;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace Epiknovel.Modules.Books.Endpoints.UpdateChapter;
 
 [AuditLog("Bölüm İçeriği Güncellendi (Sync Modu)")]
-public class Endpoint(BooksDbContext dbContext, IUserProvider userProvider) : Endpoint<Request, Result<Response>>
+public class Endpoint(BooksDbContext dbContext, IUserProvider userProvider, IOutputCacheStore cacheStore) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -113,6 +114,8 @@ public class Endpoint(BooksDbContext dbContext, IUserProvider userProvider) : En
         try 
         {
             await dbContext.SaveChangesAsync(ct);
+            // 🚀 Cache Invalidation: Bölüm güncellendiğinde eski cache'i sil
+            await cacheStore.EvictByTagAsync("ChapterCache", ct);
         }
         catch (DbUpdateException)
         {

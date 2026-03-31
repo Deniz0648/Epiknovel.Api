@@ -13,16 +13,4 @@ public class Category : BaseEntity, ISoftDelete, ISlugified
     public int DisplayOrder { get; set; }
 
     public virtual ICollection<Book> Books { get; set; } = new List<Book>();
-
-    // ISoftDelete Implementation
-    // ISoftDelete (BaseEntity.IsDeleted kullanılıyor)
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
-    {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
-    }
 }

@@ -56,6 +56,9 @@ namespace Epiknovel.Modules.Wallet.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -76,6 +79,10 @@ namespace Epiknovel.Modules.Wallet.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("BuyerEmail")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<decimal>("CoinAmount")
                         .HasColumnType("numeric");

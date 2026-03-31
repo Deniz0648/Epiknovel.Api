@@ -26,14 +26,4 @@ public class UserProfile : BaseEntity, ISoftDelete, IOwnable
     public bool IsPaidAuthor { get; set; }
     public string? VerifiedIban { get; set; }
 
-    // ISoftDelete Implementation (BaseEntity.IsDeleted kullanılıyor)
-    public DateTime? DeletedAt { get; set; }
-    public Guid? DeletedByUserId { get; set; }
-
-    public void UndoDelete()
-    {
-        IsDeleted = false;
-        DeletedAt = null;
-        DeletedByUserId = null;
-    }
 }

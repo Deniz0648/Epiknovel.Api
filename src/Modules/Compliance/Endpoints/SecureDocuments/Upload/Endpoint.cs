@@ -46,8 +46,9 @@ public class Endpoint(ComplianceDbContext dbContext, IFileService fileService) :
 
         try
         {
-            // 2. Güvenli Yükleme (S3 Private)
-            // S3 içerisinde dosya GUID ile saklanır (Sanitization)
+            // 2. Güvenli Yükleme (Local Secure Storage)
+            // GUID ile saklanır (Sanitization)
+
             var storedFileName = await fileService.SaveSecureDocumentAsync(req.File, req.Category);
 
             // 3. Veritabanı Kaydı (BOLA için temel)

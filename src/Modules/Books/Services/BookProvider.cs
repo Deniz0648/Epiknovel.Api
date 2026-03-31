@@ -31,4 +31,44 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
 
         return chapter.UserId;
     }
+
+    public async Task<bool> IsBookActiveAsync(Guid bookId, CancellationToken ct = default)
+    {
+        // GlobalFilter (!IsDeleted) otomatik uygulanacaktır.
+        return await dbContext.Books.AnyAsync(x => x.Id == bookId, ct);
+    }
+
+    public async Task<bool> IsChapterActiveAsync(Guid chapterId, CancellationToken ct = default)
+    {
+        // GlobalFilter (!IsDeleted) otomatik uygulanacaktır.
+        return await dbContext.Chapters.AnyAsync(x => x.Id == chapterId, ct);
+    }
+
+    public async Task<bool> IsParagraphInChapterAsync(Guid paragraphId, Guid chapterId, CancellationToken ct = default)
+    {
+        // Paragrafın hem var olduğunu hem de o bölüme (Chapter) ait olduğunu doğrula
+        return await dbContext.Paragraphs.AnyAsync(x => x.Id == paragraphId && x.ChapterId == chapterId, ct);
+    }
+
+    public async Task<Dictionary<Guid, int>> GetPublishedBookCountsByAuthorIdsAsync(IEnumerable<Guid> authorIds, CancellationToken ct = default)
+    {
+        var authorIdList = authorIds.Distinct().ToList();
+        if (authorIdList.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(b =>
+                authorIdList.Contains(b.AuthorId) &&
+                !b.IsHidden &&
+                (b.Status == Domain.BookStatus.Published ||
+                 b.Status == Domain.BookStatus.Ongoing ||
+                 b.Status == Domain.BookStatus.Completed ||
+                 b.Status == Domain.BookStatus.Hiatus))
+            .GroupBy(b => b.AuthorId)
+            .Select(g => new { AuthorId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.AuthorId, x => x.Count, ct);
+    }
 }

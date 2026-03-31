@@ -1,0 +1,17 @@
+<svg width="400" height="600" viewBox="0 0 400 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgC" x1="40" y1="40" x2="350" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB482"/>
+      <stop offset="0.46" stop-color="#C35A86"/>
+      <stop offset="1" stop-color="#2A1B40"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" rx="26" fill="url(#bgC)"/>
+  <rect x="24" y="24" width="352" height="552" rx="18" fill="#2A1537" fill-opacity="0.34" stroke="#E9B181" stroke-opacity="0.78" stroke-width="2"/>
+  <path d="M96 430C122 362 158 324 202 296C246 324 282 362 308 430C262 452 146 452 96 430Z" fill="#F9D8BA" fill-opacity="0.75"/>
+  <circle cx="202" cy="370" r="34" stroke="#2D1B3B" stroke-opacity="0.58" stroke-width="12"/>
+  <circle cx="202" cy="370" r="8" fill="#2D1B3B" fill-opacity="0.66"/>
+  <path d="M30 486C128 468 236 468 370 522V600H30V486Z" fill="#261935" fill-opacity="0.9"/>
+  <text x="48" y="86" fill="#FFE2CB" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700">MUHUR</text>
+  <text x="48" y="118" fill="#FBC7A5" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="600">UCUNCU ANAHTAR</text>
+</svg>

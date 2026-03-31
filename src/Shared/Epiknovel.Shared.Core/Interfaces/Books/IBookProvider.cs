@@ -13,4 +13,24 @@ public interface IBookProvider
     /// Satın alma işleminden doğan gelirin kime aktarılacağını belirlemek içindir.
     /// </summary>
     Task<Guid> GetChapterAuthorIdAsync(Guid chapterId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kitabın var olup olmadığını ve yayında olduğunu (silinmemiş) kontrol eder.
+    /// </summary>
+    Task<bool> IsBookActiveAsync(Guid bookId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bölümün var olup olmadığını ve yayında olduğunu (silinmemiş) kontrol eder.
+    /// </summary>
+    Task<bool> IsChapterActiveAsync(Guid chapterId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Verilen paragrafın gerçekten o bölüme mi ait olduğunu doğrular.
+    /// </summary>
+    Task<bool> IsParagraphInChapterAsync(Guid paragraphId, Guid chapterId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Verilen yazarların (UserId) yayınlanan eser sayılarını toplu döner.
+    /// </summary>
+    Task<Dictionary<Guid, int>> GetPublishedBookCountsByAuthorIdsAsync(IEnumerable<Guid> authorIds, CancellationToken ct = default);
 }

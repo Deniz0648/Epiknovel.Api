@@ -14,29 +14,50 @@ public static class IdentityModuleExtensions
     {
         // 1. DbContext Kaydı
         services.AddDbContext<IdentityDbContext>(options =>
-            options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "identity")));
 
         // 2. Identity Yapılandırması (Kullanıcının Özel Şifre Kuralları)
-        services.AddIdentity<User, IdentityRole<Guid>>(options =>
+        // Not: AddIdentity yerine AddIdentityCore kullanıyoruz ki Default Authentication Scheme'i (Bearer) ezmesin.
+        services.AddIdentityCore<User>(options =>
         {
-            // Şifre Kuralları: EN AZ 6 KARAKTER
-            options.Password.RequireDigit = false;
-            options.Password.RequiredLength = 6;
-            options.Password.RequireNonAlphanumeric = false;
-            options.Password.RequireUppercase = false;
-            options.Password.RequireLowercase = false;
+            // Şifre Kuralları (Security Hardening)
+            options.Password.RequireDigit = true;
+            options.Password.RequiredLength = 8;
+            options.Password.RequireNonAlphanumeric = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireLowercase = true;
             
+            // Hesap Kilitleme (Brute-force Koruması)
+            options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+            options.Lockout.MaxFailedAccessAttempts = 5;
+            options.Lockout.AllowedForNewUsers = true;
+
             // Email Kuralları
             options.User.RequireUniqueEmail = true;
-
-            // Güvenlik: Token Ömürleri (Şifre Sıfırlama, Email Onay vb.)
-            options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
-            options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultProvider;
         })
+        .AddRoles<IdentityRole<Guid>>() // Rol desteği için manuel ekliyoruz
+        .AddSignInManager() // Login endpointinde ihtiyaç duyulan SignInManager'ı ekliyoruz
         .AddEntityFrameworkStores<IdentityDbContext>()
         .AddDefaultTokenProviders();
 
+        // API'nin 302 (Redirect) yerine 401 dönmesini sağlıyoruz
+        services.ConfigureApplicationCookie(options =>
+        {
+            options.Events.OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = 401;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = 403;
+                return Task.CompletedTask;
+            };
+        });
+
         services.AddScoped<IUserRoleProvider, Services.UserRoleProvider>();
+        services.AddScoped<IUserAccountProvider, Services.UserRoleProvider>();
+        services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IManagementUserProvider, Services.ManagementUserProvider>();
 
         // Token Ömürlerini Global Olarak Yapılandırıyoruz (3 Saat Standart)
         services.Configure<DataProtectionTokenProviderOptions>(options =>
@@ -52,6 +73,7 @@ public static class IdentityModuleExtensions
         using var scope = serviceProvider.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+        var mediator = scope.ServiceProvider.GetRequiredService<MediatR.IMediator>();
 
         // Rol ve Email Eşleşmeleri
         var seedData = new Dictionary<string, string>
@@ -74,10 +96,10 @@ public static class IdentityModuleExtensions
                 }
 
                 // 2. Kullanıcıyı oluştur (Yoksa)
-                var existingUser = await userManager.FindByEmailAsync(item.Value);
-                if (existingUser == null)
+                var user = await userManager.FindByEmailAsync(item.Value);
+                if (user == null)
                 {
-                    var newUser = new User
+                    user = new User
                     {
                         Id = Guid.NewGuid(),
                         UserName = item.Value,
@@ -87,12 +109,22 @@ public static class IdentityModuleExtensions
                         CreatedAt = DateTime.UtcNow
                     };
 
-                    var result = await userManager.CreateAsync(newUser, "Epik123!");
+                    var result = await userManager.CreateAsync(user, "Epik123!");
                     if (result.Succeeded)
                     {
-                        await userManager.AddToRoleAsync(newUser, item.Key);
+                        await userManager.AddToRoleAsync(user, item.Key);
                         Console.WriteLine($"[Seed] Created {item.Key} Account: {item.Value}");
                     }
+                }
+
+                // 3. Modüller Arası Verileri Kontrol Et ve Oluştur (Event Üzerinden)
+                if (user != null)
+                {
+                    // Not: Seed sırasında senkron çalışması için Publish'i bekliyoruz.
+                    // Bu event Users ve Wallet modülleri tarafından yakalanıp verileri oluşturacaktır.
+                    await mediator.Publish(new Epiknovel.Shared.Core.Events.UserRegisteredEvent(user.Id, user.Email!, user.DisplayName), CancellationToken.None);
+                    
+                    Console.WriteLine($"[Seed] Cross-module setup triggered for {item.Value}");
                 }
             }
         }

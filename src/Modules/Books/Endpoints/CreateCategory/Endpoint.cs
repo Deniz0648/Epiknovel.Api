@@ -5,8 +5,11 @@ using Epiknovel.Shared.Infrastructure.Services;
 using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Models;
 
+using Epiknovel.Shared.Core.Attributes;
+
 namespace Epiknovel.Modules.Books.Endpoints.CreateCategory;
 
+[AuditLog("Yeni Kategori Oluşturuldu")]
 public class Endpoint(BooksDbContext dbContext, ISlugService slugService) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()

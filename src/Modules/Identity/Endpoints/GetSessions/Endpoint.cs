@@ -27,6 +27,7 @@ public class Endpoint(IdentityDbContext dbContext) : EndpointWithoutRequest<Resu
         }
 
         var sessions = await dbContext.UserSessions
+            .AsNoTracking()
             .Where(x => x.UserId == Guid.Parse(userId) && x.ExpiryDate > DateTime.UtcNow)
             .OrderByDescending(x => x.CreatedAt)
             .Select(x => new Response

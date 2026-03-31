@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.DataProtection;
 using Epiknovel.Shared.Core.Services;
 using FastEndpoints;
 using FastEndpoints.Security;
@@ -21,21 +23,56 @@ using Epiknovel.Shared.Infrastructure.Monitoring;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using AutoMapper;
 using Epiknovel.Shared.Infrastructure.Mapping;
+using System.Security.Claims;
+using Microsoft.AspNetCore.HttpOverrides;
 
 namespace Epiknovel.Shared.Infrastructure;
 
 public static class InfrastructureExtensions
 {
-    public static IServiceCollection AddSharedInfrastructure(this IServiceCollection services, string jwtSecret, string redisConn, string dbConn)
+    public static IServiceCollection AddSharedInfrastructure(this IServiceCollection services, IConfiguration configuration, string redisConn, string dbConn)
     {
-        // 1. .env Yükleme ve Konteks Erişimi
+        // 1. .env Yükleme En Başta Olmalı
         Env.Load();
+        
+        // 🔐 Security Config (Strict .env Enforcement)
+        var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? configuration["JWT_SECRET"] 
+            ?? throw new InvalidOperationException("CRITICAL: JWT_SECRET environment variable is missing!");
+            
+        var apiKey = Environment.GetEnvironmentVariable("API_KEY") ?? configuration["API_KEY"]
+            ?? throw new InvalidOperationException("CRITICAL: API_KEY environment variable is missing!");
+
+        var maskedSecret = jwtSecret.Length > 6 ? $"{jwtSecret[..3]}***{jwtSecret[^3..]}" : "***";
+        Console.WriteLine($"[INFRA_STARTUP] JWT Secret loaded for validation: {maskedSecret}");
+        Console.Out.Flush();
         services.AddHttpContextAccessor();
 
         // 1.1 Performans: AutoMapper Entegrasyonu (Doğrudan paket üzerinden - 16.x syntax)
         services.AddAutoMapper(cfg => cfg.AddMaps(typeof(MappingProfile).Assembly));
 
-        // 2. Performans: Yanıt Sıkıştırma (Gzip/Brotli)
+        // 1.2 Güvenlik: Veri Koruma (Docker Resetlerinde Oturum Kaybını Önler)
+        services.AddDataProtection()
+                .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/app/Keys"));
+
+        // 1.3 Güvenlik: CORS Politikası (Web Frontend'in API ile konuşabilmesi için)
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAll", builder =>
+            {
+                builder.WithOrigins(
+                           "https://localhost:3000", "http://localhost:3000",
+                           "https://127.0.0.1:3000", "http://127.0.0.1:3000",
+                           "https://localhost", "http://localhost",
+                           "https://127.0.0.1", "http://127.0.0.1")
+                       .AllowAnyMethod()
+                       .AllowAnyHeader()
+                       .AllowCredentials();
+            });
+        });
+
+
+        // 2. Performans: Yanıt Sıkıştırma (Gzip/Brotli) ve Önbellekleme
+        services.AddResponseCaching();
         services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;
@@ -50,11 +87,79 @@ public static class InfrastructureExtensions
         // 2. Global Hata Yönetimi
         services.AddExceptionHandler<GlobalExceptionHandler>();
         services.AddProblemDetails();
+        services.Configure<ForwardedHeadersOptions>(options =>
+        {
+            options.ForwardedHeaders =
+                ForwardedHeaders.XForwardedFor |
+                ForwardedHeaders.XForwardedProto |
+                ForwardedHeaders.XForwardedHost;
+            options.KnownIPNetworks.Clear();
+            options.KnownProxies.Clear();
+        });
 
-        // 3. Auth & BOLA (IDOR) Kuralları
-        services.AddAuthenticationJwtBearer(s => s.SigningKey = jwtSecret);
+        // 2. Kimlik Doğrulama Katmanı (JWT)
+        services.AddAuthentication(o => {
+            o.DefaultScheme = "Bearer"; // Ana şema
+            o.DefaultAuthenticateScheme = "Bearer";
+            o.DefaultChallengeScheme = "Bearer";
+        })
+        .AddJwtBearer("Bearer", s => {
+            s.RequireHttpsMetadata = false; // Docker içi HTTP iletişimi için
+            s.SaveToken = true;
+            
+            s.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(jwtSecret)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                RequireExpirationTime = true,
+                ClockSkew = TimeSpan.FromMinutes(10) // Daha fazla tolerans
+            };
+            
+            // Token doğrulama ve mesaj alım logları
+            s.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                    if (!string.IsNullOrEmpty(authHeader))
+                    {
+                        // Manuel Yakalama (Fail-safe): Eğer kütüphane otomatik bulamazsa biz veriyoruz
+                        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                            Console.WriteLine($"[AUTH_MANUAL] Token extracted manually for Path: {context.Request.Path}");
+                        }
+                        
+                        Console.WriteLine($"[AUTH_DEBUG] Path: {context.Request.Path} | Header: {authHeader[..Math.Min(20, authHeader.Length)]}...");
+                        Console.Out.Flush();
+                    }
+                    return Task.CompletedTask;
+                },
+                OnAuthenticationFailed = context =>
+                {
+                    Console.WriteLine($"[AUTH_FAILED] Path: {context.Request.Path} | Reason: {context.Exception.Message}");
+                    var maskedSecret = jwtSecret.Length > 6 ? $"{jwtSecret[..3]}***{jwtSecret[^3..]}" : "***";
+                    Console.WriteLine($"[AUTH_CONFIG] Secret: {maskedSecret}");
+                    if (context.Exception.InnerException != null)
+                        Console.WriteLine($"[AUTH_FAILED_INNER] {context.Exception.InnerException.Message}");
+                    Console.Out.Flush();
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                    Console.WriteLine($"[AUTH_SUCCESS] User: {userId} | Path: {context.Request.Path}");
+                    Console.Out.Flush();
+                    return Task.CompletedTask;
+                }
+            };
+        });
+        
         services.AddAuthorization(o => {
-            o.AddPolicy("BOLA", b => b.RequireAuthenticatedUser()); // İleri seviye BOLA için zemin hazır
+            o.AddPolicy("BOLA", b => b.RequireAuthenticatedUser());
         });
 
         // 4. Akıllı Rate Limiting (Sliding Window & Token Bucket)
@@ -66,11 +171,17 @@ public static class InfrastructureExtensions
                 opt.QueueLimit = 0;
             });
 
-            // Hassas İşlemler (Sliding Window): Botları yorma algoritması
-            o.AddSlidingWindowLimiter("StrictPolicy", opt => {
-                opt.Window = TimeSpan.FromMinutes(1); // 1 Dakikalık pencere
-                opt.SegmentsPerWindow = 6; // 10 saniyelik 6 segmente böl
-                opt.PermitLimit = 5; // Dakikada max 5 işlem (Örn: Kitap oluşturma)
+            // Sosyal Etkileşimler (Yorum, Beğeni): Dakikada 15 işlem
+            o.AddFixedWindowLimiter("SocialPolicy", opt => {
+                opt.Window = TimeSpan.FromMinutes(1);
+                opt.PermitLimit = 15;
+                opt.QueueLimit = 0;
+            });
+
+            // Okuma İlerlemesi: Kullanıcıyı yormayan, sunucuyu koruyan debounce (10 saniyede bir)
+            o.AddFixedWindowLimiter("ProgressPolicy", opt => {
+                opt.Window = TimeSpan.FromSeconds(10);
+                opt.PermitLimit = 1;
                 opt.QueueLimit = 0;
             });
         });
@@ -93,6 +204,14 @@ public static class InfrastructureExtensions
             o.DocumentSettings = s => {
                 s.Title = "Epiknovel API";
                 s.Version = "v1";
+                s.AddSecurity("Bearer", new NSwag.OpenApiSecurityScheme
+                {
+                    Type = NSwag.OpenApiSecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    Description = "Lütfen JWT tokenınızı buraya yapıştırın (Bearer öneki otomatik eklenir).",
+                    In = NSwag.OpenApiSecurityApiKeyLocation.Header
+                });
             };
         });
         
@@ -115,40 +234,86 @@ public static class InfrastructureExtensions
         services.AddHostedService<BackgroundAuditWorker>();
         
         // MediatR: Tüm modülleri tarar (Modüler Monolit İletişimi)
-        services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies()));
+        services.AddMediatR(cfg => {
+            cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+            
+            // LuckyPenny MediatR Lisans Yapılandırması
+            var mediatrLicense = Environment.GetEnvironmentVariable("MEDIATR_LICENSE_KEY") ?? configuration["MEDIATR_LICENSE_KEY"];
+            if (!string.IsNullOrEmpty(mediatrLicense))
+            {
+                cfg.LicenseKey = mediatrLicense;
+            }
+        });
+
+        // 5. Görsel İşleme (Arka Plan WebP Dönüştürücü)
+        services.AddSingleton<Background.IImageProcessingQueue, Background.ImageProcessingQueue>();
+        services.AddHostedService<Background.ImageProcessingWorker>();
 
         return services;
     }
 
     public static IApplicationBuilder UseSharedPipeline(this IApplicationBuilder app)
     {
-        // 0. Güvenlik: Cloudflare Bypass Koruması (Doğrudan IP erişimini engeller)
+        app.UseForwardedHeaders();
+
+        // 1. Kimlik Doğrulama (En Başta)
+        app.UseAuthentication();
+
+        // 1.1 JWT Revocation (Redis Blacklist Kontrolü)
+        // Her istekte JTI'nın Redis kara listesinde olup olmadığı taranır.
+        app.UseMiddleware<Epiknovel.Shared.Infrastructure.Middleware.TokenRevocationMiddleware>();
+
+        // 2. Global Request Tracker (Ham istekleri izler) - Auth den sonra olmalı ki User'ı görelim
+        app.Use(async (context, next) => {
+            if (context.Request.Path.Value?.StartsWith("/api") == true)
+            {
+                var auth = context.Request.Headers["Authorization"].FirstOrDefault();
+                Console.WriteLine($"[REQUEST_TRACE] Path: {context.Request.Path} | Auth: {(string.IsNullOrEmpty(auth) ? "YOK" : auth[..Math.Min(15, auth.Length)] + "...")}");
+                Console.Out.Flush();
+            }
+            await next();
+        });
+
+        // 1. Güvenlik: Security Headers (CSP, XSS, HSTS)
+        app.UseSecurityHeaders(new HeaderPolicyCollection()
+            .AddDefaultSecurityHeaders()
+            .AddContentSecurityPolicy(builder =>
+            {
+                builder.AddDefaultSrc().Self();
+                builder.AddImgSrc().Self().Data().From("https://epiknovel.com").From("*.s3.amazonaws.com").From("localhost:*").From("http://localhost:*");
+                builder.AddStyleSrc().Self().UnsafeInline().From("https://fonts.googleapis.com").From("https://cdn.jsdelivr.net");
+                builder.AddFontSrc().Self().Data().From("https://fonts.gstatic.com").From("https://cdn.jsdelivr.net");
+                builder.AddScriptSrc().Self().UnsafeInline().From("https://cdn.jsdelivr.net").From("https://api.scalar.com");
+                builder.AddConnectSrc().Self().From("https://localhost:*").From("http://localhost:*").From("wss://localhost:*").From("ws://localhost:*").From("https://api.scalar.com");
+                builder.AddFrameAncestors().None();
+            })
+            .AddCustomHeader("X-Content-Type-Options", "nosniff")
+            .RemoveServerHeader());
+
+        // 1.1 Güvenlik: Cloudflare Bypass Koruması (Doğrudan IP erişimini engeller)
         app.UseMiddleware<DirectOriginAccessMiddleware>();
 
-        // 1. Performans: Yanıt Sıkıştırma Hattı (En Başta Olmalı)
+        // 2. Performans ve Güvenlik Middleware'leri
+        app.UseCors("AllowAll"); // Kimlik doğrulamadan önce CORS gelmelidir
         app.UseResponseCompression();
-
-        // Önemli: Hata yönetimi en başta olmalı!
         app.UseExceptionHandler(); 
+        app.UseStaticFiles();
 
-        app.UseRouting(); // SignalR ve Endpoints için zorunlu
+        app.UseRouting();
 
-        app.UseAuthentication();
+        // 3. Yetkilendirme Katmanı (Routing'den hemen sonra)
         app.UseAuthorization();
+        app.UseResponseCaching();
+        app.UseRateLimiter();
         
-        app.UseRateLimiter(); // Brute force engelleme
-        
-        // 2. Canlılık İzlemesi (Uç nokta)
+        // 4. Servisler ve Endpoints
         app.UseHealthChecks("/health");
-
-        app.UseStaticFiles(); // Yerel depolama için statik dosya sunumunu açıyoruz
-        
-        app.UseOutputCache(); // Performans artırma
+        app.UseOutputCache();
         
         app.UseFastEndpoints(c => {
             c.Endpoints.RoutePrefix = "api";
-            // Global Audit: [AuditLog] etiketi olan her endpoint otomatik mühürlenir
             c.Endpoints.Configurator = ep => {
+                ep.PreProcessors(Order.Before, new JwtBlacklistPreProcessor(app.ApplicationServices.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>()));
                 ep.PreProcessors(Order.Before, new BOLAValidationPreProcessor());
                 ep.PostProcessors(Order.After, new GlobalAuditPostProcessor(app.ApplicationServices.GetRequiredService<IBackgroundAuditQueue>()));
             };

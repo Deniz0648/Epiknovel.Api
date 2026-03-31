@@ -7,7 +7,8 @@ public class PaidAuthorApplication : BaseEntity, IOwnable
 {
     public Guid UserId { get; set; }
     
-    // Belgeler (Private S3/Disk)
+    // Belgeler (Local Secure Storage)
+
     public string GvkExemptionCertificateUrl { get; set; } = string.Empty; // GVK 20/B İstisna Belgesi
     public string BankAccountDocumentUrl { get; set; } = string.Empty; // Banka Hesap Dekontu
     

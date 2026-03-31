@@ -14,5 +14,10 @@ public class Validator : Validator<Request>
 
         RuleFor(x => x.Bio)
             .MaximumLength(500).WithMessage("Biyografi en fazla 500 karakter olabilir.");
+
+        RuleFor(x => x.Slug)
+            .MinimumLength(3).WithMessage("Slug en az 3 karakter olmalıdır.")
+            .MaximumLength(100).WithMessage("Slug en fazla 100 karakter olabilir.")
+            .When(x => !string.IsNullOrWhiteSpace(x.Slug));
     }
 }

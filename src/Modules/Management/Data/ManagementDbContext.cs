@@ -15,6 +15,8 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<DailyQuote> DailyQuotes => Set<DailyQuote>();
     public DbSet<FAQ> FAQs => Set<FAQ>();
+    public DbSet<EmailTemplate> EmailTemplates => Set<EmailTemplate>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,14 +30,25 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
         modelBuilder.Entity<PaidAuthorApplication>(b => b.ToTable("PaidAuthorApplications"));
         modelBuilder.Entity<PayoutRequest>(b => b.ToTable("PayoutRequests"));
         modelBuilder.Entity<SupportTicket>(b => b.ToTable("SupportTickets"));
-        modelBuilder.Entity<SupportTicketMessage>(b => b.ToTable("SupportTicketMessages"));
+        modelBuilder.Entity<SupportTicketMessage>(b => {
+             b.ToTable("SupportTicketMessages");
+             b.HasIndex(x => x.TicketId);
+        });
         modelBuilder.Entity<SystemSetting>(b => {
             b.ToTable("SystemSettings");
             b.HasKey(x => x.Key);
         });
+        modelBuilder.Entity<EmailTemplate>(b => {
+             b.ToTable("EmailTemplates");
+             b.HasIndex(x => x.Key).IsUnique();
+        });
         modelBuilder.Entity<Discount>(b => b.ToTable("Discounts"));
-        modelBuilder.Entity<AuditLog>(b => b.ToTable("AuditLogs"));
+        modelBuilder.Entity<AuditLog>(b => {
+             b.ToTable("AuditLogs");
+             b.HasIndex(x => x.CreatedAt);
+        });
         modelBuilder.Entity<DailyQuote>(b => b.ToTable("DailyQuotes"));
         modelBuilder.Entity<FAQ>(b => b.ToTable("FAQs"));
+        modelBuilder.Entity<OutboxMessage>(b => b.ToTable("Outbox"));
     }
 }

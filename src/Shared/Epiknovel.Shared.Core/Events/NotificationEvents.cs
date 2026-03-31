@@ -13,3 +13,11 @@ public record AuthorApplicationReviewedEvent(Guid UserId, bool IsApproved, strin
 public record PaidAuthorApplicationReviewedEvent(Guid UserId, bool IsApproved, string? Note) : INotification;
 
 public record UserRoleUpdatedEvent(Guid UserId, string NewRole, string Description) : INotification;
+
+public record CommentCreatedEvent(
+    Guid CommentId, 
+    Guid UserId, 
+    Guid? BookId, 
+    Guid? ChapterId, 
+    string Content, 
+    DateTime CreatedAt) : INotification;

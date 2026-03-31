@@ -19,8 +19,9 @@ public interface IFileService
     /// Herhangi bir görsel işleme (resize) uygulanmaz.
     /// </summary>
     /// <param name="file">Yüklenen dosya</param>
-    /// <param name="category">S3 Bucket/Category adı</param>
-    /// <returns>S3 üzerinde saklanan güvenli dosya adı</returns>
+    /// <param name="category">Yerel Klasör/Kategori adı</param>
+    /// <returns>Yerel diskte saklanan güvenli dosya adı</returns>
+
     Task<string> SaveSecureDocumentAsync(IFormFile file, string category);
 
     /// <summary>

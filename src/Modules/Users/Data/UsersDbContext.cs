@@ -6,6 +6,7 @@ namespace Epiknovel.Modules.Users.Data;
 public class UsersDbContext(DbContextOptions<UsersDbContext> options) : DbContext(options)
 {
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserSlugHistory> UserSlugHistories => Set<UserSlugHistory>();
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<Follow> Follows => Set<Follow>();
 
@@ -23,6 +24,14 @@ public class UsersDbContext(DbContextOptions<UsersDbContext> options) : DbContex
             entity.HasKey(x => x.Id);
             
             entity.HasIndex(x => x.Slug).IsUnique(); // Slug benzersiz olmalı
+        });
+
+        modelBuilder.Entity<UserSlugHistory>(entity =>
+        {
+            entity.ToTable("UserSlugHistories", "users");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.Slug).IsUnique();
+            entity.HasIndex(x => x.UserId);
         });
 
         modelBuilder.Entity<Follow>(entity =>

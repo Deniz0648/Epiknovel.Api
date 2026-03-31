@@ -14,19 +14,20 @@ public record Request
     public string Content { get; init; } = string.Empty;
 }
 
-public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<Guid>>
+public class Endpoint(SocialDbContext dbContext, Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider) : Endpoint<Request, Result<Guid>>
 {
     public override void Configure()
     {
         Post("/social/inline-comments");
         Summary(s => {
             s.Summary = "Paragraf bazlı (inline) yorum ekle.";
-            s.Description = "Bölüm içindeki spesifik bir paragrafa/satıra yorum yapılmasını sağlar.";
+            s.Description = "Bölüm içindeki spesifik bir paragrafa/satıra yorum yapılmasını sağlar. Paragraf ve Bölüm doğrulaması yapılır.";
         });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        // 1. Kullanıcı Kontrolü
         var userIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
@@ -34,6 +35,22 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<Guid
             return;
         }
 
+        // 2. Paragraf ve Bölüm Doğrulaması (BOLA & Integrity)
+        var isChapterActive = await bookProvider.IsChapterActiveAsync(req.ChapterId, ct);
+        if (!isChapterActive)
+        {
+            await Send.ResponseAsync(Result<Guid>.Failure("Bölüm bulunamadı veya silinmiş."), 404, ct);
+            return;
+        }
+
+        var isParagraphValid = await bookProvider.IsParagraphInChapterAsync(req.ParagraphId, req.ChapterId, ct);
+        if (!isParagraphValid)
+        {
+            await Send.ResponseAsync(Result<Guid>.Failure("Belirtilen paragraf bu bölüme ait değil."), 403, ct);
+            return;
+        }
+
+        // 3. Yorum Ekle
         var comment = new InlineComment
         {
             UserId = userId,

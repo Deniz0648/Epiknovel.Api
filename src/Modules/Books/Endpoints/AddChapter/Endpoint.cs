@@ -65,8 +65,10 @@ public class Endpoint(
             Order = req.Order,
             IsFree = req.IsFree,
             Price = req.Price,
-            Status = ChapterStatus.Published,
-            PublishedAt = DateTime.UtcNow
+            Status = req.Status,
+            IsTitleSpoiler = req.IsTitleSpoiler,
+            ScheduledPublishDate = req.Status == ChapterStatus.Scheduled ? req.ScheduledPublishDate : null,
+            PublishedAt = req.Status == ChapterStatus.Published ? DateTime.UtcNow : null
         };
 
         // 4. Paragrafları (Satırları) Temizle ve Oluştur (XSS Koruması)
@@ -109,14 +111,17 @@ public class Endpoint(
             return;
         }
 
-        // 5. Domain Event Yayınla (Asenkron - Arama ve Bildirim modülleri için)
-        await mediator.Publish(new ChapterPublishedEvent(
-            chapter.BookId,
-            chapter.Id,
-            chapter.Title,
-            chapter.Slug,
-            chapter.UserId,
-            chapter.PublishedAt.Value), ct);
+        // 5. Domain Event Yayınla (Sadece Yayınlanmışsa)
+        if (chapter.Status == ChapterStatus.Published)
+        {
+            await mediator.Publish(new ChapterPublishedEvent(
+                chapter.BookId,
+                chapter.Id,
+                chapter.Title,
+                chapter.Slug,
+                chapter.UserId,
+                chapter.PublishedAt ?? DateTime.UtcNow), ct);
+        }
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

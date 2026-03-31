@@ -1,0 +1,16 @@
+<svg width="400" height="600" viewBox="0 0 400 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgB" x1="40" y1="30" x2="356" y2="566" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7DE5D4"/>
+      <stop offset="0.42" stop-color="#2B6C89"/>
+      <stop offset="1" stop-color="#16202E"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" rx="26" fill="url(#bgB)"/>
+  <rect x="24" y="24" width="352" height="552" rx="18" fill="#081923" fill-opacity="0.42" stroke="#73D7C8" stroke-opacity="0.72" stroke-width="2"/>
+  <circle cx="304" cy="154" r="54" fill="#9AF2E3" fill-opacity="0.35"/>
+  <path d="M92 418L132 266L170 294L202 248L235 294L268 262L304 418L252 444L230 410H166L140 444L92 418Z" fill="#D7E8E6" fill-opacity="0.72"/>
+  <path d="M20 490C110 472 212 466 378 520V600H20V490Z" fill="#101D2A" fill-opacity="0.88"/>
+  <text x="48" y="86" fill="#D4FAF2" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700">GOLGE</text>
+  <text x="48" y="118" fill="#9FEDE1" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="600">KAYIP HARITA</text>
+</svg>

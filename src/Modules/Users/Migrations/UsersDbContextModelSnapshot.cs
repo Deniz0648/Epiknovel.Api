@@ -32,6 +32,12 @@ namespace Epiknovel.Modules.Users.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("FollowedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -43,6 +49,9 @@ namespace Epiknovel.Modules.Users.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -94,6 +103,9 @@ namespace Epiknovel.Modules.Users.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
 
                     b.Property<string>("PhoneNumber")
                         .IsRequired()
@@ -163,6 +175,9 @@ namespace Epiknovel.Modules.Users.Migrations
                     b.Property<DateTime?>("LastRewardClaimedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("text");
@@ -188,6 +203,47 @@ namespace Epiknovel.Modules.Users.Migrations
                         .IsUnique();
 
                     b.ToTable("UserProfiles", "users");
+                });
+
+            modelBuilder.Entity("Epiknovel.Modules.Users.Domain.UserSlugHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserSlugHistories", "users");
                 });
 
             modelBuilder.Entity("Epiknovel.Modules.Users.Domain.Follow", b =>

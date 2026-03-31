@@ -1,0 +1,15 @@
+<svg width="400" height="600" viewBox="0 0 400 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgA" x1="24" y1="24" x2="360" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8C681"/>
+      <stop offset="0.45" stop-color="#7A5AA7"/>
+      <stop offset="1" stop-color="#222B4F"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" rx="26" fill="url(#bgA)"/>
+  <rect x="24" y="24" width="352" height="552" rx="18" fill="#0F1B35" fill-opacity="0.35" stroke="#D4AF63" stroke-opacity="0.8" stroke-width="2"/>
+  <path d="M84 438L120 280L165 296L200 248L232 298L282 282L318 438L272 456L250 420H148L128 456L84 438Z" fill="#DCC7AA" fill-opacity="0.78"/>
+  <path d="M36 490C126 456 222 452 364 506V600H36V490Z" fill="#1F2742" fill-opacity="0.85"/>
+  <text x="48" y="86" fill="#F0E2C4" font-family="Inter,Arial,sans-serif" font-size="30" font-weight="700">ARSIVLER</text>
+  <text x="48" y="118" fill="#E2C07B" font-family="Inter,Arial,sans-serif" font-size="16" font-weight="600">SON KORUYUCU</text>
+</svg>

@@ -8,24 +8,31 @@ namespace Epiknovel.Shared.Infrastructure.Services;
 public interface ISlugService
 {
     Task<string> GenerateUniqueSlugAsync<T>(string title, DbSet<T> dbSet, CancellationToken ct = default) where T : class, ISlugified;
-}
-
-public class SlugService : ISlugService
-{
-    public async Task<string> GenerateUniqueSlugAsync<T>(string title, DbSet<T> dbSet, CancellationToken ct = default) where T : class, ISlugified
-    {
-        var baseSlug = Epiknovel.Shared.Core.Common.SlugHelper.ToSlug(title);
-        var slug = baseSlug;
-        var suffix = 1;
-
-        // "Eski slug kalsın" mantığı için: Eğer title boş gelirse veya bir şekilde slug zaten atanmışsa 
-        // bu metod sadece yeni üretimler için çağrılmalı. 
-        // Unique kontrolü:
-        while (await dbSet.AnyAsync(x => x.Slug == slug, ct))
-        {
-            slug = $"{baseSlug}-{suffix++}";
-        }
-
-        return slug;
     }
-}
+
+    public class SlugService : ISlugService
+    {
+        public async Task<string> GenerateUniqueSlugAsync<T>(string title, DbSet<T> dbSet, CancellationToken ct = default) where T : class, ISlugified
+            {
+                    var baseSlug = Epiknovel.Shared.Core.Common.SlugHelper.ToSlug(title);
+                            
+                                    // 1. Kara Liste Kontrolü (Reserved Words)
+                                            var blacklist = new[] { "admin", "api", "auth", "login", "register", "swagger", "system", "mod", "staff", "root", "epik" };
+                                                    if (blacklist.Contains(baseSlug.ToLower()))
+                                                            {
+                                                                        baseSlug = $"{baseSlug}-content"; // 'admin-content' gibi değiştir
+                                                                                }
+
+                                                                                        var slug = baseSlug;
+                                                                                                var suffix = 1;
+
+                                                                                                        // 2. Unique Kontrolü
+                                                                                                                while (await dbSet.AnyAsync(x => x.Slug == slug, ct))
+                                                                                                                        {
+                                                                                                                                    slug = $"{baseSlug}-{suffix++}";
+                                                                                                                                            }
+
+                                                                                                                                                    return slug;
+                                                                                                                                                        }
+                                                                                                                                                        }
+                                                                                                                                                        

@@ -4,8 +4,11 @@ using Epiknovel.Modules.Identity.Domain;
 using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Models;
 
+using Epiknovel.Shared.Core.Attributes;
+
 namespace Epiknovel.Modules.Identity.Endpoints.ResetPassword;
 
+[AuditLog("Şifre Sıfırlandı (Token ile)")]
 public class Endpoint(UserManager<User> userManager) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()

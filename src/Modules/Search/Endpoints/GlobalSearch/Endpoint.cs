@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Modules.Search.Data;
 using Epiknovel.Modules.Search.Domain;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -29,7 +30,7 @@ public record SearchResultDto(
     string? ImageUrl
 );
 
-public partial class Endpoint(SearchDbContext dbContext) : Endpoint<Request, Result<Response>>
+public partial class Endpoint(SearchDbContext dbContext, StackExchange.Redis.IConnectionMultiplexer redisMultiplexer) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -84,14 +85,19 @@ public partial class Endpoint(SearchDbContext dbContext) : Endpoint<Request, Res
             .Take(req.Size)
             .ToListAsync(ct);
 
-        // 4. Log (SearchHistory) - Failsafe olarak asenkron de gönderebilirdik ancak basitleştirelim
-        dbContext.SearchHistories.Add(new SearchHistory
+        // 4. Log (Search Analytics Offloading to NoSQL)
+        // PostgreSQL'i şişirmemek için analitik verilerini asenkron olarak Redis'e atıyoruz.
+        // Özellikle "sıfır sonuç" (zeroes) aramaları izlemek için kritik.
+        var telemetry = new 
         {
             Query = req.Q,
             ResultCount = totalRecords,
-            UserId = User.Identity?.IsAuthenticated == true ? Guid.Parse(User.FindFirst("UserId")?.Value ?? Guid.Empty.ToString()) : Guid.Empty
-        });
-        await dbContext.SaveChangesAsync(ct);
+            UserId = User.Identity?.IsAuthenticated == true ? User.FindFirstValue(ClaimTypes.NameIdentifier) : Guid.Empty.ToString(),
+            Timestamp = DateTime.UtcNow
+        };
+
+        var redis = redisMultiplexer.GetDatabase();
+        _ = redis.ListRightPushAsync("epiknovel:analytics:search", System.Text.Json.JsonSerializer.Serialize(telemetry));
 
         // 5. Response Mapping
         var results = documents.Select(d => new SearchResultDto(
