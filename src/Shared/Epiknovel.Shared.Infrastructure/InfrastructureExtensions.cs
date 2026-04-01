@@ -25,6 +25,7 @@ using AutoMapper;
 using Epiknovel.Shared.Infrastructure.Mapping;
 using System.Security.Claims;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Epiknovel.Shared.Infrastructure;
 
@@ -136,6 +137,25 @@ public static class InfrastructureExtensions
                         Console.WriteLine($"[AUTH_DEBUG] Path: {context.Request.Path} | Header: {authHeader[..Math.Min(20, authHeader.Length)]}...");
                         Console.Out.Flush();
                     }
+
+                    if (string.IsNullOrWhiteSpace(context.Token) &&
+                        context.HttpContext.Request.Path.StartsWithSegments("/hubs/notifications"))
+                    {
+                        var queryToken = context.Request.Query["access_token"].FirstOrDefault();
+                        if (!string.IsNullOrWhiteSpace(queryToken))
+                        {
+                            context.Token = queryToken;
+                        }
+                        else
+                        {
+                            var cookieToken = context.Request.Cookies["epiknovel_at"];
+                            if (!string.IsNullOrWhiteSpace(cookieToken))
+                            {
+                                context.Token = cookieToken;
+                            }
+                        }
+                    }
+
                     return Task.CompletedTask;
                 },
                 OnAuthenticationFailed = context =>
@@ -171,6 +191,13 @@ public static class InfrastructureExtensions
                 opt.QueueLimit = 0;
             });
 
+            // Yazma/kimlik gibi daha hassas endpoint'ler için sıkı limit
+            o.AddFixedWindowLimiter("StrictPolicy", opt => {
+                opt.Window = TimeSpan.FromSeconds(10);
+                opt.PermitLimit = 10;
+                opt.QueueLimit = 0;
+            });
+
             // Sosyal Etkileşimler (Yorum, Beğeni): Dakikada 15 işlem
             o.AddFixedWindowLimiter("SocialPolicy", opt => {
                 opt.Window = TimeSpan.FromMinutes(1);
@@ -190,12 +217,26 @@ public static class InfrastructureExtensions
         services.AddScoped<IFileService, LocalFileService>();
         services.AddScoped<ISlugService, SlugService>();
         services.AddScoped<IEmailService, ConsoleEmailService>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
         services.AddAuthorization(options =>
         {
-            options.AddPolicy(PolicyNames.SuperAdminOnly, policy => policy.RequireRole(RoleNames.SuperAdmin));
-            options.AddPolicy(PolicyNames.AdminAccess, policy => policy.RequireRole(RoleNames.SuperAdmin, RoleNames.Admin));
-            options.AddPolicy(PolicyNames.ModAccess, policy => policy.RequireRole(RoleNames.SuperAdmin, RoleNames.Admin, RoleNames.Mod));
+            options.AddPolicy(PolicyNames.AuthorPanelAccess, policy => policy
+                .RequireAuthenticatedUser()
+                .AddRequirements(new PermissionRequirement(PermissionNames.AccessAuthorPanel)));
+            options.AddPolicy(PolicyNames.AuthorContentAccess, policy => policy
+                .RequireAuthenticatedUser()
+                .AddRequirements(new PermissionRequirement(PermissionNames.CreateBook)));
+            options.AddPolicy(PolicyNames.SuperAdminOnly, policy => policy
+                .RequireAuthenticatedUser()
+                .AddRequirements(new PermissionRequirement(PermissionNames.SuperAdminAccess)));
+            options.AddPolicy(PolicyNames.AdminAccess, policy => policy
+                .RequireAuthenticatedUser()
+                .AddRequirements(new PermissionRequirement(PermissionNames.AdminAccess)));
+            options.AddPolicy(PolicyNames.ModAccess, policy => policy
+                .RequireAuthenticatedUser()
+                .AddRequirements(new PermissionRequirement(PermissionNames.ModerateContent)));
         });
 
         // 5. FastEndpoints & Redis & MediatR & OpenAPI

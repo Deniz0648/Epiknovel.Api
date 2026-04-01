@@ -57,6 +57,7 @@ public static class IdentityModuleExtensions
 
         services.AddScoped<IUserRoleProvider, Services.UserRoleProvider>();
         services.AddScoped<IUserAccountProvider, Services.UserRoleProvider>();
+        services.AddScoped<IAuthStateService, Services.AuthStateService>();
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IManagementUserProvider, Services.ManagementUserProvider>();
 
         // Token Ömürlerini Global Olarak Yapılandırıyoruz (3 Saat Standart)

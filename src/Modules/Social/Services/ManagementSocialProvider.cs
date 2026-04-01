@@ -11,20 +11,24 @@ public class ManagementSocialProvider(SocialDbContext dbContext) : IManagementSo
         var comment = await dbContext.Comments.FirstOrDefaultAsync(c => c.Id == commentId, ct);
         if (comment == null) return false;
 
+        var now = DateTime.UtcNow;
+
         if (deleteTree)
         {
-            // Simple recursive or flat delete for children
-            var children = await dbContext.Comments.Where(c => c.ParentCommentId == commentId).ToListAsync(ct);
+            var children = await dbContext.Comments
+                .Where(c => c.ParentCommentId == commentId)
+                .ToListAsync(ct);
+
             foreach (var child in children)
             {
-                child.UndoDelete(); // If we just want to mark deleted via soft delete
-                // Actually base entity has IsDeleted
+                child.IsDeleted = true;
+                child.DeletedAt = now;
             }
         }
 
-        comment.DeletedAt = DateTime.UtcNow;
-        // Assume soft delete is handled by interceptor or manual property
-        // Actually base entity handles this if using the AuditInterceptor or manual SaveChanges logic
+        comment.IsDeleted = true;
+        comment.DeletedAt = now;
+
         await dbContext.SaveChangesAsync(ct);
         return true;
     }

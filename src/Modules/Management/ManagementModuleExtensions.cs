@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Management.Data;
+using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Management;
 
@@ -13,6 +14,7 @@ public static class ManagementModuleExtensions
 
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider, Services.SystemSettingProvider>();
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService, Services.EmailTemplateService>();
+        services.AddScoped<IAuthorApplicationService, Services.AuthorApplicationService>();
         services.AddHostedService<Workers.OutboxWorker>();
 
         return services;

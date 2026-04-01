@@ -7,6 +7,7 @@ using Epiknovel.Shared.Infrastructure.Services;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.Builder;
+using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Books.Endpoints.CreateBook;
 
@@ -14,11 +15,13 @@ namespace Epiknovel.Modules.Books.Endpoints.CreateBook;
 public class Endpoint(
     BooksDbContext dbContext, 
     ISlugService slugService,
-    IUserProvider userProvider) : Endpoint<Request, Result<Response>>
+    IUserProvider userProvider,
+    IPermissionService permissionService) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
         Post("/books");
+        Policies(PolicyNames.AuthorContentAccess);
         // Varsayılan olarak kimlik doğrulaması gerektirir
         Options(x => x.RequireRateLimiting("StrictPolicy"));
         Summary(s => {
@@ -29,13 +32,21 @@ public class Endpoint(
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        // 0. Yazarlık Yetki Kontrolü (Genel)
-        var isAuthor = await userProvider.IsAuthorAsync(req.UserId, ct);
-        if (!isAuthor)
+        // 0. İş kuralları: onaylı yazar profili olmadan içerik üretilemez
+        if (!await userProvider.IsAuthorAsync(req.UserId, ct))
         {
             await Send.ResponseAsync(Result<Response>.Failure("Kitap oluşturmak için önce yazar olarak başvurup onay almalısınız."), 403, ct);
             return;
         }
+
+        // Author create akışında çeviri eser açılamaz.
+        // Bu alanlar sadece yönetim tarafındaki ayrı akışlarda kullanılmalıdır.
+        var isAdmin = await permissionService.HasPermissionAsync(User, PermissionNames.AdminAccess, ct);
+        // Yazarlar hem orijinal hem çeviri eser açabilmelidir.
+        var resolvedType = req.Type; 
+        var resolvedOriginalAuthorName = resolvedType == BookType.Translation
+            ? req.OriginalAuthorName?.Trim()
+            : null;
 
         // 1. Benzersiz Slug Üret (Title üzerinden)
         var slug = await slugService.GenerateUniqueSlugAsync(req.Title, dbContext.Books, ct);
@@ -55,20 +66,51 @@ public class Endpoint(
             CoverImageUrl = req.CoverImageUrl,
             Status = req.Status,
             ContentRating = req.ContentRating,
-            Type = req.Type,
-            OriginalAuthorName = req.OriginalAuthorName,
+            Type = resolvedType,
+            OriginalAuthorName = resolvedOriginalAuthorName,
             Categories = categories
         };
 
-        // 4. Etiketleri Ekle (Basit tag yönetimi)
-        foreach (var tagName in req.Tags)
+        // 4. Etiketleri Ekle (N+1 önleme: tek sorguda mevcutları çek, eksikleri toplu oluştur)
+        var normalizedTagNames = req.Tags
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedTagNames.Count > 0)
         {
-            var tag = await dbContext.Tags.FirstOrDefaultAsync(t => t.Name == tagName, ct);
-            if (tag == null)
+            var existingTags = await dbContext.Tags
+                .Where(t => normalizedTagNames.Contains(t.Name))
+                .ToListAsync(ct);
+
+            var existingTagNames = existingTags
+                .Select(t => t.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var missingTags = normalizedTagNames
+                .Where(tagName => !existingTagNames.Contains(tagName))
+                .Select(tagName => new Tag
+                {
+                    Name = tagName,
+                    Slug = Epiknovel.Shared.Core.Common.SlugHelper.ToSlug(tagName)
+                })
+                .ToList();
+
+            if (missingTags.Count > 0)
             {
-                tag = new Tag { Name = tagName, Slug = Epiknovel.Shared.Core.Common.SlugHelper.ToSlug(tagName) };
+                dbContext.Tags.AddRange(missingTags);
             }
-            book.Tags.Add(tag);
+
+            foreach (var tag in existingTags)
+            {
+                book.Tags.Add(tag);
+            }
+
+            foreach (var tag in missingTags)
+            {
+                book.Tags.Add(tag);
+            }
         }
 
         dbContext.Books.Add(book);

@@ -2,6 +2,9 @@ namespace Epiknovel.Shared.Core.Constants;
 
 public static class PolicyNames
 {
+    public const string AuthorPanelAccess = "AuthorPanelAccess";
+    public const string AuthorContentAccess = "AuthorContentAccess";
+
     // Sadece SuperAdmin (Ekonomi, Site Ayarları)
     public const string SuperAdminOnly = "SuperAdminOnly";
     

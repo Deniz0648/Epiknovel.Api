@@ -10,6 +10,7 @@ namespace Epiknovel.Modules.Infrastructure.Handlers;
 // Merkezi Bildirim Yöneticisi: Olayları (Events) yakalar ve hem DB'ye yazar hem de SignalR ile fırlatır.
 public class NotificationHandlers(
     INotificationService notificationService,
+    IAuthStateService authStateService,
     IHubContext<GlobalNotificationHub> hubContext) : 
     INotificationHandler<AuthorApplicationReviewedEvent>,
     INotificationHandler<PaidAuthorApplicationReviewedEvent>,
@@ -52,6 +53,7 @@ public class NotificationHandlers(
             null, 
             ct);
 
+        await authStateService.HandlePermissionsChangedAsync(notification.UserId, notification.Description, ct);
         await PushRealTimeAsync(notification.UserId, "RoleUpdated", new { newRole = notification.NewRole }, ct);
     }
     public async Task Handle(AuthorApplicationReviewedEvent notification, CancellationToken ct)
@@ -65,6 +67,8 @@ public class NotificationHandlers(
         
         if (notification.IsApproved)
         {
+            await authStateService.HandlePermissionsChangedAsync(notification.UserId, "Yazarlık yetkiniz aktifleştirildi.", ct);
+
             // Veritabanına rol değişim bildirimini de kaydet
             await notificationService.SendSystemNotificationAsync(
                 notification.UserId, 
@@ -90,6 +94,8 @@ public class NotificationHandlers(
 
         if (notification.IsApproved)
         {
+            await authStateService.HandlePermissionsChangedAsync(notification.UserId, "Ücretli yazarlık yetkiniz aktifleştirildi.", ct);
+
             // Veritabanına rol değişim bildirimini de kaydet
             await notificationService.SendSystemNotificationAsync(
                 notification.UserId, 

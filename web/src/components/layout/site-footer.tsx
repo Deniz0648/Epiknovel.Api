@@ -4,7 +4,7 @@ import { LogoMark } from "@/components/layout/logo-mark";
 
 export function SiteFooter() {
   return (
-    <footer className="mx-auto w-full max-w-7xl px-4 pb-6 pt-10 sm:px-8 sm:pb-8 sm:pt-12">
+    <footer className="site-shell mx-auto px-4 pb-6 pt-10 sm:px-8 sm:pb-8 sm:pt-12">
       <div className="glass-frame rounded-3xl p-5 sm:p-7">
         <div className="grid gap-7 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div className="space-y-3">

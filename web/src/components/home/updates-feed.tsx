@@ -5,32 +5,32 @@ import { toBookSlug } from "@/lib/books";
 const CHAPTER_UPDATES = [
   {
     book: "Kutsal Arsivlerin Son Koruyucusu",
-    chapter: "Bolum 149 yayinda",
+    chapter: "Bolum 149 yuklendi",
     time: "12 dk once",
   },
   {
     book: "Against the Gods",
-    chapter: "Bolum 813 yayinda",
+    chapter: "Bolum 813 yuklendi",
     time: "34 dk once",
   },
   {
     book: "Rebirth of the Thief Who Roamed the World",
-    chapter: "Bolum 308 yayinda",
+    chapter: "Bolum 308 yuklendi",
     time: "1 saat once",
   },
   {
     book: "Golge Loncasinin Kayip Haritasi",
-    chapter: "Bolum 90 yayinda",
+    chapter: "Bolum 90 yuklendi",
     time: "2 saat once",
   },
   {
     book: "Sonsuz Muhurun Ucuncu Anahtari",
-    chapter: "Bolum 204 yayinda",
+    chapter: "Bolum 204 yuklendi",
     time: "3 saat once",
   },
   {
     book: "Kuzey Kapisindaki Buyucu",
-    chapter: "Bolum 57 yayinda",
+    chapter: "Bolum 57 yuklendi",
     time: "5 saat once",
   },
 ] as const;
@@ -64,40 +64,40 @@ export function UpdatesFeed() {
 
   return (
     <section className="grid gap-4 xl:grid-cols-2">
-      <article className="glass-frame flex h-full flex-col p-5 sm:p-6">
-        <div className="mb-4 flex items-center gap-2">
+      <article className="glass-frame flex h-full flex-col p-4 sm:p-6">
+        <div className="mb-3 flex items-center gap-2 sm:mb-4">
           <BookText className="h-4 w-4 text-primary" />
-          <h3 className="text-lg font-bold sm:text-xl">Guncellemeler</h3>
+          <h3 className="text-base font-bold sm:text-xl">Guncellemeler</h3>
         </div>
 
-        <div className="space-y-2.5 xl:flex-1 xl:grid xl:grid-rows-6 xl:gap-2.5 xl:space-y-0">
+        <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-6 xl:gap-2.5">
           {chapterUpdates.map((item) => (
             <Link
               href={`/Books/${toBookSlug(item.book)}`}
               key={`${item.book}-${item.chapter}`}
               className="rounded-xl border border-base-content/10 bg-base-100/20 px-3 py-3 transition-colors hover:border-primary/30 xl:flex xl:h-full xl:flex-col xl:justify-center"
             >
-              <p className="line-clamp-1 text-sm font-semibold">{item.book}</p>
-              <p className="text-sm text-base-content/75">{item.chapter}</p>
+              <p className="line-clamp-2 text-sm font-semibold leading-snug">{item.book}</p>
+              <p className="mt-1 text-sm text-base-content/75">{item.chapter}</p>
               <p className="mt-1 text-xs text-base-content/55">{item.time}</p>
             </Link>
           ))}
         </div>
 
-        <div className="mt-4 xl:mt-auto xl:pt-3">
-          <button className="btn btn-outline btn-sm w-full rounded-full">
+        <div className="mt-3 xl:mt-auto xl:pt-3">
+          <Link href="/Updates" className="btn btn-outline btn-sm w-full rounded-full">
             Hepsini Gor
-          </button>
+          </Link>
         </div>
       </article>
 
-      <article className="glass-frame flex h-full flex-col p-5 sm:p-6">
-        <div className="mb-4 flex items-center gap-2">
+      <article className="glass-frame flex h-full flex-col p-4 sm:p-6">
+        <div className="mb-3 flex items-center gap-2 sm:mb-4">
           <Megaphone className="h-4 w-4 text-secondary" />
-          <h3 className="text-lg font-bold sm:text-xl">Son Duyurular</h3>
+          <h3 className="text-base font-bold sm:text-xl">Son Duyurular</h3>
         </div>
 
-        <div className="space-y-2.5 xl:flex-1 xl:grid xl:grid-rows-4 xl:gap-2.5 xl:space-y-0">
+        <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-4 xl:gap-2.5">
           {announcements.map((item) => (
             <div
               key={`${item.title}-${item.date}`}
@@ -117,10 +117,10 @@ export function UpdatesFeed() {
           ))}
         </div>
 
-        <div className="mt-4 xl:mt-auto xl:pt-3">
-          <button className="btn btn-outline btn-sm w-full rounded-full">
+        <div className="mt-3 xl:mt-auto xl:pt-3">
+          <Link href="/announcements" className="btn btn-outline btn-sm w-full rounded-full">
             Hepsini Gor
-          </button>
+          </Link>
         </div>
       </article>
     </section>

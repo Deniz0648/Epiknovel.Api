@@ -1,21 +1,51 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { BookOpen, Eye, Play, Plus, Star, Tag } from "lucide-react";
-import { notFound } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import {
   BookDetailPanels,
   type BookChapterItem,
   type BookCommentItem,
 } from "@/components/book/book-detail-panels";
-import { HeaderIsland } from "@/components/layout/header-island";
+import { apiRequest } from "@/lib/api";
 import { fromBookSlug } from "@/lib/books";
-
-type BookDetailPageProps = {
-  params: Promise<{ bookSlug: string }>;
-};
 
 type CoverKey = "arsiv" | "golge" | "muhur";
 type AgeRating = "Genel Izleyici (G)" | "13+ (PG-13)" | "18+ (R)";
+
+type BookDetailApiResponse = {
+  title: string;
+  slug: string;
+  description: string;
+  coverImageUrl?: string | null;
+  authorName: string;
+  status: string;
+  contentRating: string;
+  type: string;
+  categories: { id: string; name: string; slug: string }[];
+  tags: string[];
+  averageRating: number;
+  viewCount: number;
+};
+
+type ChaptersApiResponse = {
+  chapters: {
+    id: string;
+    title: string;
+    slug: string;
+    order: number;
+    wordCount: number;
+    isFree: boolean;
+    status: string;
+    publishedAt?: string | null;
+  }[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+};
 
 const COVER_ASSETS: Record<CoverKey, { image: string; blurDataURL: string }> = {
   arsiv: {
@@ -35,84 +65,31 @@ const COVER_ASSETS: Record<CoverKey, { image: string; blurDataURL: string }> = {
   },
 };
 
-function buildDetail(title: string, slug: string) {
-  const slugScore = slug.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const coverKeys: CoverKey[] = ["arsiv", "golge", "muhur"];
-  const ageOptions: AgeRating[] = ["Genel Izleyici (G)", "13+ (PG-13)", "18+ (R)"];
-  const categoryPool = [
-    "Aksiyon",
-    "Fantastik",
-    "Macera",
-    "Isekai",
-    "Gizem",
-    "Karanlik",
-    "Romantasy",
-    "Bilim Kurgu",
-  ] as const;
-  const tagPool = [
-    "Karanlik Fantazi",
-    "Intikam",
-    "Anti-Kahraman",
-    "Guclenme",
-    "Saray Politikasi",
-    "Buyu Sistemi",
-    "Kadim Sirlar",
-    "Yuksek Tempo",
-    "Hayatta Kalma",
-    "Dogaustu",
-    "Mitolojik Ogeler",
-    "Guc Dengesi",
-  ] as const;
-  const cover = COVER_ASSETS[coverKeys[slugScore % coverKeys.length]];
-  const rating = 4 + ((slugScore % 10) / 10);
-  const reads = 32000 + (slugScore % 120) * 1000;
-  const chapters = 80 + (slugScore % 700);
-  const categoryCount = (slugScore % 4) + 1;
-  const categories = Array.from({ length: categoryCount }, (_, index) => {
-    return categoryPool[(slugScore + index * 2) % categoryPool.length];
-  });
-  const tags = Array.from({ length: 8 }, (_, index) => {
-    return tagPool[(slugScore + index * 3) % tagPool.length];
-  });
+type BookDetailViewModel = {
+  title: string;
+  author: string;
+  status: string;
+  workType: string;
+  ageRange: AgeRating;
+  categories: string[];
+  tags: string[];
+  rating: number;
+  reads: number;
+  chapters: number;
+  cover: { image: string; blurDataURL: string };
+  synopsis: string;
+};
 
-  return {
-    title,
-    author: "Epik Novel Ekibi",
-    status: "Devam Ediyor",
-    workType: "Ceviri",
-    ageRange: ageOptions[slugScore % ageOptions.length],
-    categories,
-    tags,
-    rating: Math.min(5, Number(rating.toFixed(1))),
-    reads,
-    chapters,
-    cover,
-    synopsis:
-      "Kadim guclerin yeniden uyandigi bir cografyada, kahramanimiz kayip bir iradenin izini surerken hem imparatorluk dengelerini hem de kendi sinirlarini yeniden tanimlamak zorunda kalir.",
-  };
-}
-
-function buildChapterList(totalChapters: number): BookChapterItem[] {
-  return Array.from({ length: totalChapters }, (_, index) => {
-    const chapterNumber = index + 1;
-    const minutesAgo = (chapterNumber * 17) % 480;
-    const publishLabel =
-      minutesAgo < 60
-        ? `${minutesAgo} dk once`
-        : `${Math.max(1, Math.round(minutesAgo / 60))} saat once`;
-    const day = ((chapterNumber * 3) % 28) + 1;
-    const month = ((chapterNumber * 7) % 12) + 1;
-
-    return {
-      id: `chapter-${chapterNumber}`,
-      number: chapterNumber,
-      title: `Bolum Basligi ${chapterNumber}`,
-      publishLabel,
-      dateLabel: `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.2026`,
-      readCount: 1200 + (chapterNumber % 37) * 180,
-      isPremium: chapterNumber % 4 === 0,
-    };
-  });
+function mapChaptersFromApi(items: ChaptersApiResponse["chapters"]): BookChapterItem[] {
+  return items.map((item, index) => ({
+    id: item.id,
+    number: item.order || index + 1,
+    title: item.title,
+    publishLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "Taslak",
+    dateLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "-",
+    readCount: Math.max(100, Math.floor((item.wordCount || 0) / 5)),
+    isPremium: !item.isFree,
+  }));
 }
 
 function buildComments(title: string): BookCommentItem[] {
@@ -349,27 +326,88 @@ function buildComments(title: string): BookCommentItem[] {
   ];
 }
 
-export default async function BookDetailPage({ params }: BookDetailPageProps) {
-  const { bookSlug } = await params;
+export default function BookDetailPage() {
+  const params = useParams<{ bookSlug: string }>();
+  const bookSlug = params?.bookSlug ?? "";
+  const title = useMemo(() => fromBookSlug(bookSlug), [bookSlug]);
+  const [detail, setDetail] = useState<BookDetailViewModel | null>(null);
+  const [chapters, setChapters] = useState<BookChapterItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const comments = useMemo(() => buildComments(title), [title]);
 
-  if (!bookSlug || bookSlug.trim().length === 0) {
-    notFound();
+  useEffect(() => {
+    if (!bookSlug) return;
+
+    let isMounted = true;
+
+    async function loadBook() {
+      try {
+        setIsLoading(true);
+        setApiError(null);
+        const [bookData, chapterData] = await Promise.all([
+          apiRequest<BookDetailApiResponse>(`/books/${bookSlug}`),
+          apiRequest<ChaptersApiResponse>(`/books/${bookSlug}/chapters?pageNumber=1&pageSize=200&sortBy=Order&sortDescending=false`),
+        ]);
+
+        if (!isMounted) return;
+        setDetail({
+          title: bookData.title,
+          author: bookData.authorName || "Yazar",
+          status: bookData.status || "Bilinmiyor",
+          workType: bookData.type || "Bilinmiyor",
+          ageRange: "13+ (PG-13)",
+          categories: (bookData.categories ?? []).map((x) => x.name),
+          tags: bookData.tags ?? [],
+          rating: bookData.averageRating > 0 ? Number(bookData.averageRating.toFixed(1)) : 0,
+          reads: bookData.viewCount > 0 ? bookData.viewCount : 0,
+          chapters: chapterData.totalCount > 0 ? chapterData.totalCount : 0,
+          synopsis: bookData.description || "Aciklama bulunamadi.",
+          cover: COVER_ASSETS.golge,
+        });
+
+        setChapters(chapterData.chapters.length > 0 ? mapChaptersFromApi(chapterData.chapters) : []);
+      } catch {
+        if (!isMounted) return;
+        setDetail(null);
+        setChapters([]);
+        setApiError("Kitap detayi yuklenemedi.");
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadBook();
+    return () => {
+      isMounted = false;
+    };
+  }, [bookSlug]);
+
+  if (isLoading) {
+    return (
+      <main className="relative overflow-hidden">
+        <div className="site-shell mx-auto flex min-h-screen items-center justify-center px-4 sm:px-8">
+          <p className="text-sm font-semibold text-base-content/70">Kitap yukleniyor...</p>
+        </div>
+      </main>
+    );
   }
 
-  const title = fromBookSlug(bookSlug);
-  const detail = buildDetail(title, bookSlug);
-  const chapters = buildChapterList(detail.chapters);
-  const comments = buildComments(title);
+  if (!detail) {
+    return (
+      <main className="relative overflow-hidden">
+        <div className="site-shell mx-auto flex min-h-screen items-center justify-center px-4 sm:px-8">
+          <p className="text-sm font-semibold text-error">{apiError ?? "Kitap bulunamadi."}</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative overflow-hidden">
-      <div className="fixed inset-x-0 top-0 z-50">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-3 sm:px-8 sm:pt-4">
-          <HeaderIsland />
-        </div>
-      </div>
-
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
+      <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
         <section className="glass-frame space-y-5 p-5 sm:p-7">
           <p className="text-xs font-semibold text-base-content/60">
             <Link href="/" className="hover:text-primary">

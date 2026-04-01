@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 @plugin "daisyui" {
   themes:
     light --default,
@@ -47,12 +48,10 @@ body {
   background:
     radial-gradient(circle at 8% -12%, color-mix(in oklab, var(--color-primary) 26%, transparent) 0%, transparent 42%),
     radial-gradient(circle at 88% 4%, color-mix(in oklab, var(--color-secondary) 26%, transparent) 0%, transparent 40%),
-    linear-gradient(
-      145deg,
+    linear-gradient(145deg,
       color-mix(in oklab, var(--color-base-100) 92%, black 8%) 0%,
       var(--color-base-200) 48%,
-      color-mix(in oklab, var(--color-base-300) 78%, black 22%) 100%
-    );
+      color-mix(in oklab, var(--color-base-300) 78%, black 22%) 100%);
   color: var(--color-base-content);
 }
 
@@ -75,6 +74,32 @@ body {
 
 .glass-dropdown {
   background: color-mix(in oklab, var(--color-base-100) 84%, transparent);
+}
+
+.overlay-scroll-region {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  padding-right: 0.35rem;
+}
+
+.overlay-scroll-region::-webkit-scrollbar {
+  width: 0.6rem;
+}
+
+.overlay-scroll-region::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overlay-scroll-region::-webkit-scrollbar-thumb {
+  border: 0.14rem solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: color-mix(in oklab, var(--color-base-content) 24%, transparent);
+}
+
+.overlay-scroll-region::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in oklab, var(--color-base-content) 34%, transparent);
 }
 
 .header-link {
@@ -121,13 +146,11 @@ body {
 }
 
 .hero-title-gradient {
-  background-image: linear-gradient(
-    98deg,
-    var(--color-base-content) 0%,
-    color-mix(in oklab, var(--color-base-content) 72%, var(--color-primary) 28%) 34%,
-    var(--color-primary) 68%,
-    var(--color-secondary) 100%
-  );
+  background-image: linear-gradient(98deg,
+      var(--color-base-content) 0%,
+      color-mix(in oklab, var(--color-base-content) 72%, var(--color-primary) 28%) 34%,
+      var(--color-primary) 68%,
+      var(--color-secondary) 100%);
   background-size: 120% 100%;
   background-position: left center;
   background-repeat: no-repeat;
@@ -141,6 +164,13 @@ body {
   flex-direction: column;
   gap: 1.5rem;
 }
+
+.site-shell {
+  width: 100%;
+  max-width: 100rem;
+}
+
+
 
 @media (prefers-reduced-motion: reduce) {
   .hero-slide-enter {

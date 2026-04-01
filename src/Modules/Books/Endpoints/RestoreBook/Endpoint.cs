@@ -17,7 +17,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<strin
     public override void Configure()
     {
         Post("/books/{Id}/restore");
-        Roles(RoleNames.Admin, RoleNames.SuperAdmin);
+        Policies(PolicyNames.AdminAccess);
         Summary(s => {
             s.Summary = "Silinen bir kitabı çöp kutusundan geri getirir (Yönetici).";
             s.Description = "Kitap ve bağlı tüm bölümleri geri yükler. Sadece Admin ve SuperAdmin yetkisiyle erişilebilir.";

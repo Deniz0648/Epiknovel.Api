@@ -24,12 +24,19 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
         // 1. Sorguyu Hazırla (Base Query)
         var query = dbContext.Books
             .AsNoTracking()
+            .Where(x => !x.IsHidden)
             .AsQueryable();
+        Guid? filteredAuthorId = null;
+        var requestingUserIdValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var requestingUserId = Guid.TryParse(requestingUserIdValue, out var parsedRequestingUserId)
+            ? parsedRequestingUserId
+            : Guid.Empty;
 
         // 2. Filtreler
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
-            query = query.Where(x => x.Title.Contains(req.Search) || x.Description.Contains(req.Search));
+            var search = req.Search.Trim().ToLower();
+            query = query.Where(x => x.Title.ToLower().Contains(search) || x.Description.ToLower().Contains(search));
         }
 
         if (!string.IsNullOrWhiteSpace(req.AuthorSlug))
@@ -43,6 +50,7 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
                 return;
             }
 
+            filteredAuthorId = authorId.Value;
             query = query.Where(x => x.AuthorId == authorId.Value);
         }
 
@@ -67,9 +75,14 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
         }
         else
         {
-            // Varsayılan olarak sadece yayınlanmış kitaplar (Halka açık keşif için)
-            // Eğer admin/author yetkisi varsa tümünü görebilir (Gelecekte eklenecek)
-            query = query.Where(x => x.Status == Epiknovel.Modules.Books.Domain.BookStatus.Published);
+            // Varsayılan olarak sadece yayınlanmış kitaplar halka açıktır.
+            // Ancak giriş yapan kullanıcı kendi authorSlug filtresiyle sorgu yapıyorsa
+            // taslak / ongoing dahil tüm kitaplarını görebilmelidir.
+            var isOwnerRequest = filteredAuthorId.HasValue && requestingUserId != Guid.Empty && filteredAuthorId.Value == requestingUserId;
+            if (!isOwnerRequest)
+            {
+                query = query.Where(x => x.Status != Epiknovel.Modules.Books.Domain.BookStatus.Draft);
+            }
         }
 
         if (req.IsEditorChoice.HasValue)

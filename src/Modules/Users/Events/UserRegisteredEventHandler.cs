@@ -11,6 +11,21 @@ public class UserRegisteredEventHandler(UsersDbContext dbContext) : INotificatio
 {
     public async Task Handle(UserRegisteredEvent notification, CancellationToken ct)
     {
+        var existingProfile = await dbContext.UserProfiles
+            .FirstOrDefaultAsync(profile => profile.Id == notification.UserId, ct);
+
+        if (existingProfile != null)
+        {
+            // Seed veya tekrar yayınlanan registration event'lerinde idempotent davran.
+            if (string.IsNullOrWhiteSpace(existingProfile.DisplayName))
+            {
+                existingProfile.DisplayName = ResolveDisplayName(notification.DisplayName);
+                await dbContext.SaveChangesAsync(ct);
+            }
+
+            return;
+        }
+
         var resolvedDisplayName = ResolveDisplayName(notification.DisplayName);
 
         // 1. Temel Slug Üretimi

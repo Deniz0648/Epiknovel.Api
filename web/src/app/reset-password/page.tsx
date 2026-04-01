@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { ArrowLeft, KeyRound, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ApiError } from "@/lib/api";
 import { resetPassword } from "@/lib/auth";
+import { useAuth } from "@/components/providers/auth-provider";
 
 function ResetPasswordContent() {
+  const router = useRouter();
+  const { profile, isLoading } = useAuth();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? "";
   const token = searchParams.get("token") ?? "";
@@ -17,6 +21,16 @@ function ResetPasswordContent() {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (profile) {
+      router.replace("/");
+    }
+  }, [isLoading, profile, router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

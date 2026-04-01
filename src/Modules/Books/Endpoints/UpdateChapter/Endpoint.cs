@@ -7,15 +7,17 @@ using Epiknovel.Shared.Infrastructure.Services;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Interfaces;
 using Microsoft.AspNetCore.OutputCaching;
+using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Books.Endpoints.UpdateChapter;
 
 [AuditLog("Bölüm İçeriği Güncellendi (Sync Modu)")]
-public class Endpoint(BooksDbContext dbContext, IUserProvider userProvider, IOutputCacheStore cacheStore) : Endpoint<Request, Result<Response>>
+public class Endpoint(BooksDbContext dbContext, IPermissionService permissionService, IOutputCacheStore cacheStore) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
         Patch("/books/chapters");
+        Policies(PolicyNames.AuthorContentAccess);
         // Varsayılan olarak kimlik doğrulaması gerektirir
         Summary(s => {
             s.Summary = "Mevcut bir bölümü ve içeriğini (satır bazlı) günceller.";
@@ -47,8 +49,8 @@ public class Endpoint(BooksDbContext dbContext, IUserProvider userProvider, IOut
         // 2. Ücretli Yazarlık Yetki Kontrolü
         if (!req.IsFree || req.Price > 0)
         {
-            var isPaidAuthor = await userProvider.IsPaidAuthorAsync(req.UserId, ct);
-            if (!isPaidAuthor)
+            var canPublishPaidChapters = await permissionService.HasPermissionAsync(User, PermissionNames.PublishPaidChapters, ct);
+            if (!canPublishPaidChapters)
             {
                 await Send.ResponseAsync(Result<Response>.Failure("Bölümü ücretli yapmak için önce başvurup onay almalısınız."), 403, ct);
                 return;

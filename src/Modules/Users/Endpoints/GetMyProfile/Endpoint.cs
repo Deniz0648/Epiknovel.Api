@@ -12,7 +12,8 @@ namespace Epiknovel.Modules.Users.Endpoints.GetMyProfile;
 public class Endpoint(
     UsersDbContext dbContext,
     IFileService fileService,
-    IUserAccountProvider userAccountProvider) : EndpointWithoutRequest<Result<Response>>
+    IUserAccountProvider userAccountProvider,
+    IPermissionService permissionService) : EndpointWithoutRequest<Result<Response>>
 {
     public override void Configure()
     {
@@ -83,14 +84,19 @@ public class Endpoint(
         }
 
         // 2. Yanıtı hazırla (AvatarUrl'i tam URL'e çeviriyoruz)
+        var permissions = await permissionService.GetSnapshotAsync(User, ct);
+
         var response = new Response
         {
             UserId = profile.UserId,
             DisplayName = profile.DisplayName,
+            Slug = profile.Slug,
             Bio = profile.Bio,
             FollowersCount = profile.TotalFollowers,
             FollowingCount = profile.TotalFollowing,
             EmailConfirmed = await userAccountProvider.IsEmailConfirmedAsync(profile.UserId, ct),
+            IsAuthor = permissions.CreateBook,
+            Permissions = permissions,
             AvatarUrl = string.IsNullOrEmpty(profile.AvatarUrl) 
                 ? null 
                 : fileService.GetFileUrl(profile.AvatarUrl, "profiles")

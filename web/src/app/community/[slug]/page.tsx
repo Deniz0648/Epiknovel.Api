@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { BookOpenText, Check, ChevronRight, Globe2, Loader2, UserPlus, UserRound, UserX, Users } from "lucide-react";
-import { HeaderIsland } from "@/components/layout/header-island";
 import { useAuth } from "@/components/providers/auth-provider";
 import { ApiError } from "@/lib/api";
 import { followUser, getPublicBooks, getPublicUserProfile, unfollowUser, type PublicBookListItem, type PublicUserProfile } from "@/lib/auth";
@@ -153,13 +152,7 @@ export default function CommunityUserPage() {
 
   return (
     <main className="relative overflow-hidden">
-      <div className="fixed inset-x-0 top-0 z-50">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-3 sm:px-8 sm:pt-4">
-          <HeaderIsland />
-        </div>
-      </div>
-
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-10 sm:pt-32">
+      <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-10 sm:pt-32">
         <section className="glass-frame relative overflow-hidden border border-primary/20 bg-gradient-to-br from-base-100/92 via-base-100/85 to-primary/8 p-6 sm:p-8">
           <div className="pointer-events-none absolute -left-20 top-0 h-44 w-44 rounded-full bg-primary/14 blur-3xl" />
           <div className="pointer-events-none absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />

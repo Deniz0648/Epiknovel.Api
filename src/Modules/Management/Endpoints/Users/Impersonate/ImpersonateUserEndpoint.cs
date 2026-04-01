@@ -16,7 +16,7 @@ public class ImpersonateUserEndpoint(IMediator mediator) : Endpoint<ImpersonateU
     public override void Configure()
     {
         Post("/management/users/{UserId}/impersonate");
-        Roles(RoleNames.SuperAdmin, RoleNames.Admin);
+        Policies(PolicyNames.AdminAccess);
         Summary(s =>
         {
             s.Summary = "Start user impersonation session";

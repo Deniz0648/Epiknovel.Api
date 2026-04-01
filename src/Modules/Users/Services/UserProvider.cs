@@ -58,6 +58,12 @@ public class UserProvider(UsersDbContext dbContext) : IUserProvider
         if (profile != null)
         {
             profile.IsAuthor = isAuthor;
+            if (!isAuthor)
+            {
+                profile.IsPaidAuthor = false;
+                profile.VerifiedIban = null;
+            }
+
             await dbContext.SaveChangesAsync(ct);
         }
     }
@@ -78,6 +84,11 @@ public class UserProvider(UsersDbContext dbContext) : IUserProvider
 
         if (profile != null)
         {
+            if (isPaidAuthor)
+            {
+                profile.IsAuthor = true;
+            }
+
             profile.IsPaidAuthor = isPaidAuthor;
             profile.VerifiedIban = iban;
             await dbContext.SaveChangesAsync(ct);

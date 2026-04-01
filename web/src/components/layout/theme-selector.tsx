@@ -2,6 +2,7 @@
 
 import { Fragment, type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
 import { Check, Palette } from "lucide-react";
+import { dispatchHeaderOverlayOpen, getHeaderOverlayEventName } from "@/lib/header-overlays";
 
 const PRIORITY_THEMES = ["light", "dark"] as const;
 const LIGHT_THEMES = [
@@ -182,6 +183,20 @@ export function ThemeSelector() {
     };
   }, []);
 
+  useEffect(() => {
+    function closeWhenAnotherOverlayOpens(event: Event) {
+      const customEvent = event as CustomEvent<string>;
+      if (customEvent.detail !== "theme" && detailsRef.current?.open) {
+        detailsRef.current.open = false;
+      }
+    }
+
+    window.addEventListener(getHeaderOverlayEventName(), closeWhenAnotherOverlayOpens);
+    return () => {
+      window.removeEventListener(getHeaderOverlayEventName(), closeWhenAnotherOverlayOpens);
+    };
+  }, []);
+
   function handleThemeSelect(nextTheme: ThemeName, event: ReactMouseEvent<HTMLButtonElement>) {
     setTheme(nextTheme);
 
@@ -195,7 +210,13 @@ export function ThemeSelector() {
     <details ref={detailsRef} className="dropdown dropdown-end">
       <summary
         aria-label="Tema sec"
-        className="inline-flex h-9 w-9 list-none cursor-pointer items-center justify-center text-base-content/78 transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
+        onClick={() => {
+          const willOpen = !detailsRef.current?.open;
+          if (willOpen) {
+            dispatchHeaderOverlayOpen("theme");
+          }
+        }}
+        className="inline-flex h-10 w-10 list-none cursor-pointer items-center justify-center rounded-2xl border border-base-content/14 bg-base-100/26 text-base-content/78 transition-all duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35"
       >
         <Palette strokeWidth={1.9} className="h-4.5 w-4.5" aria-hidden="true" />
         <span className="sr-only" suppressHydrationWarning>
@@ -203,7 +224,17 @@ export function ThemeSelector() {
         </span>
       </summary>
 
-      <ul className="glass-frame glass-dropdown menu dropdown-content z-[70] mt-3 max-h-[22rem] w-[18.75rem] flex-nowrap overflow-y-auto p-2 shadow-2xl max-sm:fixed max-sm:left-3 max-sm:right-3 max-sm:top-[4.7rem] max-sm:mt-0 max-sm:max-h-[62vh] max-sm:w-auto">
+      <div className="glass-frame glass-dropdown dropdown-content z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 shadow-2xl max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-[5.25rem] max-sm:mt-0 max-sm:w-auto">
+        <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100/38 px-3.5 py-3">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-base-content/48">Tema</p>
+            <p className="mt-1 text-sm font-semibold text-base-content/72">
+              {formatThemeLabel(theme)}
+            </p>
+          </div>
+          <ThemePaletteBadge themeName={theme} className="h-10 w-10" />
+        </div>
+        <ul className="overlay-scroll-region menu block max-h-[22rem] w-full overflow-y-auto p-0 max-sm:max-h-[62vh]">
         {THEME_GROUPS.map((group) => (
           <Fragment key={group.title}>
             <li className="menu-title px-2 pb-1 pt-2 text-[11px] uppercase tracking-[0.15em] text-base-content/50">
@@ -235,7 +266,8 @@ export function ThemeSelector() {
             })}
           </Fragment>
         ))}
-      </ul>
+        </ul>
+      </div>
     </details>
   );
 }

@@ -2,16 +2,30 @@
 
 import Link from "next/link";
 import { ArrowLeft, KeyRound, Mail } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ApiError } from "@/lib/api";
 import { forgotPassword } from "@/lib/auth";
+import { useAuth } from "@/components/providers/auth-provider";
 
 export default function ForgotPasswordPage() {
+  const router = useRouter();
+  const { profile, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (profile) {
+      router.replace("/");
+    }
+  }, [isLoading, profile, router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

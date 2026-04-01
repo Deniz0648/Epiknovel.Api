@@ -3,8 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, ChevronDown, Filter, Search, Star } from "lucide-react";
-import { useMemo, useState } from "react";
-import { HeaderIsland } from "@/components/layout/header-island";
+import { useEffect, useMemo, useState } from "react";
+import { apiRequest } from "@/lib/api";
 import { toBookSlug } from "@/lib/books";
 
 const PAGE_SIZE = 12;
@@ -16,13 +16,14 @@ type QuickFilterKey =
   | "topRated"
   | "recentlyUpdated";
 
-type BookStatus = "Devam Ediyor" | "Tamamlandi" | "Ara Verildi";
+type BookStatus = "Devam Ediyor" | "Tamamlandi" | "Ara Verildi" | "Iptal Edildi" | "Taslak";
 type WorkType = "Ceviri" | "Orijinal";
 type AgeRange = "G" | "PG13" | "R";
 type CoverKey = "arsiv" | "golge" | "muhur";
 
 type Book = {
   id: string;
+  slug?: string;
   title: string;
   category: string;
   editorChoice: boolean;
@@ -37,6 +38,23 @@ type Book = {
   updatedAt: string;
   cover: CoverKey;
   author: string;
+};
+
+type BooksApiItem = {
+  title: string;
+  slug: string;
+  description: string;
+  coverImageUrl?: string | null;
+  authorName?: string | null;
+  type: number;
+  status: number;
+};
+
+type BooksApiResponse = {
+  items: BooksApiItem[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
 };
 
 type CoverAsset = {
@@ -368,9 +386,37 @@ function formatCompactRead(value: number) {
   return String(value);
 }
 
+function hydrateBookFromApi(item: BooksApiItem, index: number): Book {
+  const keySeed = item.slug.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const covers: CoverKey[] = ["arsiv", "golge", "muhur"];
+  const statuses: BookStatus[] = ["Devam Ediyor", "Tamamlandi", "Ara Verildi"];
+  const workTypes: WorkType[] = ["Orijinal", "Ceviri"];
+  const ageRanges: AgeRange[] = ["G", "PG13", "R"];
+  const categories = ["Aksiyon", "Fantasy", "Epic", "Macera", "Karanlik", "Bilim Kurgu"];
+
+  return {
+    id: `${item.slug}-${index}`,
+    slug: item.slug,
+    title: item.title,
+    category: categories[keySeed % categories.length],
+    editorChoice: keySeed % 5 === 0,
+    status: (["Taslak", "Devam Ediyor", "Tamamlandi", "Ara Verildi", "Iptal Edildi"][item.status] || "Taslak") as any,
+    workType: (item.type === 0 ? "Orijinal" : "Ceviri") as any,
+    ageRange: ageRanges[keySeed % ageRanges.length],
+    rating: 4 + (keySeed % 10) / 10,
+    reads: 10000 + (keySeed % 500) * 100,
+    chapters: 20 + (keySeed % 400),
+    trendScore: 50 + (keySeed % 50),
+    createdAt: `2026-01-${String((keySeed % 27) + 1).padStart(2, "0")}`,
+    updatedAt: `2026-03-${String((keySeed % 30) + 1).padStart(2, "0")}`,
+    cover: covers[keySeed % covers.length],
+    author: item.authorName?.trim() || "Yazar",
+  };
+}
+
 function BookCard({ book }: { book: Book }) {
   const cover = COVER_ASSETS[book.cover];
-  const bookHref = `/Books/${toBookSlug(book.title)}`;
+  const bookHref = `/Books/${book.slug ?? toBookSlug(book.title)}`;
 
   return (
     <Link
@@ -450,28 +496,54 @@ export default function BooksPage() {
   const [selectedWorkTypes, setSelectedWorkTypes] = useState<WorkType[]>([]);
   const [selectedAgeRanges, setSelectedAgeRanges] = useState<AgeRange[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [apiBooks, setApiBooks] = useState<Book[] | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadBooks() {
+      try {
+        const data = await apiRequest<BooksApiResponse>("/books?pageNumber=1&pageSize=200&sortBy=CreatedAt&sortDescending=true");
+        if (!isMounted) return;
+        setApiBooks(data.items.map(hydrateBookFromApi));
+        setApiError(null);
+      } catch {
+        if (!isMounted) return;
+        setApiBooks([]);
+        setApiError("Kitaplar yuklenemedi.");
+      }
+    }
+
+    void loadBooks();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const allBooks = apiBooks ?? BOOKS;
 
   const categories = useMemo(
-    () => Array.from(new Set(BOOKS.map((book) => book.category))),
-    [],
+    () => Array.from(new Set(allBooks.map((book) => book.category))),
+    [allBooks],
   );
   const statuses = useMemo(
-    () => Array.from(new Set(BOOKS.map((book) => book.status))),
-    [],
+    () => Array.from(new Set(allBooks.map((book) => book.status))),
+    [allBooks],
   );
   const workTypes = useMemo(
-    () => Array.from(new Set(BOOKS.map((book) => book.workType))),
-    [],
+    () => Array.from(new Set(allBooks.map((book) => book.workType))),
+    [allBooks],
   );
   const ageRanges = useMemo(
-    () => Array.from(new Set(BOOKS.map((book) => book.ageRange))),
-    [],
+    () => Array.from(new Set(allBooks.map((book) => book.ageRange))),
+    [allBooks],
   );
 
   const normalizedQuery = query.trim().toLowerCase();
 
   const filteredAndSortedBooks = useMemo(() => {
-    const base = BOOKS.filter((book) => {
+    const base = allBooks.filter((book) => {
       const matchesSearch =
         normalizedQuery.length === 0 ||
         book.title.toLowerCase().includes(normalizedQuery) ||
@@ -535,6 +607,7 @@ export default function BooksPage() {
 
     return scoped;
   }, [
+    allBooks,
     editorChoiceOnly,
     normalizedQuery,
     quickFilter,
@@ -569,13 +642,7 @@ export default function BooksPage() {
 
   return (
     <main className="relative overflow-hidden">
-      <div className="fixed inset-x-0 top-0 z-50">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-3 sm:px-8 sm:pt-4">
-          <HeaderIsland />
-        </div>
-      </div>
-
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
+      <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
         <section className="glass-frame space-y-5 p-4 sm:p-6">
           <div className="text-xs font-semibold text-base-content/60">
             <Link href="/" className="transition-colors hover:text-primary">
@@ -772,6 +839,11 @@ export default function BooksPage() {
             </aside>
 
             <div className="space-y-4">
+              {apiError ? (
+                <div className="rounded-2xl border border-error/30 bg-error/10 p-4 text-sm font-semibold text-error">
+                  {apiError}
+                </div>
+              ) : null}
               {pagedBooks.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {pagedBooks.map((book) => (

@@ -9,6 +9,7 @@ using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Events;
 using Epiknovel.Shared.Core.Interfaces;
 using MediatR;
+using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Books.Endpoints.AddChapter;
 
@@ -17,11 +18,12 @@ public class Endpoint(
     BooksDbContext dbContext, 
     ISlugService slugService, 
     IMediator mediator,
-    IUserProvider userProvider) : Endpoint<Request, Result<Response>>
+    IPermissionService permissionService) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
         Post("/books/chapters");
+        Policies(PolicyNames.AuthorContentAccess);
         // Varsayılan olarak kimlik doğrulaması gerektirir (AllowAnonymous çağrılmadıkça)
         Summary(s => {
             s.Summary = "Bir kitaba yeni bir bölüm ekler.";
@@ -44,8 +46,8 @@ public class Endpoint(
         // 2. Ücretli Yazarlık Yetki Kontrolü
         if (!req.IsFree || req.Price > 0)
         {
-            var isPaidAuthor = await userProvider.IsPaidAuthorAsync(req.UserId, ct);
-            if (!isPaidAuthor)
+            var canPublishPaidChapters = await permissionService.HasPermissionAsync(User, PermissionNames.PublishPaidChapters, ct);
+            if (!canPublishPaidChapters)
             {
                 await Send.ResponseAsync(Result<Response>.Failure("Ücretli bölüm yayınlamak için önce başvurup onay almalısınız."), 403, ct);
                 return;

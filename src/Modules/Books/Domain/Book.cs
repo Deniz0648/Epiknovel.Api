@@ -9,7 +9,7 @@ public enum BookStatus
     Ongoing,    // Devam eden
     Completed,  // Tamamlanmış
     Hiatus,     // Ara verilmiş
-    Published   // Halka açık keşif sayfasında görünür
+    Cancelled   // İptal edilmiş
 }
 
 public enum ContentRating

@@ -22,6 +22,8 @@ public class Response
 
     public bool IsPreview { get; set; }
     public string? PreviewMessage { get; set; }
+    public bool IsTruncated { get; set; }
+    public string? TruncationMessage { get; set; }
 }
 
 public class ParagraphDto

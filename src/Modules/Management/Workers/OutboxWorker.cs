@@ -5,44 +5,76 @@ using Epiknovel.Shared.Core.Commands.Wallet;
 using Epiknovel.Shared.Core.Commands.Books;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Epiknovel.Modules.Management.Workers;
 
-public class OutboxWorker(IServiceProvider serviceProvider, ILogger<OutboxWorker> logger) : BackgroundService
+public class OutboxWorker(
+    IServiceProvider serviceProvider,
+    IConfiguration configuration,
+    ILogger<OutboxWorker> logger) : BackgroundService
 {
+    private const int DefaultBatchSize = 50;
+    private static readonly TimeSpan DefaultPollInterval = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan BusyLoopPause = TimeSpan.FromMilliseconds(50);
+
+    private readonly int _batchSize = Math.Clamp(configuration.GetValue("MANAGEMENT_OUTBOX_BATCH_SIZE", DefaultBatchSize), 1, 500);
+    private readonly TimeSpan _pollInterval = TimeSpan.FromMilliseconds(
+        Math.Max(100, configuration.GetValue("MANAGEMENT_OUTBOX_POLL_MS", (int)DefaultPollInterval.TotalMilliseconds)));
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Outbox Worker starting (Interval: 5s)");
+        logger.LogInformation(
+            "Outbox Worker starting (BatchSize: {BatchSize}, PollMs: {PollMs})",
+            _batchSize,
+            (int)_pollInterval.TotalMilliseconds);
 
         while (!stoppingToken.IsCancellationRequested)
         {
+            var processedCount = 0;
             try
             {
-                await ProcessOutboxAsync(stoppingToken);
+                processedCount = await ProcessOutboxAsync(stoppingToken);
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error occurred during outbox processing");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            var delay = processedCount >= _batchSize ? BusyLoopPause : _pollInterval;
+            await Task.Delay(delay, stoppingToken);
         }
     }
 
-    private async Task ProcessOutboxAsync(CancellationToken ct)
+    private async Task<int> ProcessOutboxAsync(CancellationToken ct)
     {
         using var scope = serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ManagementDbContext>();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
+        // PostgreSQL row-level lock with SKIP LOCKED prevents duplicate processing
+        // across multiple worker instances without central coordination.
+        await using var tx = await dbContext.Database.BeginTransactionAsync(ct);
+
         var messages = await dbContext.OutboxMessages
-            .Where(m => m.ProcessedAt == null && m.AttemptCount < 5)
-            .OrderBy(m => m.CreatedAt)
-            .Take(10)
+            .FromSqlInterpolated($@"
+                SELECT *
+                FROM management.""Outbox""
+                WHERE ""ProcessedAt"" IS NULL
+                  AND ""AttemptCount"" < 5
+                ORDER BY ""CreatedAt""
+                LIMIT {_batchSize}
+                FOR UPDATE SKIP LOCKED")
             .ToListAsync(ct);
+
+        if (messages.Count == 0)
+        {
+            await tx.CommitAsync(ct);
+            return 0;
+        }
 
         foreach (var message in messages)
         {
@@ -108,5 +140,8 @@ public class OutboxWorker(IServiceProvider serviceProvider, ILogger<OutboxWorker
             // Save after each message or in batches
             await dbContext.SaveChangesAsync(ct);
         }
+
+        await tx.CommitAsync(ct);
+        return messages.Count;
     }
 }

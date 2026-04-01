@@ -8,6 +8,8 @@ namespace Epiknovel.Modules.Books.Endpoints.GetChapters;
 
 public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Response>>
 {
+    private const int MaxPageSize = 100;
+
     public override void Configure()
     {
         Get("/books/{bookId}/chapters");
@@ -21,6 +23,8 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         var bookId = Route<Guid>("bookId");
+        var pageNumber = req.PageNumber < 1 ? 1 : req.PageNumber;
+        var pageSize = req.PageSize < 1 ? 50 : Math.Min(req.PageSize, MaxPageSize);
         
         var query = dbContext.Chapters
             .Where(x => x.BookId == bookId && !x.IsDeleted);
@@ -58,8 +62,8 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
 
         // Sayfalama
         var chapters = await query
-            .Skip((req.PageNumber - 1) * req.PageSize)
-            .Take(req.PageSize)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => new ChapterItem 
             {
                 Id = x.Id,
@@ -79,8 +83,8 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
         {
             Chapters = chapters,
             TotalCount = totalCount,
-            PageNumber = req.PageNumber,
-            PageSize = req.PageSize
+            PageNumber = pageNumber,
+            PageSize = pageSize
         }), 200, ct);
     }
 }

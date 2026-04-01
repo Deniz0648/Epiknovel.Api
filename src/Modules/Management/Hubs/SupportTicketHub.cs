@@ -4,11 +4,14 @@ using Epiknovel.Modules.Management.Domain;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Shared.Core.Constants;
 using Microsoft.AspNetCore.Authorization;
+using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Management.Hubs;
 
 [Authorize]
-public class SupportTicketHub(ManagementDbContext dbContext) : Hub
+public class SupportTicketHub(
+    ManagementDbContext dbContext,
+    IPermissionService permissionService) : Hub
 {
     public async Task JoinTicketGroup(Guid ticketId)
     {
@@ -22,7 +25,8 @@ public class SupportTicketHub(ManagementDbContext dbContext) : Hub
 
         if (ticket == null) return;
 
-        var isAdmin = Context.User?.IsInRole(RoleNames.Admin) == true || Context.User?.IsInRole(RoleNames.SuperAdmin) == true;
+        var isAdmin = Context.User != null &&
+            await permissionService.HasPermissionAsync(Context.User, PermissionNames.AdminAccess);
         
         if (ticket.UserId != userId && !isAdmin)
         {
@@ -43,7 +47,8 @@ public class SupportTicketHub(ManagementDbContext dbContext) : Hub
 
         if (ticket == null || ticket.Status == TicketStatus.Closed) return;
 
-        var isAdmin = Context.User?.IsInRole(RoleNames.Admin) == true || Context.User?.IsInRole(RoleNames.SuperAdmin) == true;
+        var isAdmin = Context.User != null &&
+            await permissionService.HasPermissionAsync(Context.User, PermissionNames.AdminAccess);
 
         if (ticket.UserId != userId && !isAdmin) return;
 

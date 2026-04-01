@@ -19,8 +19,11 @@ public class Endpoint(
     StackExchange.Redis.IConnectionMultiplexer redis,
     IMediator mediator,
     IReadingProgressProvider progressProvider,
-    IUserAccountProvider userAccountProvider) : Endpoint<Request, Result<Response>>
+    IUserAccountProvider userAccountProvider,
+    IPermissionService permissionService) : Endpoint<Request, Result<Response>>
 {
+    private const int MaxParagraphsPerResponse = 2000;
+
     public override void Configure()
     {
         Get("/books/chapters/{Slug}");
@@ -49,13 +52,14 @@ public class Endpoint(
                 c.Order,
                 c.Status,
                 c.PublishedAt,
+                ParagraphCount = c.Paragraphs.Count(),
                 Paragraphs = c.Paragraphs.OrderBy(p => p.Order).Select(p => new ParagraphDto
                 {
                     Id = p.Id,
                     Content = p.Content,
                     Type = p.Type.ToString(),
                     Order = p.Order
-                }).ToList()
+                }).Take(MaxParagraphsPerResponse).ToList()
             })
             .FirstOrDefaultAsync(ct);
 
@@ -70,10 +74,8 @@ public class Endpoint(
         bool isAuthorizedToSeeDraft = false;
         if (!string.IsNullOrEmpty(userIdStrRaw) && Guid.TryParse(userIdStrRaw, out var currentUserId))
         {
-            // Yazar veya yetkili mi?
-            var userRoles = User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
-            if (chapter.UserId == currentUserId || 
-                userRoles.Any(r => r == RoleNames.Admin || r == RoleNames.SuperAdmin || r == RoleNames.Mod))
+            var canModerateContent = await permissionService.HasPermissionAsync(User, PermissionNames.ModerateContent, ct);
+            if (chapter.UserId == currentUserId || canModerateContent)
             {
                 isAuthorizedToSeeDraft = true;
             }
@@ -106,7 +108,11 @@ public class Endpoint(
                 Content = p.Content,
                 Type = p.Type.ToString(),
                 Order = p.Order
-            }).ToList()
+            }).ToList(),
+            IsTruncated = chapter.ParagraphCount > MaxParagraphsPerResponse,
+            TruncationMessage = chapter.ParagraphCount > MaxParagraphsPerResponse
+                ? $"Bu bölüm çok büyük olduğu için ilk {MaxParagraphsPerResponse} satır gösteriliyor."
+                : null
         };
 
         // --- OKUYUCU İSTEĞİ: Kısıtlama Uygula ---

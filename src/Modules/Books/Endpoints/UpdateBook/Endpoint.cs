@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.AspNetCore.OutputCaching;
 
 using Epiknovel.Shared.Core.Attributes;
+using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Books.Endpoints.UpdateBook;
 
@@ -20,6 +21,7 @@ public class Endpoint(
     public override void Configure()
     {
         Put("/books/{Id}");
+        Policies(PolicyNames.AuthorContentAccess);
         // Varsayılan: kimlik doğrulaması zorunlu (AllowAnonymous kaldırıldı)
         Summary(s => {
             s.Summary = "Mevcut bir kitabı günceller.";
@@ -54,14 +56,13 @@ public class Endpoint(
             return;
         }
 
-        // 1. Title değiştiyse Slug güncelle
         if (book.Title != req.Title)
         {
             book.Title = req.Title;
-            book.Slug = await slugService.GenerateUniqueSlugAsync(req.Title, dbContext.Books, ct);
+            book.Slug = await slugService.GenerateUniqueSlugAsync(book.Title, dbContext.Books, ct);
         }
-
         book.Description = req.Description;
+
         book.CoverImageUrl = req.CoverImageUrl;
         book.Status = req.Status;
         book.ContentRating = req.ContentRating;
@@ -73,16 +74,48 @@ public class Endpoint(
             .ToListAsync(ct);
         foreach (var category in categories) book.Categories.Add(category);
 
-        // 3. Etiketleri Güncelle
+        // 3. Etiketleri Güncelle (N+1 önleme: tek sorguda mevcutları çek, eksikleri toplu oluştur)
         book.Tags.Clear();
-        foreach (var tagName in req.Tags)
+
+        var normalizedTagNames = req.Tags
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (normalizedTagNames.Count > 0)
         {
-            var tag = await dbContext.Tags.FirstOrDefaultAsync(t => t.Name == tagName, ct);
-            if (tag == null)
+            var existingTags = await dbContext.Tags
+                .Where(t => normalizedTagNames.Contains(t.Name))
+                .ToListAsync(ct);
+
+            var existingTagNames = existingTags
+                .Select(t => t.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var missingTags = normalizedTagNames
+                .Where(tagName => !existingTagNames.Contains(tagName))
+                .Select(tagName => new Tag
+                {
+                    Name = tagName,
+                    Slug = Epiknovel.Shared.Core.Common.SlugHelper.ToSlug(tagName)
+                })
+                .ToList();
+
+            if (missingTags.Count > 0)
             {
-                tag = new Tag { Name = tagName, Slug = Epiknovel.Shared.Core.Common.SlugHelper.ToSlug(tagName) };
+                dbContext.Tags.AddRange(missingTags);
             }
-            book.Tags.Add(tag);
+
+            foreach (var tag in existingTags)
+            {
+                book.Tags.Add(tag);
+            }
+
+            foreach (var tag in missingTags)
+            {
+                book.Tags.Add(tag);
+            }
         }
 
         await dbContext.SaveChangesAsync(ct);

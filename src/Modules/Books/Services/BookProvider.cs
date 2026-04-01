@@ -63,10 +63,10 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
             .Where(b =>
                 authorIdList.Contains(b.AuthorId) &&
                 !b.IsHidden &&
-                (b.Status == Domain.BookStatus.Published ||
-                 b.Status == Domain.BookStatus.Ongoing ||
+                (b.Status == Domain.BookStatus.Ongoing ||
                  b.Status == Domain.BookStatus.Completed ||
-                 b.Status == Domain.BookStatus.Hiatus))
+                 b.Status == Domain.BookStatus.Hiatus ||
+                 b.Status == Domain.BookStatus.Cancelled))
             .GroupBy(b => b.AuthorId)
             .Select(g => new { AuthorId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.AuthorId, x => x.Count, ct);

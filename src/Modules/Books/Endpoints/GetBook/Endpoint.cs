@@ -19,13 +19,25 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        var requestingUserIdValue = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var requestingUserId = Guid.TryParse(requestingUserIdValue, out var parsedRequestingUserId)
+            ? parsedRequestingUserId
+            : Guid.Empty;
+
         var book = await dbContext.Books
             .AsNoTracking()
             .Include(x => x.Categories)
             .Include(x => x.Tags)
-            .FirstOrDefaultAsync(x => x.Slug == req.Slug, ct);
+            .FirstOrDefaultAsync(x => x.Slug == req.Slug && !x.IsHidden, ct);
 
         if (book == null)
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Kitap bulunamadı."), 404, ct);
+            return;
+        }
+
+        var isOwner = requestingUserId != Guid.Empty && book.AuthorId == requestingUserId;
+        if (book.Status == Modules.Books.Domain.BookStatus.Draft && !isOwner)
         {
             await Send.ResponseAsync(Result<Response>.Failure("Kitap bulunamadı."), 404, ct);
             return;

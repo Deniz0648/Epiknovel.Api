@@ -303,7 +303,7 @@ export function ProfileDashboard() {
                 Eser
               </p>
               <p className="mt-3 text-3xl font-black">{listedWorks}</p>
-              <p className="mt-1 text-sm text-base-content/66">yayinda eser</p>
+              <p className="mt-1 text-sm text-base-content/66">toplam eser</p>
             </div>
 
             <div className="rounded-[1.5rem] border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">

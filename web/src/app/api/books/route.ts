@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isApiErrorLike } from "@/lib/api";
 import { toMediaProxyUrl } from "@/lib/media";
 import { backendApiRequest, buildProxyHeaders } from "@/lib/backend-api";
-import { applyRefreshedTokens, getAuthenticatedTokens } from "@/lib/server-auth";
+import { applyRefreshedTokens, clearAuthCookies, getAuthenticatedTokens, performAuthenticatedIdentityRequest } from "@/lib/server-auth";
 
 type BackendBookItem = {
   id: string;
@@ -91,5 +91,33 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({ isSuccess: false, message: "Kitap listesi getirilemedi." }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.text();
+    const result = await performAuthenticatedIdentityRequest<unknown>(
+      "/books",
+      {
+        method: "POST",
+        body,
+      },
+      request.headers,
+    );
+
+    const response = NextResponse.json({ isSuccess: true, message: "Kitap olusturuldu.", data: result.data }, { status: 201 });
+    applyRefreshedTokens(response, result.refreshedTokens);
+    return response;
+  } catch (error) {
+    if (isApiErrorLike(error)) {
+      const response = NextResponse.json({ isSuccess: false, message: error.message, errors: error.errors }, { status: error.status });
+      if (error.status === 401) {
+        clearAuthCookies(response);
+      }
+      return response;
+    }
+
+    return NextResponse.json({ isSuccess: false, message: "Kitap olusturulamadi." }, { status: 500 });
   }
 }

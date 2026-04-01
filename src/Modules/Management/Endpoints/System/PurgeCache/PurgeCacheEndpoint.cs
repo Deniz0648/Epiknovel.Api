@@ -14,7 +14,7 @@ public class PurgeCacheEndpoint(IOutputCacheStore cacheStore) : Endpoint<PurgeCa
     public override void Configure()
     {
         Post("/management/system/purge-cache");
-        Roles(RoleNames.SuperAdmin, RoleNames.Admin);
+        Policies(PolicyNames.AdminAccess);
         Summary(s =>
         {
             s.Summary = "Invalidate Output Cache by Tag";

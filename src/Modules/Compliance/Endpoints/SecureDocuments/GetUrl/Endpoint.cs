@@ -4,6 +4,7 @@ using Epiknovel.Modules.Compliance.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Epiknovel.Shared.Core.Models;
+using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Compliance.Endpoints.SecureDocuments.Download;
 
@@ -12,7 +13,10 @@ public class Request
     public Guid Id { get; set; }
 }
 
-public class Endpoint(ComplianceDbContext dbContext, IFileService fileService) : Endpoint<Request>
+public class Endpoint(
+    ComplianceDbContext dbContext,
+    IFileService fileService,
+    IPermissionService permissionService) : Endpoint<Request>
 {
     public override void Configure()
     {
@@ -34,7 +38,7 @@ public class Endpoint(ComplianceDbContext dbContext, IFileService fileService) :
         }
 
         var userId = Guid.Parse(userIdString);
-        var isAdmin = User.IsInRole("Admin");
+        var hasAdminAccess = await permissionService.HasPermissionAsync(User, PermissionNames.AdminAccess, ct);
 
         // 2. BOLA Korumalı Sorgu
         var document = await dbContext.SecureDocuments
@@ -47,7 +51,7 @@ public class Endpoint(ComplianceDbContext dbContext, IFileService fileService) :
         }
 
         // 3. Yetki Kontrolü (BOLA)
-        if (document.UserId != userId && !isAdmin)
+        if (document.UserId != userId && !hasAdminAccess)
         {
             await Send.ForbiddenAsync(ct);
             return;

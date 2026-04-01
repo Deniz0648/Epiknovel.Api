@@ -6,11 +6,23 @@ import { applyRefreshedTokens, clearAuthCookies, performAuthenticatedIdentityReq
 type MyProfileResponse = {
   userId: string;
   displayName: string;
+  slug?: string;
   bio?: string | null;
   avatarUrl?: string | null;
   followersCount: number;
   followingCount: number;
   emailConfirmed: boolean;
+  isAuthor?: boolean;
+  permissions?: {
+    accessAuthorPanel: boolean;
+    createBook: boolean;
+    publishPaidChapters: boolean;
+    manageOwnBooks: boolean;
+    manageOwnChapters: boolean;
+    moderateContent: boolean;
+    adminAccess: boolean;
+    superAdminAccess: boolean;
+  };
 };
 
 type UpdateProfilePayload = {

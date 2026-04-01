@@ -15,7 +15,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
     public override void Configure()
     {
         Patch("/books/{bookId}/metadata");
-        Roles(RoleNames.Admin, RoleNames.SuperAdmin);
+        Policies(PolicyNames.AdminAccess);
         Summary(s => {
             s.Summary = "Kitabın metaverilerini (Yazar, Tip, Editörün Seçimi) günceller.";
             s.Description = "Yönetici yetkisi gerektiren alanları güncellemek için kullanılır. Sadece Admin ve SuperAdmin yetkisiyle erişilebilir.";

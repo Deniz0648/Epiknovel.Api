@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { ArrowDown, BookText, Clock, History, Search, Sparkles } from "lucide-react";
 import { useMemo, useState } from "react";
-import { HeaderIsland } from "@/components/layout/header-island";
 
 const PAGE_SIZE = 9;
 
@@ -11,7 +10,7 @@ const UPDATES = [
   {
     id: 1,
     book: "Against the Gods",
-    chapter: "Bolum 813 yayinda",
+    chapter: "Bolum 813 yuklendi",
     time: "4 dk once",
     category: "Aksiyon",
     isHot: true
@@ -19,7 +18,7 @@ const UPDATES = [
   {
     id: 2,
     book: "Kutsal Arsivlerin Son Koruyucusu",
-    chapter: "Bolum 149 yayinda",
+    chapter: "Bolum 149 yuklendi",
     time: "12 dk once",
     category: "Epic",
     isHot: false
@@ -27,7 +26,7 @@ const UPDATES = [
   {
     id: 3,
     book: "Abyss Academy Reborn",
-    chapter: "Bolum 267 yayinda",
+    chapter: "Bolum 267 yuklendi",
     time: "28 dk once",
     category: "Karanlik",
     isHot: true
@@ -35,7 +34,7 @@ const UPDATES = [
   {
     id: 4,
     book: "Rebirth of the Thief Who Roamed the World",
-    chapter: "Bolum 308 yayinda",
+    chapter: "Bolum 308 yuklendi",
     time: "1 saat once",
     category: "Fantasy",
     isHot: false
@@ -43,7 +42,7 @@ const UPDATES = [
   {
     id: 5,
     book: "The Dragon Mark Oath",
-    chapter: "Bolum 192 yayinda",
+    chapter: "Bolum 192 yuklendi",
     time: "2 saat once",
     category: "Macera",
     isHot: false
@@ -51,7 +50,7 @@ const UPDATES = [
   {
     id: 6,
     book: "Crown of Silent Tempest",
-    chapter: "Bolum 154 yayinda",
+    chapter: "Bolum 154 yuklendi",
     time: "3 saat once",
     category: "Mystery",
     isHot: false
@@ -59,7 +58,7 @@ const UPDATES = [
   {
     id: 7,
     book: "Blade of Forgotten Code",
-    chapter: "Bolum 230 yayinda",
+    chapter: "Bolum 230 yuklendi",
     time: "5 saat once",
     category: "Bilim Kurgu",
     isHot: false
@@ -67,39 +66,39 @@ const UPDATES = [
   {
     id: 8,
     book: "Tower of Last Ember",
-    chapter: "Bolum 119 yayinda",
+    chapter: "Bolum 119 yuklendi",
     time: "6 saat once",
     category: "Fantasy",
     isHot: false
   },
   {
-    id: 9,
+    id: 10,
     book: "Legends of Crystal Gate",
-    chapter: "Bolum 201 yayinda",
+    chapter: "Bolum 201 yuklendi",
     time: "7 saat once",
     category: "Isekai",
     isHot: true
   },
   {
-    id: 10,
+    id: 11,
     book: "Ember Queen Oath",
-    chapter: "Bolum 142 yayinda",
+    chapter: "Bolum 142 yuklendi",
     time: "9 saat once",
     category: "Romantasy",
     isHot: false
   },
   {
-    id: 11,
+    id: 12,
     book: "Silk Horizon Circuit",
-    chapter: "Bolum 133 yayinda",
+    chapter: "Bolum 133 yuklendi",
     time: "12 saat once",
     category: "Bilim Kurgu",
     isHot: false
   },
   {
-    id: 12,
+    id: 13,
     book: "Vault of Hollow Saints",
-    chapter: "Bolum 312 yayinda",
+    chapter: "Bolum 312 yuklendi",
     time: "15 saat once",
     category: "Karanlik",
     isHot: true
@@ -131,14 +130,7 @@ export default function UpdatesPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      {/* Navigation */}
-      <div className="fixed inset-x-0 top-0 z-50">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-3 sm:px-8 sm:pt-4">
-          <HeaderIsland />
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-12 pt-28 sm:px-8 sm:pt-32">
+      <div className="site-shell mx-auto flex flex-col gap-6 px-4 pb-12 pt-28 sm:px-8 sm:pt-32">
         <section className="glass-frame space-y-7 p-6 sm:p-8">
           {/* Breadcrumb & Search Row */}
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

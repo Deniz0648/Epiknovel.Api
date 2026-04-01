@@ -28,8 +28,11 @@ public class Endpoint(
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
+
         // 1. Refresh Token'ı veritabanında ara
         var session = await dbContext.UserSessions
+            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.RefreshToken == req.RefreshToken, ct);
 
         if (session == null || session.ExpiryDate < DateTime.UtcNow)
@@ -45,9 +48,28 @@ public class Endpoint(
             return;
         }
 
+        if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow)
+        {
+            await dbContext.UserSessions
+                .Where(x => x.Id == session.Id)
+                .ExecuteDeleteAsync(ct);
+            await transaction.CommitAsync(ct);
+            await Send.ResponseAsync(Result<Response>.Failure(ApiMessages.Identity.UserBanned), 403, ct);
+            return;
+        }
+
         // 2. Token Rotation: Eski session'ı sil ve yenisini oluştur
         var jti = Guid.NewGuid().ToString(); // JTI'yı şimdi üretiyoruz ki session'a kaydedelim
-        dbContext.UserSessions.Remove(session);
+        var deletedRows = await dbContext.UserSessions
+            .Where(x => x.Id == session.Id && x.RefreshToken == req.RefreshToken)
+            .ExecuteDeleteAsync(ct);
+
+        if (deletedRows == 0)
+        {
+            await transaction.RollbackAsync(ct);
+            await Send.ResponseAsync(Result<Response>.Failure(ApiMessages.InvalidOrExpiredSession), 401, ct);
+            return;
+        }
         
         var newRefreshToken = Guid.NewGuid().ToString("N");
         var newSession = new UserSession
@@ -62,6 +84,7 @@ public class Endpoint(
 
         dbContext.UserSessions.Add(newSession);
         await dbContext.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
 
         // 3. Yeni JWT Üretimi (Roller Dahil!)
         var roles = await userManager.GetRolesAsync(user);

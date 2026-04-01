@@ -2,6 +2,7 @@ using FastEndpoints;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Shared.Core.Constants;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace Epiknovel.Modules.Management.Endpoints.System.Settings;
 
@@ -31,6 +32,13 @@ public class Update : Endpoint<UpdateRequest>
 
     public override async Task HandleAsync(UpdateRequest req, CancellationToken ct)
     {
+        var actorIdRaw = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (!Guid.TryParse(actorIdRaw, out var actorId))
+        {
+            await Send.UnauthorizedAsync(ct);
+            return;
+        }
+
         var setting = await dbContext.SystemSettings.FirstOrDefaultAsync(x => x.Key == req.Key, ct);
         
         if (setting == null)
@@ -41,7 +49,7 @@ public class Update : Endpoint<UpdateRequest>
 
         setting.Value = req.Value;
         setting.UpdatedAt = DateTime.UtcNow;
-        setting.UpdatedByUserId = Guid.Parse(User.Identity?.Name ?? Guid.Empty.ToString()); // In practice, handle this more robustly
+        setting.UpdatedByUserId = actorId;
 
         await dbContext.SaveChangesAsync(ct);
         await Send.NoContentAsync(ct);
