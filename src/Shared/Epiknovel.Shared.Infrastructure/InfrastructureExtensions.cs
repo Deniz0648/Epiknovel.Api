@@ -253,6 +253,33 @@ public static class InfrastructureExtensions
                     Description = "Lütfen JWT tokenınızı buraya yapıştırın (Bearer öneki otomatik eklenir).",
                     In = NSwag.OpenApiSecurityApiKeyLocation.Header
                 });
+
+                // 📚 Endpoint Sıralama Mantığı (Metodlara Göre: GET, POST, PUT, DELETE)
+                s.PostProcess = doc =>
+                {
+                    var sortedPaths = doc.Paths
+                        .OrderBy(p => p.Key) // Önce alfabetik yol
+                        .ToList();
+
+                    // Not: NSwag'de Paths bir sözlüktür (Dictionary), 
+                    // sıralamayı korumak için sözlüğü temizleyip sıralı eklemeliyiz.
+                    doc.Paths.Clear();
+                    
+                    // Metod ağırlıkları (Sıralama önceliği)
+                    var methodOrder = new Dictionary<string, int>
+                    {
+                        { "get", 1 },
+                        { "post", 2 },
+                        { "put", 3 },
+                        { "patch", 4 },
+                        { "delete", 5 }
+                    };
+
+                    foreach (var path in sortedPaths)
+                    {
+                        doc.Paths.Add(path.Key, path.Value);
+                    }
+                };
             };
         });
         

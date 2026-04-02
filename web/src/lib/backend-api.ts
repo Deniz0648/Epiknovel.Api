@@ -29,7 +29,6 @@ export function buildProxyHeaders(sourceHeaders: Headers): HeadersInit {
     "x-real-ip",
     "cf-connecting-ip",
     "true-client-ip",
-    "host",
   ];
 
   for (const headerName of headerNames) {

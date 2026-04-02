@@ -107,36 +107,49 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
         };
 
         // 5. Veriyi Çek (Pagination & Projection)
-        var items = await query
+        var itemsWithIds = await query
+            .Include(x => x.Categories)
             .Skip((req.PageNumber - 1) * req.PageSize)
             .Take(req.PageSize)
-            .Select(x => new Response
+            .Select(x => new 
             {
-                Id = x.Id,
-                Title = x.Title,
-                Slug = x.Slug,
-                Description = x.Description,
-                CoverImageUrl = x.CoverImageUrl,
-                AuthorId = x.AuthorId
+                AuthorId = x.AuthorId,
+                Res = new Response
+                {
+                    Title = x.Title,
+                    Slug = x.Slug,
+                    Description = x.Description,
+                    CoverImageUrl = x.CoverImageUrl,
+                    Status = x.Status,
+                    Type = x.Type,
+                    ContentRating = x.ContentRating,
+                    IsEditorChoice = x.IsEditorChoice,
+                    ViewCount = x.ViewCount,
+                    AverageRating = x.AverageRating,
+                    ChapterCount = dbContext.Chapters.Count(c => c.BookId == x.Id && c.Status == Epiknovel.Modules.Books.Domain.ChapterStatus.Published),
+                    CategoryNames = x.Categories.Select(c => c.Name).ToList()
+                }
             })
             .ToListAsync(ct);
 
         // 6. N+1 Çözümü: Toplu Yazar İsimlerini Çek (Modüller Arası)
-        var authorIds = items.Select(x => x.AuthorId).Distinct().ToList();
+        var authorIds = itemsWithIds.Select(x => x.AuthorId).Distinct().ToList();
         var authorNames = await userAccountProvider.GetDisplayNamesAsync(authorIds, ct);
         var authorSlugs = await userProvider.GetSlugsByUserIdsAsync(authorIds, ct);
 
-        foreach (var item in items)
+        foreach (var item in itemsWithIds)
         {
             if (authorNames.TryGetValue(item.AuthorId, out var name))
             {
-                item.AuthorName = name;
+                item.Res.AuthorName = name;
             }
             if (authorSlugs.TryGetValue(item.AuthorId, out var slug))
             {
-                item.AuthorSlug = slug;
+                item.Res.AuthorSlug = slug;
             }
         }
+
+        var items = itemsWithIds.Select(x => x.Res).ToList();
 
         // 5. PagedResult Oluştur ve Gönder
         var pagedResult = PagedResult<Response>.Create(items, totalCount, req.PageNumber, req.PageSize);

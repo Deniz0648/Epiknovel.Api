@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (!upstreamResponse?.ok || !upstreamResponse.body) {
+    console.error(`[MEDIA_PROXY_ERROR] Path: ${assetPath} | Status: ${upstreamResponse?.status} | URL: ${BACKEND_PUBLIC_ORIGIN}${assetPath}`);
     return NextResponse.json({ isSuccess: false, message: "Medya dosyasi getirilemedi." }, { status: upstreamResponse?.status || 502 });
   }
 

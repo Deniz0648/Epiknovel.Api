@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ImagePlus, ChevronLeft, LoaderCircle, Save, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, use } from "react";
 import { ApiError } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
 import { 
@@ -306,7 +307,8 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
                   />
                   {coverPreviewUrl || coverImageUrl ? (
                     <div className="relative h-full w-full overflow-hidden rounded-2xl">
-                      <Image src={coverPreviewUrl || coverImageUrl || ""} alt="Kapak" fill className="object-cover" />
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={resolveMediaUrl(coverPreviewUrl || coverImageUrl || "")} alt="Kapak" className="h-full w-full object-cover" />
                       {isCoverUploading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white">
                           <LoaderCircle className="animate-spin" />

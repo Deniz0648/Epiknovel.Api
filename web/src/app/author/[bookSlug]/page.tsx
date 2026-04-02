@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, LayoutDashboard, Settings, FileText, BarChart3, PlusCircle, Share2, Eye, Star, Clock, LoaderCircle, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getMyBookBySlug, type MyBookListItem } from "@/lib/auth";
+import { resolveMediaUrl } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -101,7 +102,7 @@ export default function ManageBookPage() {
             <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40 sm:w-32 md:w-36">
                 {book.coverImageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={book.coverImageUrl} alt={book.title} className="h-full w-full object-cover" />
+                    <img src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} className="h-full w-full object-cover" />
                 ) : (
                     <div className="flex h-full items-center justify-center p-2 text-center">
                         <span className="text-[8px] font-black uppercase tracking-widest text-base-content/25 leading-tight">Gorsel Yok</span>

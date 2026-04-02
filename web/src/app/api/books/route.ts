@@ -5,14 +5,20 @@ import { backendApiRequest, buildProxyHeaders } from "@/lib/backend-api";
 import { applyRefreshedTokens, clearAuthCookies, getAuthenticatedTokens, performAuthenticatedIdentityRequest } from "@/lib/server-auth";
 
 type BackendBookItem = {
-  id: string;
   title: string;
   slug: string;
   description: string;
   coverImageUrl?: string | null;
   authorName?: string | null;
   authorSlug?: string | null;
-  authorId: string;
+  status: number;
+  type: number;
+  contentRating: number;
+  isEditorChoice: boolean;
+  viewCount: number;
+  averageRating: number;
+  chapterCount: number;
+  categoryNames: string[];
 };
 
 type BackendBookPagedResult = {
@@ -22,19 +28,10 @@ type BackendBookPagedResult = {
   totalCount: number;
 };
 
-type SanitizedBookItem = {
-  title: string;
-  slug: string;
-  description: string;
-  coverImageUrl?: string | null;
-  authorName?: string | null;
-  authorSlug?: string | null;
-};
-
 export async function GET(request: NextRequest) {
   try {
     const params = new URLSearchParams();
-    const allowedKeys = ["pageNumber", "pageSize", "search", "sortBy", "sortDescending", "status", "authorSlug"];
+    const allowedKeys = ["pageNumber", "pageSize", "search", "sortBy", "sortDescending", "Status", "authorSlug", "Type", "ContentRating", "CategoryId", "IsEditorChoice"];
 
     for (const key of allowedKeys) {
       const value = request.nextUrl.searchParams.get(key);
@@ -63,12 +60,9 @@ export async function GET(request: NextRequest) {
       headers: buildProxyHeaders(request.headers),
     });
 
-    const sanitizedItems: SanitizedBookItem[] = data.items.map((item) => ({
-      title: item.title,
-      slug: item.slug,
-      description: item.description,
-      authorName: item.authorName,
-      authorSlug: item.authorSlug,
+    // Herhangi bir ID dönmediğinden emin olarak tüm istatistikleri ve bilgileri sanitize et
+    const sanitizedItems = data.items.map((item) => ({
+      ...item,
       coverImageUrl: toMediaProxyUrl(item.coverImageUrl),
     }));
 

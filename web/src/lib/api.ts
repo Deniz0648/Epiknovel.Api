@@ -75,3 +75,21 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   return payload.data;
 }
+
+/**
+ * Medya URL'lerini frontend'in erişebileceği hale getirir.
+ * Eğer URL 'epiknovel_api' (docker dâhili host) içeriyorsa, bunu 'localhost:8080' ile değiştirir.
+ * Eğer URL '/' ile başlıyorsa, bunu backend origin'i ile tamamlar (veya Next.js rewrite mekanizmasına bırakır).
+ */
+export function resolveMediaUrl(url?: string | null): string {
+  if (!url) return "";
+
+  // Docker internal host'u browser'ın anlayacağı hale getir
+  if (url.includes("epiknovel_api:8080")) {
+    return url.replace("epiknovel_api:8080", "localhost:8080");
+  }
+
+  // Eğer relative path ise ve browser'da çalışıyorsak (localhost:3000), 
+  // Next.js rewrite (/uploads -> localhost:8080/uploads) sayesinde doğrudan çalışır.
+  return url;
+}

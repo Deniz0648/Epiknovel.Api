@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BellRing, CalendarClock, Megaphone, Search } from "lucide-react";
+import { Bell, CalendarClock, Home, Megaphone, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ApiError } from "@/lib/api";
 import { getAnnouncements, type AnnouncementItem } from "@/lib/auth";
@@ -72,17 +72,29 @@ export default function AnnouncementsPage() {
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="site-shell mx-auto flex flex-col gap-6 px-4 pb-12 pt-28 sm:px-8 sm:pt-32">
-        <section className="glass-frame space-y-6 p-6 sm:p-8">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <nav className="flex items-center gap-2 text-xs font-semibold text-base-content/60">
-              <Link href="/" className="transition-colors hover:text-primary">
-                Anasayfa
-              </Link>
-              <span className="opacity-40">-</span>
-              <span className="text-base-content/90">Duyurular</span>
-            </nav>
+        <section className="glass-frame space-y-7 p-4 sm:p-6">
+          {/* Breadcrumb & Header Row */}
+          <div className="flex flex-col gap-6">
+            <div className="space-y-4">
+              <div className="breadcrumbs text-xs font-semibold text-base-content/50 mb-1">
+                <ul>
+                  <li><Link href="/" className="hover:text-primary transition-colors flex items-center"><Home className="w-3.5 h-3.5 mr-1.5" /> Ana Sayfa</Link></li>
+                  <li className="text-base-content/40">Duyurular</li>
+                </ul>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3 text-primary">
+                  <Bell className="h-7 w-7" strokeWidth={2.5} />
+                  <h1 className="hero-title-gradient text-3xl font-black tracking-tight sm:text-4xl uppercase italic">Duyurular</h1>
+                </div>
+              </div>
+            </div>
+          </div>
 
-            <label className="input input-bordered flex h-10 w-full items-center gap-2 rounded-xl border-base-content/15 bg-base-100/32 sm:max-w-xs">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-4 border-t border-base-content/5">
+            <p className="text-xs font-black uppercase tracking-widest text-base-content/30 italic">Resmi bilgilendirmeleri ve platform haberlerini buradan takip edin.</p>
+            <label className="input input-bordered flex h-11 w-full items-center gap-2 rounded-xl border-base-content/15 bg-base-100/32 md:max-w-md">
               <Search className="h-4 w-4 text-base-content/60" />
               <input
                 type="text"
@@ -94,17 +106,9 @@ export default function AnnouncementsPage() {
             </label>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary">
-              <BellRing className="h-5 w-5" />
-              <span className="text-xs font-bold uppercase tracking-[0.2em]">Resmi Duyurular</span>
-            </div>
-            <h1 className="hero-title-gradient text-4xl font-black tracking-tight sm:text-5xl">
-              Announcements
-            </h1>
+          <div className="flex items-center justify-between border-b border-base-content/5 pb-2">
+             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-base-content/40 italic">Toplam {filteredAnnouncements.length} duyuru bulundu</p>
           </div>
-
-          <p className="text-xs font-bold uppercase tracking-widest text-base-content/40">Toplam {filteredAnnouncements.length} duyuru</p>
 
           {isLoading ? (
             <div className="rounded-2xl border border-base-content/12 bg-base-100/18 py-16 text-center">

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Eye, Play, Plus, Star, Tag } from "lucide-react";
+import { BookOpen, Eye, Home, Play, Plus, Star, Tag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -10,11 +10,14 @@ import {
   type BookChapterItem,
   type BookCommentItem,
 } from "@/components/book/book-detail-panels";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { fromBookSlug } from "@/lib/books";
 
-type CoverKey = "arsiv" | "golge" | "muhur";
-type AgeRating = "Genel Izleyici (G)" | "13+ (PG-13)" | "18+ (R)";
+const DEFAULT_COVER = {
+  image: "/covers/cover-golge.svg",
+  blurDataURL:
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2381ddd0'/%3E%3Cstop offset='1' stop-color='%231a2436'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
+};
 
 type BookDetailApiResponse = {
   title: string;
@@ -47,30 +50,14 @@ type ChaptersApiResponse = {
   pageSize: number;
 };
 
-const COVER_ASSETS: Record<CoverKey, { image: string; blurDataURL: string }> = {
-  arsiv: {
-    image: "/covers/cover-arsiv.svg",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f6c886'/%3E%3Cstop offset='1' stop-color='%233d3968'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  golge: {
-    image: "/covers/cover-golge.svg",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2381ddd0'/%3E%3Cstop offset='1' stop-color='%231a2436'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  muhur: {
-    image: "/covers/cover-muhur.svg",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f4b286'/%3E%3Cstop offset='1' stop-color='%23271f3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-};
+
 
 type BookDetailViewModel = {
   title: string;
   author: string;
   status: string;
   workType: string;
-  ageRange: AgeRating;
+  ageRange: string;
   categories: string[];
   tags: string[];
   rating: number;
@@ -87,7 +74,7 @@ function mapChaptersFromApi(items: ChaptersApiResponse["chapters"]): BookChapter
     title: item.title,
     publishLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "Taslak",
     dateLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "-",
-    readCount: Math.max(100, Math.floor((item.wordCount || 0) / 5)),
+    readCount: 0, // Removed mock calculation
     isPremium: !item.isFree,
   }));
 }
@@ -356,14 +343,17 @@ export default function BookDetailPage() {
           author: bookData.authorName || "Yazar",
           status: bookData.status || "Bilinmiyor",
           workType: bookData.type || "Bilinmiyor",
-          ageRange: "13+ (PG-13)",
+          ageRange: bookData.contentRating || "Bilinmiyor",
           categories: (bookData.categories ?? []).map((x) => x.name),
           tags: bookData.tags ?? [],
           rating: bookData.averageRating > 0 ? Number(bookData.averageRating.toFixed(1)) : 0,
           reads: bookData.viewCount > 0 ? bookData.viewCount : 0,
           chapters: chapterData.totalCount > 0 ? chapterData.totalCount : 0,
           synopsis: bookData.description || "Aciklama bulunamadi.",
-          cover: COVER_ASSETS.golge,
+          cover: {
+            image: resolveMediaUrl(bookData.coverImageUrl) || DEFAULT_COVER.image,
+            blurDataURL: DEFAULT_COVER.blurDataURL,
+          },
         });
 
         setChapters(chapterData.chapters.length > 0 ? mapChaptersFromApi(chapterData.chapters) : []);
@@ -409,16 +399,13 @@ export default function BookDetailPage() {
     <main className="relative overflow-hidden">
       <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
         <section className="glass-frame space-y-5 p-5 sm:p-7">
-          <p className="text-xs font-semibold text-base-content/60">
-            <Link href="/" className="hover:text-primary">
-              Anasayfa
-            </Link>{" "}
-            -{" "}
-            <Link href="/Books" className="hover:text-primary">
-              Kitaplar
-            </Link>{" "}
-            - <span>{title}</span>
-          </p>
+          <div className="breadcrumbs text-xs font-semibold text-base-content/50 mb-1">
+            <ul>
+              <li><Link href="/" className="hover:text-primary transition-colors flex items-center"><Home className="w-3.5 h-3.5 mr-1.5" /> Ana Sayfa</Link></li>
+              <li><Link href="/Books" className="hover:text-primary transition-colors">Kesfet</Link></li>
+              <li className="text-base-content/40">{detail.title}</li>
+            </ul>
+          </div>
 
           <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-7">
             <div className="mx-auto w-full max-w-[17.5rem]">

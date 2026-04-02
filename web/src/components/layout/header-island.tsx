@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, LogIn, LogOut, Menu, Shield, UserRound, X } from "lucide-react";
+import { Bell, Library, LogIn, LogOut, Menu, Shield, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -315,6 +315,14 @@ export function HeaderIsland() {
                   >
                     <UserRound className="h-4 w-4" />
                     Profilim
+                  </Link>
+                  <Link
+                    href="/Library"
+                    onClick={closeProfileMenu}
+                    className="mt-1 flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-base-content/82 no-underline transition hover:bg-base-100/38 hover:text-primary"
+                  >
+                    <Library className="h-4 w-4" />
+                    Kutuphanem
                   </Link>
                   <Link
                     href="/profile#security"

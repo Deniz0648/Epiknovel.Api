@@ -20,12 +20,18 @@ public class Request : PaginationRequest
 
 public class Response 
 {
-    public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? CoverImageUrl { get; set; }
     public string? AuthorName { get; set; }
     public string? AuthorSlug { get; set; }
-    public Guid AuthorId { get; set; }
+    public BookStatus Status { get; set; }
+    public BookType Type { get; set; }
+    public ContentRating ContentRating { get; set; }
+    public bool IsEditorChoice { get; set; }
+    public long ViewCount { get; set; }
+    public double AverageRating { get; set; }
+    public int ChapterCount { get; set; }
+    public List<string> CategoryNames { get; set; } = new();
 }

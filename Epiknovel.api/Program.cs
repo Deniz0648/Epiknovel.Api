@@ -130,6 +130,8 @@ if (app.Environment.IsDevelopment() || true)
                .WithTheme(ScalarTheme.Moon)
                .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient)
                .HideModels()
+               .SortOperationsByMethod()
+               .SortTagsAlphabetically()
                .WithOpenApiRoutePattern("/swagger/v1/swagger.json");
     });
 }

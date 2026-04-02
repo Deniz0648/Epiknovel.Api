@@ -130,19 +130,7 @@ public class LocalFileService : IFileService
 
     public string GetFileUrl(string fileName, string category)
     {
-        var baseUrl = _baseUrl;
-
-        // Otomatik Optimizasyon: Eğer config boşsa, isteğin geldiği domaini otomatik algıla
-        if (string.IsNullOrEmpty(baseUrl) && _httpContextAccessor.HttpContext != null)
-        {
-            var request = _httpContextAccessor.HttpContext.Request;
-            baseUrl = $"{request.Scheme}://{request.Host}";
-        }
-
-        // Fallback (Her şey başarısız olursa)
-        if (string.IsNullOrEmpty(baseUrl)) baseUrl = "http://localhost:5000";
-
-        return $"{baseUrl.TrimEnd('/')}/uploads/{category}/{fileName}";
+        return $"/uploads/{category.ToLower()}/{fileName}";
     }
 
     private static readonly Dictionary<string, byte[]> _fileSignatures = new()

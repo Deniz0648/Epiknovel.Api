@@ -32,9 +32,9 @@ public class MediaUploadEndpoint(IFileService fileService) : FastEndpoints.Endpo
             return;
         }
 
-        if (req.File.Length > 5 * 1024 * 1024) // 5MB Limit
+        if (req.File.Length > 20 * 1024 * 1024) // 20MB Limit
         {
-            await Send.ResponseAsync(Result<Response>.Failure("Dosya boyutu 5MB'dan büyük olamaz."), 400, ct);
+            await Send.ResponseAsync(Result<Response>.Failure("Dosya boyutu 20MB'dan büyük olamaz."), 400, ct);
             return;
         }
 

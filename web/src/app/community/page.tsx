@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, ChevronRight, Filter, Globe2, Loader2, Search, Sparkles, UserRound } from "lucide-react";
+import { Users, BookOpenText, ChevronRight, Filter, Globe2, Home, Loader2, Search, Sparkles, UserRound } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { getPublicUserProfiles, type PublicUserListItem } from "@/lib/auth";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -92,58 +92,62 @@ export default function CommunityPage() {
   return (
     <main className="relative overflow-hidden">
       <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-10 sm:pt-32">
-        <section className="glass-frame relative overflow-hidden border border-primary/20 bg-gradient-to-br from-base-100/90 via-base-100/84 to-primary/8 p-6 sm:p-8">
-          <div className="pointer-events-none absolute -left-20 top-0 h-44 w-44 rounded-full bg-primary/14 blur-3xl" />
-          <div className="pointer-events-none absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl" />
+        <section className="glass-frame relative overflow-hidden border border-base-content/10 bg-gradient-to-br from-base-100/90 via-base-100/84 to-primary/8 p-4 sm:p-6">
+          <div className="pointer-events-none absolute -left-20 top-0 h-44 w-44 rounded-full bg-primary/14 blur-3xl opacity-40" />
+          <div className="pointer-events-none absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl opacity-40" />
 
-          <div className="relative z-10">
-            <nav className="mb-3 flex items-center gap-1 text-xs font-semibold text-base-content/55">
-              <Link href="/" className="transition hover:text-base-content">
-                Anasayfa
-              </Link>
-              <ChevronRight className="h-3.5 w-3.5 text-base-content/35" />
-              <span className="text-base-content/78">Topluluk</span>
-            </nav>
-            <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-base-content/45">
-              <Globe2 className="h-3.5 w-3.5 text-primary" />
-              Topluluk Profili
-            </p>
-            <h1 className="mt-2 text-[clamp(1.9rem,4vw,3rem)] font-black leading-[0.95]">Public Profil Vitrini</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-base-content/70">
-              Topluluktaki profilleri keşfet, arama yap, yazarları filtrele ve sıralamayı dilediğin gibi değiştir.
-            </p>
-            {profile ? (
-              <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] lg:items-center">
-                <label className="input input-bordered flex h-12 items-center gap-2 rounded-2xl border-base-content/14 bg-base-100/30">
-                  <Search className="h-4 w-4 text-base-content/55" />
+          <div className="relative z-10 flex flex-col gap-6">
+            <div className="space-y-4">
+              <div className="breadcrumbs text-xs font-semibold text-base-content/50 mb-1">
+                <ul>
+                  <li><Link href="/" className="hover:text-primary transition-colors flex items-center"><Home className="w-3.5 h-3.5 mr-1.5" /> Ana Sayfa</Link></li>
+                  <li className="text-base-content/40">Topluluk</li>
+                </ul>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3 text-primary">
+                  <Users className="h-7 w-7" strokeWidth={2.5} />
+                  <h1 className="hero-title-gradient text-3xl font-black tracking-tight sm:text-4xl uppercase italic">Topluluk</h1>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between pt-4 border-t border-base-content/5">
+              <p className="text-xs font-black uppercase tracking-widest text-base-content/30 italic">Topluluktaki profilleri keşfet, arama yap ve yazarları filtrele.</p>
+              {profile ? (
+                <label className="input input-bordered flex h-11 w-full items-center gap-2 rounded-xl border-base-content/15 bg-base-100/32 md:max-w-md">
+                  <Search className="h-4 w-4 text-base-content/60" />
                   <input
                     type="text"
                     value={queryInput}
                     onChange={(event) => setQueryInput(event.target.value)}
-                    placeholder="Kullanici ara (ad veya slug)"
-                    className="w-full bg-transparent"
+                    placeholder="Kullanici ara..."
+                    className="w-full bg-transparent text-sm"
                   />
                 </label>
+              ) : null}
+            </div>
 
-                <label className="select select-bordered h-12 min-w-44 rounded-2xl border-base-content/14 bg-base-100/30">
-                  <span className="sr-only">Yazarlik Filtresi</span>
-                  <Filter className="pointer-events-none absolute ml-3 h-4 w-4 text-base-content/55" />
+            {profile ? (
+              <div className="grid gap-2 grid-cols-2 lg:grid-cols-4 pt-2 border-t border-base-content/5">
+                <div className="relative group">
+                  <Filter className="absolute left-4 top-1/2 w-4 h-4 -translate-y-1/2 text-base-content/40 pointer-events-none" />
                   <select
                     value={isAuthorFilter}
                     onChange={(event) => {
                       setIsAuthorFilter(event.target.value as "all" | "author" | "reader");
                       setPageNumber(1);
                     }}
-                    className="pl-8"
+                    className="select select-bordered h-11 w-full rounded-xl bg-base-100/32 pl-11 text-xs font-bold uppercase tracking-widest text-base-content/80 border-transparent focus:border-primary/30 focus:bg-base-100/50 cursor-pointer"
                   >
                     <option value="all">Tum Profiller</option>
                     <option value="author">Sadece Yazarlar</option>
                     <option value="reader">Sadece Okurlar</option>
                   </select>
-                </label>
+                </div>
 
-                <label className="select select-bordered h-12 min-w-44 rounded-2xl border-base-content/14 bg-base-100/30">
-                  <span className="sr-only">Katilim Tarihi Sirasi</span>
+                <label className="select select-bordered h-11 w-full rounded-xl bg-base-100/32 text-xs font-bold uppercase tracking-widest text-base-content/80 border-transparent focus:border-primary/30 focus:bg-base-100/50 cursor-pointer">
                   <select
                     value={sortDirection}
                     onChange={(event) => {
@@ -151,13 +155,12 @@ export default function CommunityPage() {
                       setPageNumber(1);
                     }}
                   >
-                    <option value="desc">Katilim (Yeni -&gt; Eski)</option>
-                    <option value="asc">Katilim (Eski -&gt; Yeni)</option>
+                    <option value="desc">Yeni Katilana Gore</option>
+                    <option value="asc">Eski Katilana Gore</option>
                   </select>
                 </label>
 
-                <label className="select select-bordered h-12 min-w-36 rounded-2xl border-base-content/14 bg-base-100/30">
-                  <span className="sr-only">Sayfa Boyutu</span>
+                <label className="select select-bordered h-11 w-full rounded-xl bg-base-100/32 text-xs font-bold uppercase tracking-widest text-base-content/80 border-transparent focus:border-primary/30 focus:bg-base-100/50 cursor-pointer">
                   <select
                     value={String(pageSize)}
                     onChange={(event) => {
@@ -165,11 +168,15 @@ export default function CommunityPage() {
                       setPageNumber(1);
                     }}
                   >
-                    <option value="12">12 / Sayfa</option>
-                    <option value="24">24 / Sayfa</option>
-                    <option value="36">36 / Sayfa</option>
+                    <option value="12">12 Kayıt</option>
+                    <option value="24">24 Kayıt</option>
+                    <option value="36">36 Kayıt</option>
                   </select>
                 </label>
+
+                <div className="flex items-center justify-end px-2 text-[10px] font-black uppercase tracking-widest text-base-content/30 italic">
+                   {totalCount} Profil Bulundu
+                </div>
               </div>
             ) : null}
           </div>
