@@ -1,3 +1,5 @@
+using Epiknovel.Modules.Books.Domain;
+
 namespace Epiknovel.Modules.Books.Endpoints.GetChapter;
 
 public class Request
@@ -13,6 +15,12 @@ public class Response
     public int Order { get; set; }
     public DateTime PublishedAt { get; set; }
     
+    // Metadata for Editor
+    public bool IsFree { get; set; }
+    public int Price { get; set; }
+    public ChapterStatus Status { get; set; }
+    public bool IsTitleSpoiler { get; set; }
+
     public List<ParagraphDto> Paragraphs { get; set; } = new();
     public double? LastReadScrollPercentage { get; set; }
     

@@ -17,6 +17,7 @@ export interface ParagraphData {
     id: string
     order: number
     content: string
+    type: number
 }
 
 export interface TiptapEditorRef {
@@ -139,6 +140,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
                             id: uuid,
                             order: order++,
                             content: html,
+                            type: 0 // Default to Text (ParagraphType.Text)
                         })
                     }
                 })

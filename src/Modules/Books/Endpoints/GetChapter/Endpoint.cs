@@ -51,6 +51,9 @@ public class Endpoint(
                 c.WordCount,
                 c.Order,
                 c.Status,
+                c.IsFree,
+                c.Price,
+                c.IsTitleSpoiler,
                 c.PublishedAt,
                 ParagraphCount = c.Paragraphs.Count(),
                 Paragraphs = c.Paragraphs.OrderBy(p => p.Order).Select(p => new ParagraphDto
@@ -101,6 +104,10 @@ public class Endpoint(
             Title = chapter.Title,
             WordCount = chapter.WordCount,
             Order = chapter.Order,
+            IsFree = chapter.IsFree,
+            Price = chapter.Price,
+            Status = chapter.Status,
+            IsTitleSpoiler = chapter.IsTitleSpoiler,
             PublishedAt = chapter.PublishedAt ?? DateTime.UtcNow,
             Paragraphs = chapter.Paragraphs.Select(p => new ParagraphDto
             {
