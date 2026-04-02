@@ -1,3 +1,5 @@
+using Epiknovel.Shared.Core.Models;
+
 namespace Epiknovel.Shared.Core.Interfaces;
 
 public interface IUserProvider
@@ -10,4 +12,9 @@ public interface IUserProvider
 
     Task<Guid?> GetUserIdBySlugAsync(string slug, CancellationToken ct = default);
     Task<Dictionary<Guid, string>> GetSlugsByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kullanıcı profil bilgilerini (BOLA uyumlu) modüller arası kullanım için getirir.
+    /// </summary>
+    Task<Result<MyProfileResponse>> GetProfileAsync(Guid userId, string? identityName, CancellationToken ct = default);
 }

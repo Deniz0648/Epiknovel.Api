@@ -13,7 +13,7 @@ public class Endpoint(UserManager<User> userManager) : Endpoint<Request, Result<
 {
     public override void Configure()
     {
-        Post("/identity/reset-password");
+        Post("/auth/reset-password");
         AllowAnonymous();
         Summary(s => {
             s.Summary = "Şifreyi sıfırlar.";

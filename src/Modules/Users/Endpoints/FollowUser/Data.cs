@@ -2,7 +2,7 @@ namespace Epiknovel.Modules.Users.Endpoints.FollowUser;
 
 public class Request
 {
-    public Guid FollowingId { get; set; }
+    public string Identifier { get; set; } = string.Empty;
 }
 
 public class Response 

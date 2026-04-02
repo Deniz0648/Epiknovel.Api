@@ -14,7 +14,7 @@ public class Endpoint(UserManager<User> userManager) : Endpoint<Request, Result<
 {
     public override void Configure()
     {
-        Post("/identity/confirm-change-email");
+        Post("/auth/confirm-change-email");
         Summary(s => {
             s.Summary = "E-posta adresi değişimini onaylar.";
             s.Description = "Yeni adrese gelen onay anahtarı (Change Token) ile e-posta adresini kalıcı olarak günceller.";

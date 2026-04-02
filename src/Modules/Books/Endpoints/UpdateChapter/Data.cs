@@ -24,7 +24,7 @@ public class Request : IOwnable
 
 public class UpdateLineItem
 {
-    public Guid? Id { get; set; } // Mevcut ise güncelle, null ise ekle
+    public Guid Id { get; set; }
     public string Content { get; set; } = string.Empty;
     public ParagraphType Type { get; set; } = ParagraphType.Text;
 }

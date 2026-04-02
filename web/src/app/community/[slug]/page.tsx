@@ -237,21 +237,29 @@ export default function CommunityUserPage() {
 
               <div className="flex flex-wrap gap-3">
                 {sessionProfile ? (
-                  <button
-                    type="button"
-                    onClick={() => void handleFollowToggle()}
-                    disabled={isFollowSubmitting}
-                    className={`btn rounded-full px-6 ${publicProfile.isFollowing ? "btn-outline" : "btn-primary"}`}
-                  >
-                    {isFollowSubmitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : publicProfile.isFollowing ? (
-                      <UserX className="h-4 w-4" />
-                    ) : (
-                      <UserPlus className="h-4 w-4" />
-                    )}
-                    {publicProfile.isFollowing ? "Takibi Birak" : "Takip Et"}
-                  </button>
+                  publicProfile.isAuthor ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleFollowToggle()}
+                      disabled={isFollowSubmitting}
+                      className={`btn rounded-full px-6 ${publicProfile.isFollowing ? "btn-outline" : "btn-primary"}`}
+                    >
+                      {isFollowSubmitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : publicProfile.isFollowing ? (
+                        <UserX className="h-4 w-4" />
+                      ) : (
+                        <UserPlus className="h-4 w-4" />
+                      )}
+                      {publicProfile.isFollowing ? "Takibi Birak" : "Takip Et"}
+                    </button>
+                  ) : (
+                    <div className="tooltip tooltip-bottom" data-tip="Sadece yazarları takip edebilirsiniz.">
+                      <button disabled className="btn btn-disabled rounded-full px-6 opacity-60">
+                         <UserPlus className="h-4 w-4" /> Takip Edilemez
+                      </button>
+                    </div>
+                  )
                 ) : (
                   <Link href="/login" className="btn btn-primary rounded-full px-6">
                     Takip icin giris yap

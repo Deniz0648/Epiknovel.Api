@@ -4,7 +4,7 @@ import { clearAuthCookies, performAuthenticatedIdentityRequest } from "@/lib/ser
 
 export async function DELETE() {
   try {
-    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/identity/sessions/all", {
+    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/auth/sessions/all", {
       method: "DELETE",
     });
 

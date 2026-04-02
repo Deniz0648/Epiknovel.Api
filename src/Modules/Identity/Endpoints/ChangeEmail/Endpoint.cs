@@ -15,7 +15,7 @@ public class Endpoint(UserManager<User> userManager, IEmailService emailService)
 {
     public override void Configure()
     {
-        Post("/identity/change-email");
+        Post("/auth/change-email");
         Summary(s => {
             s.Summary = "E-posta değiştirme talebi oluşturur.";
             s.Description = "Yeni adrese bir doğrulama anahtarı (Change Token) gönderir.";

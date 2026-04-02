@@ -9,19 +9,26 @@ using Epiknovel.Shared.Core.Attributes;
 namespace Epiknovel.Modules.Users.Endpoints.FollowUser;
 
 [AuditLog("Kullanıcı Takip Edildi")]
-public class Endpoint(UsersDbContext dbContext) : Endpoint<Request, Result<Response>>
+public class Endpoint(UsersDbContext dbContext) : EndpointWithoutRequest<Result<Response>>
 {
     public override void Configure()
     {
-        Post("/users/{FollowingId}/follow");
+        Post("/users/{Identifier}/follow");
         Summary(s => {
             s.Summary = "Bir kullanıcıyı takip eder.";
-            s.Description = "Takipçi sayılarını anlık (atomic) günceller ve mükerrer takibi engeller.";
+            s.Description = "Identifier (Slug veya Guid) üzerinden kullanıcıyı takip etmeyi sağlar. Takipçi sayılarını anlık günceller.";
         });
     }
 
-    public override async Task HandleAsync(Request req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
+        var identifier = Route<string>("Identifier");
+        if (string.IsNullOrWhiteSpace(identifier))
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Geçersiz kullanıcı kimliği."), 400, ct);
+            return;
+        }
+
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userIdString == null)
         {
@@ -31,8 +38,32 @@ public class Endpoint(UsersDbContext dbContext) : Endpoint<Request, Result<Respo
 
         var followerId = Guid.Parse(userIdString);
 
+        bool isGuid = Guid.TryParse(identifier, out var parsedGuid);
+
+        // Hedef kullanıcının profilini getirelim
+        var targetProfile = await dbContext.UserProfiles
+            .AsNoTracking()
+            .Where(p => (isGuid && p.UserId == parsedGuid) || p.Slug == identifier)
+            .Select(p => new { p.UserId, p.IsAuthor, p.DisplayName })
+            .FirstOrDefaultAsync(ct);
+
+        if (targetProfile == null)
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Takip edilecek kullanıcı bulunamadı."), 404, ct);
+            return;
+        }
+
+        // 0. Sadece Yazarlar Takip Edilebilir Kuralı
+        if (!targetProfile.IsAuthor)
+        {
+            await Send.ResponseAsync(Result<Response>.Failure($"Üzgünüz, {targetProfile.DisplayName} bir yazar olmadığı için takip edilemez."), 400, ct);
+            return;
+        }
+
+        var followingId = targetProfile.UserId;
+
         // 1. Kendi kendini takip etme engeli
-        if (followerId == req.FollowingId)
+        if (followerId == followingId)
         {
             await Send.ResponseAsync(Result<Response>.Failure("Kendinizi takip edemezsiniz."), 400, ct);
             return;
@@ -42,7 +73,7 @@ public class Endpoint(UsersDbContext dbContext) : Endpoint<Request, Result<Respo
         var follow = new Follow
         {
             FollowerId = followerId,
-            FollowingId = req.FollowingId
+            FollowingId = followingId
         };
 
         try 
@@ -64,12 +95,12 @@ public class Endpoint(UsersDbContext dbContext) : Endpoint<Request, Result<Respo
             .ExecuteUpdateAsync(s => s.SetProperty(b => b.TotalFollowing, b => b.TotalFollowing + 1), ct);
 
         await dbContext.UserProfiles
-            .Where(p => p.UserId == req.FollowingId)
+            .Where(p => p.UserId == followingId)
             .ExecuteUpdateAsync(s => s.SetProperty(b => b.TotalFollowers, b => b.TotalFollowers + 1), ct);
 
         // Güncel takipçi sayısını getir (Yanıtta göstermek için)
         var finalFollowerCount = await dbContext.UserProfiles
-            .Where(p => p.UserId == req.FollowingId)
+            .Where(p => p.UserId == followingId)
             .Select(p => p.TotalFollowers)
             .FirstOrDefaultAsync(ct);
 

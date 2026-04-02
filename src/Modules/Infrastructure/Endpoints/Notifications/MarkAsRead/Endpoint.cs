@@ -1,7 +1,7 @@
 using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
-using Epiknovel.Modules.Infrastructure.Data;
+using Epiknovel.Modules.Infrastructure.Features.Notifications.Commands.MarkAsRead;
 using Epiknovel.Shared.Core.Models;
+using MediatR;
 using System.Security.Claims;
 
 namespace Epiknovel.Modules.Infrastructure.Endpoints.Notifications.MarkAsRead;
@@ -11,14 +11,14 @@ public record Request
     public Guid NotificationId { get; init; }
 }
 
-public class Endpoint(InfrastructureDbContext dbContext) : Endpoint<Request, Result<string>>
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
-        Post("/infrastructure/notifications/{NotificationId}/read");
+        Post("/notifications/{NotificationId}/read"); // Removed /infrastructure prefix to match frontend
         Summary(s => {
             s.Summary = "Bildirimi okundu yap.";
-            s.Description = "Belirtilen bildirim ID'sine ait bildirimi okundu olarak işaretler.";
+            s.Description = "Belirtilen bildirim ID'sine ait bildirimi okundu olarak işaretler. MediatR standardı uygulanmıştır.";
         });
     }
 
@@ -31,22 +31,14 @@ public class Endpoint(InfrastructureDbContext dbContext) : Endpoint<Request, Res
             return;
         }
 
-        var notification = await dbContext.Notifications
-            .FirstOrDefaultAsync(n => n.Id == req.NotificationId && n.UserId == userId, ct);
+        var result = await mediator.Send(new MarkNotificationAsReadCommand(userId, req.NotificationId), ct);
 
-        if (notification == null)
+        if (!result.IsSuccess)
         {
-            await Send.ResponseAsync(Result<string>.Failure("Bildirim bulunamadı."), 404, ct);
+            await Send.ResponseAsync(result, 404, ct);
             return;
         }
 
-        if (!notification.IsRead)
-        {
-            notification.IsRead = true;
-            notification.ReadAt = DateTime.UtcNow;
-            await dbContext.SaveChangesAsync(ct);
-        }
-
-        await Send.ResponseAsync(Result<string>.Success("Bildirim okundu olarak işaretlendi."), 200, ct);
+        await Send.ResponseAsync(result, 200, ct);
     }
 }

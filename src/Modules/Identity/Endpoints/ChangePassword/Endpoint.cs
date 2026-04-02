@@ -14,7 +14,7 @@ public class Endpoint(UserManager<User> userManager) : Endpoint<Request, Result<
 {
     public override void Configure()
     {
-        Post("/identity/change-password");
+        Post("/auth/change-password");
         Summary(s => {
             s.Summary = "Mevcut şifreyi değiştirir.";
             s.Description = "Oturum açmış kullanıcının şifresini yeniler.";

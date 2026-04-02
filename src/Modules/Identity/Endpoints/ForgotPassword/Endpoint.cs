@@ -14,7 +14,7 @@ public class Endpoint(UserManager<User> userManager, IEmailService emailService)
 {
     public override void Configure()
     {
-        Post("/identity/forgot-password");
+        Post("/auth/forgot-password");
         AllowAnonymous();
         Summary(s => {
             s.Summary = "Şifre sıfırlama talebi oluşturur.";

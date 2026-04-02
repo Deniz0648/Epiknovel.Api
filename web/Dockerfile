@@ -1,15 +1,16 @@
 # --- DEPENDENCIES ---
 FROM node:22-alpine AS deps
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat gcompat
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+    npm install
 
 # --- BUILDER ---
 FROM node:22-alpine AS builder
+RUN apk add --no-cache libc6-compat gcompat
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -19,7 +20,7 @@ ENV NEXT_TELEMETRY_DISABLED 1
 
 # Enable build cache for Next.js build
 RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build
+    npm run build -- --webpack
 
 # --- RUNNER ---
 FROM node:22-alpine AS runner

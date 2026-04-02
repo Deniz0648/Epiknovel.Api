@@ -1,0 +1,77 @@
+.tiptap-editor-wrapper {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: visible;
+}
+
+.tiptap-editor-wrapper::before {
+    content: '';
+    position: absolute;
+    left: 48px;
+    top: 72px;
+    bottom: 24px;
+    width: 2px;
+    background-color: oklch(var(--b2));
+    z-index: 0;
+    pointer-events: none;
+}
+
+.tiptap-editor-content {
+    font-size: var(--reader-font-size, 1.125rem);
+    line-height: var(--reader-line-height, 1.8);
+}
+
+.tiptap-editor-content p,
+.tiptap-editor-content li,
+.tiptap-editor-content blockquote {
+    font-size: inherit !important;
+    line-height: inherit !important;
+}
+
+.tiptap-editor-content:focus { outline: none; }
+
+.drag-handle {
+    width: 24px;
+    height: 24px;
+    cursor: grab;
+    background-color: oklch(var(--bc) / 0.3);
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='12' r='1'/%3E%3Ccircle cx='9' cy='5' r='1'/%3E%3Ccircle cx='9' cy='19' r='1'/%3E%3Ccircle cx='15' cy='12' r='1'/%3E%3Ccircle cx='15' cy='5' r='1'/%3E%3Ccircle cx='15' cy='19' r='1'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-position: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    z-index: 50;
+}
+
+.drag-handle:hover {
+    background-color: oklch(var(--p));
+    cursor: grabbing;
+}
+
+.tiptap-editor-content .drop-cursor {
+    background-color: oklch(var(--p));
+    width: 2px;
+    transition: all 0.2s;
+}
+
+[data-node-type="bulletList"] [data-node-type="paragraph"] .drag-handle,
+[data-node-type="orderedList"] [data-node-type="paragraph"] .drag-handle,
+[data-node-type="blockquote"] [data-node-type="paragraph"] .drag-handle {
+    display: none;
+}
+
+[data-node-type="bulletList"] [data-node-type="paragraph"].draggable-item,
+[data-node-type="orderedList"] [data-node-type="paragraph"].draggable-item,
+[data-node-type="blockquote"] [data-node-type="paragraph"].draggable-item {
+    margin-left: 0;
+    padding-left: 0;
+}
+
+.tiptap-editor-content ul { list-style-type: disc; padding-left: 1.5em; }
+.tiptap-editor-content ol { list-style-type: decimal; padding-left: 1.5em; }
+
+.tiptap-editor-content ul li::marker,
+.tiptap-editor-content ol li::marker { color: oklch(var(--bc)); }
+
+.tiptap-editor-content li p { margin-top: 0.25em; margin-bottom: 0.25em; }

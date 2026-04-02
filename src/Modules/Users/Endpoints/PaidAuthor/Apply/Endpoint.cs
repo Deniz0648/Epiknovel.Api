@@ -1,8 +1,10 @@
 using FastEndpoints;
-using Microsoft.AspNetCore.Http;
-using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Modules.Users.Features.AuthorApplications.Commands.SubmitPaidAuthorApplication;
 using Epiknovel.Shared.Core.Models;
+using MediatR;
 using System.Security.Claims;
+using Epiknovel.Shared.Core.Attributes;
+using Microsoft.AspNetCore.Http;
 
 namespace Epiknovel.Modules.Users.Endpoints.PaidAuthor.Apply;
 
@@ -14,9 +16,8 @@ public record Request
     public string BankName { get; init; } = string.Empty;
 }
 
-public class Endpoint(
-    IAuthorApplicationService authorApplicationService,
-    IFileService fileService) : Endpoint<Request, Result<string>>
+[AuditLog("Ücretli Yazarlık Başvurusu Yapıldı")]
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -24,10 +25,9 @@ public class Endpoint(
         Policies("BOLA");
         AllowFileUploads();
         Throttle(3, 60);
-        Summary(s =>
-        {
+        Summary(s => {
             s.Summary = "Ücretli yazarlık başvurusu yap.";
-            s.Description = "Kullanıcının belge yükleyerek ücretli yazarlık başvurusu oluşturmasını sağlar.";
+            s.Description = "Gerekli evrakları (İstisna Belgesi, Banka Dekontu vb.) yükleyerek başvuru yapar. MediatR standardı uygulanmıştır.";
         });
     }
 
@@ -40,30 +40,20 @@ public class Endpoint(
             return;
         }
 
-        try
+        var result = await mediator.Send(new SubmitPaidAuthorApplicationCommand(
+            userId,
+            req.ExemptionCertificate,
+            req.BankDocument,
+            req.Iban,
+            req.BankName
+        ), ct);
+
+        if (!result.IsSuccess)
         {
-            var certUrl = await fileService.SaveSecureDocumentAsync(req.ExemptionCertificate, "author_documents");
-            var bankUrl = await fileService.SaveSecureDocumentAsync(req.BankDocument, "author_documents");
-
-            var result = await authorApplicationService.SubmitPaidAuthorApplicationAsync(
-                userId,
-                certUrl,
-                bankUrl,
-                req.Iban,
-                req.BankName,
-                ct);
-
-            if (!result.IsSuccess)
-            {
-                await Send.ResponseAsync(result, 400, ct);
-                return;
-            }
-
-            await Send.ResponseAsync(result, 200, ct);
+            await Send.ResponseAsync(result, 400, ct);
+            return;
         }
-        catch (Exception ex)
-        {
-            await Send.ResponseAsync(Result<string>.Failure($"Başvuru sırasında hata oluştu: {ex.Message}"), 500, ct);
-        }
+
+        await Send.ResponseAsync(result, 200, ct);
     }
 }

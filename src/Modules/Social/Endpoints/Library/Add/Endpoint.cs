@@ -1,8 +1,7 @@
 using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
-using Epiknovel.Modules.Social.Data;
-using Epiknovel.Modules.Social.Domain;
+using Epiknovel.Modules.Social.Features.Library.Commands.AddToLibrary;
 using Epiknovel.Shared.Core.Models;
+using MediatR;
 using System.Security.Claims;
 
 namespace Epiknovel.Modules.Social.Endpoints.Library.Add;
@@ -12,7 +11,7 @@ public record Request
     public Guid BookId { get; init; }
 }
 
-public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<string>>
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -32,26 +31,14 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<stri
             return;
         }
 
-        var existing = await dbContext.LibraryEntries
-            .AnyAsync(e => e.BookId == req.BookId && e.UserId == userId, ct);
+        var result = await mediator.Send(new AddToLibraryCommand(userId, req.BookId), ct);
 
-        if (existing)
+        if (!result.IsSuccess)
         {
-            await Send.ResponseAsync(Result<string>.Failure("Bu kitap zaten kütüphanenizde."), 400, ct);
+            await Send.ResponseAsync(Result<string>.Failure(result.Message), 400, ct);
             return;
         }
 
-        var entry = new LibraryEntry
-        {
-            BookId = req.BookId,
-            UserId = userId,
-            Status = ReadingStatus.Reading, // Varsayılan olarak okuyor olarak ekle
-            AddedAt = DateTime.UtcNow
-        };
-
-        dbContext.LibraryEntries.Add(entry);
-        await dbContext.SaveChangesAsync(ct);
-
-        await Send.ResponseAsync(Result<string>.Success("Kitap kütüphanenize eklendi."), 200, ct);
+        await Send.ResponseAsync(Result<string>.Success(result.Message), 200, ct);
     }
 }

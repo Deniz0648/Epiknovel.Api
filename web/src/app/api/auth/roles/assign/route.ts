@@ -5,7 +5,7 @@ import { applyRefreshedTokens, performAuthenticatedIdentityRequest } from "@/lib
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { userId?: string; roleName?: string };
-    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/identity/roles/assign", {
+    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/auth/roles/assign", {
       method: "POST",
       body: JSON.stringify({
         userId: body.userId ?? "",

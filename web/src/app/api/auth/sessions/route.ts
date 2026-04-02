@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const result = await performAuthenticatedIdentityRequest<
       Array<{ sessionId: string; device: string; ipAddress: string; createdAt: string; isCurrent: boolean }>
-    >("/identity/sessions", {
+    >("/auth/sessions", {
       method: "GET",
     });
 

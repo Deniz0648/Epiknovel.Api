@@ -16,7 +16,7 @@ public class Endpoint(
 {
     public override void Configure()
     {
-        Post("/identity/logout");
+        Post("/auth/logout");
         Summary(s => {
             s.Summary = "Mevcut oturumdan çıkış yapar.";
             s.Description = "Refresh Token'ı siler ve aktif JWT'yi (JTI bazlı) kara listeye alır.";

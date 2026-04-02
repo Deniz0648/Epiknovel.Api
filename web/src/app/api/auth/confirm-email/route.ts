@@ -12,7 +12,7 @@ type ConfirmEmailResponse = {
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { userId?: string; token?: string };
-    const data = await backendApiRequest<ConfirmEmailResponse>("/identity/confirm-email", {
+    const data = await backendApiRequest<ConfirmEmailResponse>("/auth/confirm-email", {
       method: "POST",
       body: JSON.stringify({
         userId: body.userId ?? "",

@@ -16,7 +16,7 @@ public class Endpoint(
 {
     public override void Configure()
     {
-        Post("/identity/roles/assign");
+        Post("/auth/roles/assign");
         Policies(PolicyNames.AdminAccess);
         Summary(s => {
             s.Summary = "Kullanıcıya yeni bir rol atar.";

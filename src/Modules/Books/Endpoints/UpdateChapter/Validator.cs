@@ -29,7 +29,6 @@ public class Validator : Validator<Request>
         RuleForEach(x => x.Lines).ChildRules(line =>
         {
             line.RuleFor(l => l.Content)
-                .NotEmpty().WithMessage("Satır içeriği boş olamaz.")
                 .MaximumLength(MaxCharsPerLine)
                 .WithMessage($"Her satır en fazla {MaxCharsPerLine} karakter olabilir.");
         });

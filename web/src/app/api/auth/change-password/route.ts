@@ -5,7 +5,7 @@ import { applyRefreshedTokens, performAuthenticatedIdentityRequest } from "@/lib
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { currentPassword?: string; newPassword?: string };
-    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/identity/change-password", {
+    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/auth/change-password", {
       method: "POST",
       body: JSON.stringify({
         currentPassword: body.currentPassword ?? "",

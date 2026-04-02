@@ -5,7 +5,7 @@ import { applyRefreshedTokens, performAuthenticatedIdentityRequest } from "@/lib
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { newEmail?: string; token?: string };
-    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/identity/confirm-change-email", {
+    const result = await performAuthenticatedIdentityRequest<{ message: string }>("/auth/confirm-change-email", {
       method: "POST",
       body: JSON.stringify({
         newEmail: body.newEmail?.trim() ?? "",

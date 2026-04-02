@@ -21,7 +21,7 @@ public class Endpoint(
 {
     public override void Configure()
     {
-        Post("/identity/confirm-email");
+        Post("/auth/confirm-email");
         AllowAnonymous();
         Summary(s => {
             s.Summary = "E-posta adresini onaylar.";

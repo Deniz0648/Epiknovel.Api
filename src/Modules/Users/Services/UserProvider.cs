@@ -1,11 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Users.Data;
 using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Core.Models;
+using MediatR;
 
 namespace Epiknovel.Modules.Users.Services;
 
-public class UserProvider(UsersDbContext dbContext) : IUserProvider
+public class UserProvider(UsersDbContext dbContext, IMediator mediator) : IUserProvider
 {
+    public async Task<Result<MyProfileResponse>> GetProfileAsync(Guid userId, string? identityName, CancellationToken ct = default)
+    {
+        // Modüller arası erişimde de self-healing ve yetki kurallarını korumak için 
+        // doğrudan Users modülündeki handler'ı tetikliyoruz.
+        return await mediator.Send(new Features.Profiles.Queries.GetMyProfile.GetMyProfileQuery(userId, identityName), ct);
+    }
+
     public async Task<Guid?> GetUserIdBySlugAsync(string slug, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(slug))

@@ -10,7 +10,7 @@ public class Endpoint(IdentityDbContext dbContext) : EndpointWithoutRequest<Resu
 {
     public override void Configure()
     {
-        Get("/identity/sessions");
+        Get("/auth/sessions");
         Summary(s => {
             s.Summary = "Aktif oturumları listeler.";
             s.Description = "Kullanıcının tüm cihazlardaki aktif oturum bilgilerini döner.";

@@ -16,7 +16,7 @@ public class Endpoint(
 {
     public override void Configure()
     {
-        Post("/identity/confirm-email/resend");
+        Post("/auth/confirm-email/resend");
         Policies("BOLA");
         Throttle(3, 60);
         Summary(s =>

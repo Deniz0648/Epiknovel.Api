@@ -1,9 +1,9 @@
 using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
-using Epiknovel.Modules.Social.Data;
-using Epiknovel.Modules.Social.Domain;
+using Epiknovel.Modules.Social.Features.Library.Queries.GetLibraryList;
 using Epiknovel.Shared.Core.Models;
+using MediatR;
 using System.Security.Claims;
+using Epiknovel.Modules.Social.Domain;
 
 namespace Epiknovel.Modules.Social.Endpoints.Library.GetList;
 
@@ -14,16 +14,7 @@ public record Request
     public int Size { get; init; } = 20;
 }
 
-public record LibraryResponse
-{
-    public Guid Id { get; init; }
-    public Guid BookId { get; init; }
-    public ReadingStatus Status { get; init; }
-    public DateTime AddedAt { get; init; }
-    public DateTime? LastReadAt { get; init; }
-}
-
-public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<List<LibraryResponse>>>
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<List<LibraryItemResponse>>>
 {
     public override void Configure()
     {
@@ -39,30 +30,17 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<List
         var userIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
-            await Send.ResponseAsync(Result<List<LibraryResponse>>.Failure("Unauthorized"), 401, ct);
+            await Send.ResponseAsync(Result<List<LibraryItemResponse>>.Failure("Unauthorized"), 401, ct);
             return;
         }
 
-        var query = dbContext.LibraryEntries
-            .Where(e => e.UserId == userId);
+        var result = await mediator.Send(new GetLibraryListQuery(
+            userId,
+            req.Status,
+            req.Page,
+            req.Size
+        ), ct);
 
-        if (req.Status.HasValue)
-            query = query.Where(e => e.Status == req.Status.Value);
-
-        var entries = await query
-            .OrderByDescending(e => e.AddedAt)
-            .Skip((req.Page - 1) * req.Size)
-            .Take(req.Size)
-            .Select(e => new LibraryResponse
-            {
-                Id = e.Id,
-                BookId = e.BookId,
-                Status = e.Status,
-                AddedAt = e.AddedAt,
-                LastReadAt = e.LastReadAt
-            })
-            .ToListAsync(ct);
-
-        await Send.ResponseAsync(Result<List<LibraryResponse>>.Success(entries), 200, ct);
+        await Send.ResponseAsync(result, 200, ct);
     }
 }

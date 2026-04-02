@@ -380,6 +380,7 @@ public static class InfrastructureExtensions
         
         app.UseFastEndpoints(c => {
             c.Endpoints.RoutePrefix = "api";
+            c.Serializer.Options.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
             c.Endpoints.Configurator = ep => {
                 ep.PreProcessors(Order.Before, new JwtBlacklistPreProcessor(app.ApplicationServices.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>()));
                 ep.PreProcessors(Order.Before, new BOLAValidationPreProcessor());

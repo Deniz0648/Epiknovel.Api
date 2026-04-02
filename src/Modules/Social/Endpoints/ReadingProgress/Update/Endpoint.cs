@@ -1,11 +1,8 @@
 using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
-using Epiknovel.Modules.Social.Data;
-using Epiknovel.Modules.Social.Domain;
+using Epiknovel.Modules.Social.Features.ReadingProgress.Commands.UpdateReadingProgress;
 using Epiknovel.Shared.Core.Models;
+using MediatR;
 using System.Security.Claims;
-using Microsoft.Extensions.Caching.Distributed;
-using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 
 namespace Epiknovel.Modules.Social.Endpoints.ReadingProgress.Update;
@@ -14,10 +11,10 @@ public record Request
 {
     public Guid BookId { get; init; }
     public Guid ChapterId { get; init; }
-    public double ScrollPercentage { get; init; } // 0-100
+    public double ScrollPercentage { get; init; }
 }
 
-public class Endpoint(SocialDbContext dbContext, IDistributedCache cache) : Endpoint<Request, Result<string>>
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -38,39 +35,19 @@ public class Endpoint(SocialDbContext dbContext, IDistributedCache cache) : Endp
             return;
         }
 
-        var progress = await dbContext.ReadingProgresses
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.BookId == req.BookId, ct);
+        var result = await mediator.Send(new UpdateReadingProgressCommand(
+            userId,
+            req.BookId,
+            req.ChapterId,
+            req.ScrollPercentage
+        ), ct);
 
-        if (progress == null)
+        if (!result.IsSuccess)
         {
-            progress = new Domain.ReadingProgress
-            {
-                UserId = userId,
-                BookId = req.BookId,
-                LastReadChapterId = req.ChapterId,
-                ScrollPercentage = req.ScrollPercentage,
-                LastReadAt = DateTime.UtcNow
-            };
-            dbContext.ReadingProgresses.Add(progress);
-        }
-        else
-        {
-            progress.LastReadChapterId = req.ChapterId;
-            progress.ScrollPercentage = req.ScrollPercentage;
-            progress.LastReadAt = DateTime.UtcNow;
+            await Send.ResponseAsync(Result<string>.Failure(result.Message), 400, ct);
+            return;
         }
 
-        await dbContext.SaveChangesAsync(ct);
-
-        // 🚀 Redis Cache Güncelle (Distributed Cache: IReadingProgressProvider'ın hızlı kalması için)
-        var cacheKey = $"progress:{userId}:{req.BookId}";
-        var model = new { ChapterId = req.ChapterId, Percentage = req.ScrollPercentage };
-        await cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(model), new DistributedCacheEntryOptions
-        {
-            SlidingExpiration = TimeSpan.FromHours(1)
-        }, ct);
-
-
-        await Send.ResponseAsync(Result<string>.Success("İlerleme kaydedildi."), 200, ct);
+        await Send.ResponseAsync(Result<string>.Success(result.Message), 200, ct);
     }
 }

@@ -25,6 +25,7 @@ public class Request : IOwnable
 
 public class LineItem
 {
+    public Guid Id { get; set; }
     public string Content { get; set; } = string.Empty;
     public ParagraphType Type { get; set; } = ParagraphType.Text;
 }

@@ -1,12 +1,15 @@
 using Epiknovel.Modules.Books.Domain;
 using Epiknovel.Shared.Core.Models;
 using System.Collections.Generic;
+using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Books.Endpoints.UpdateBook;
 
-public class Request 
+public class Request : IOwnable
 {
     public Guid Id { get; set; }
+    public Guid UserId { get; set; } // BOLA check automatically via BOLAValidationPreProcessor
+    
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string? CoverImageUrl { get; set; }

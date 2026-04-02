@@ -15,6 +15,7 @@ export default function ManageBookPage() {
   const bookSlug = params?.bookSlug ?? "";
   
   const [book, setBook] = useState<MyBookListItem | null>(null);
+  const [chapters, setChapters] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +31,12 @@ export default function ManageBookPage() {
         if (isMounted) {
           setBook(data);
           setError(null);
+        }
+
+        const chaptersResponse = await fetch(`/api/books/${bookSlug}/chapters?IncludeDrafts=true`);
+        const chaptersData = await chaptersResponse.json();
+        if (chaptersData.isSuccess && isMounted) {
+           setChapters(chaptersData.data?.chapters || chaptersData.data?.items || []);
         }
       } catch (err) {
         if (isMounted) {
@@ -157,10 +164,10 @@ export default function ManageBookPage() {
 
               {/* Ana Aksiyonlar */}
               <div className="flex flex-wrap items-center gap-3 pt-4">
-                <button className="btn btn-primary rounded-2xl px-8 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 active:scale-95">
+                <Link href={`/author/${book.slug}/chapters/new`} className="btn btn-primary rounded-2xl px-8 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 active:scale-95">
                   <PlusCircle className="h-4 w-4" />
                   Yeni Bolum Yaz
-                </button>
+                </Link>
                 <Link href={`/Books/${book.slug}`} className="btn rounded-2xl border border-base-content/12 bg-base-100/32 px-8 hover:bg-base-100/60 transition-all active:scale-95">
                   <Eye className="h-4 w-4" />
                   Goruntule
@@ -181,12 +188,38 @@ export default function ManageBookPage() {
               </h3>
             </div>
             
-            <div className="glass-frame flex flex-col items-center justify-center gap-4 border-dashed py-24 text-center opacity-60">
-              <div className="h-16 w-16 rounded-full bg-base-content/5 flex items-center justify-center">
-                <FileText className="h-8 w-8" />
+            {chapters.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {chapters.map(chapter => (
+                  <Link href={`/author/${book.slug}/chapters/${chapter.slug}/edit`} key={chapter.id} className="glass-frame flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 hover:bg-base-100/40 transition-colors cursor-pointer group">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 shrink-0 select-none items-center justify-center rounded-xl bg-base-100/50 text-xs font-black text-base-content/50 shadow-inner group-hover:bg-primary/20 group-hover:text-primary transition-colors">
+                        {chapter.order}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-base-content/90 truncate">{chapter.title}</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`text-[10px] font-black uppercase tracking-widest ${chapter.status === 0 ? "text-warning" : "text-success"}`}>
+                            {chapter.status === 0 ? "Taslak" : chapter.status === 1 ? "Yayinda" : "Zamanlandi"}
+                          </span>
+                          <span className="text-base-content/30 text-[10px]">|</span>
+                          <span className="text-[10px] font-bold text-base-content/50">{chapter.wordCount} Kelime</span>
+                          <span className="text-base-content/30 text-[10px]">|</span>
+                          <span className="text-[10px] font-bold text-base-content/50">{chapter.isFree ? "Ucretsiz" : `${chapter.price} Jeton`}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <p className="text-sm font-bold">Henuz hic bolum eklenmemis.</p>
-            </div>
+            ) : (
+              <div className="glass-frame flex flex-col items-center justify-center gap-4 border-dashed py-24 text-center opacity-60">
+                <div className="h-16 w-16 rounded-full bg-base-content/5 flex items-center justify-center">
+                  <FileText className="h-8 w-8" />
+                </div>
+                <p className="text-sm font-bold">Henuz hic bolum eklenmemis.</p>
+              </div>
+            )}
           </div>
 
           {/* Sidebar / Analytics Side */}

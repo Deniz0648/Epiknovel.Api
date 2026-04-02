@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
       displayName?: string;
     };
 
-    const data = await backendApiRequest<{ message: string }>("/identity/register", {
+    const data = await backendApiRequest<{ message: string }>("/auth/register", {
       method: "POST",
       body: JSON.stringify({
         email: body.email?.trim() ?? "",

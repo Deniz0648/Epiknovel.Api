@@ -1,9 +1,9 @@
 using FastEndpoints;
-using Epiknovel.Shared.Core.Interfaces;
-using Epiknovel.Modules.Compliance.Data;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
+using Epiknovel.Modules.Compliance.Features.SecureDocuments.Queries.GetStream;
 using Epiknovel.Shared.Core.Models;
+using Epiknovel.Shared.Core.Interfaces;
+using MediatR;
+using System.Security.Claims;
 using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Compliance.Endpoints.SecureDocuments.Download;
@@ -14,8 +14,7 @@ public class Request
 }
 
 public class Endpoint(
-    ComplianceDbContext dbContext,
-    IFileService fileService,
+    IMediator mediator,
     IPermissionService permissionService) : Endpoint<Request>
 {
     public override void Configure()
@@ -23,55 +22,39 @@ public class Endpoint(
         Get("/compliance/documents/{id}/download");
         Summary(s => {
             s.Summary = "Gizli dokümanı stream olarak indirir.";
-            s.Description = "BOLA Korumalıdır: Dosya yayın klasörü dışından güvenli şekilde okunur ve tarayıcıya basılır.";
+            s.Description = "BOLA Korumalıdır. MediatR standardı uygulanmıştır.";
         });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        // 1. Kullanıcı Bilgisini Al
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (string.IsNullOrEmpty(userIdString))
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
         {
             await Send.UnauthorizedAsync(ct);
             return;
         }
 
-        var userId = Guid.Parse(userIdString);
         var hasAdminAccess = await permissionService.HasPermissionAsync(User, PermissionNames.AdminAccess, ct);
 
-        // 2. BOLA Korumalı Sorgu
-        var document = await dbContext.SecureDocuments
-            .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
+        var result = await mediator.Send(new GetSecureDocumentStreamQuery(
+            req.Id,
+            userId,
+            hasAdminAccess
+        ), ct);
 
-        if (document == null)
+        if (!result.IsSuccess)
         {
-            await Send.NotFoundAsync(ct);
+            await Send.ResponseAsync(result, result.Message.Contains("yetki") ? 403 : 404, ct);
             return;
         }
 
-        // 3. Yetki Kontrolü (BOLA)
-        if (document.UserId != userId && !hasAdminAccess)
-        {
-            await Send.ForbiddenAsync(ct);
-            return;
-        }
-
-        // 4. Dosyayı Diskten Oku ve Stream Olarak Dön (Direct Access Koruması)
-        try
-        {
-            var stream = await fileService.GetSecureFileStreamAsync(document.StoredFileName, document.Category);
-            
-            await Send.StreamAsync(
-                stream, 
-                fileName: document.OriginalFileName, 
-                fileLengthBytes: null, 
-                contentType: document.MimeType, 
-                cancellation: ct);
-        }
-        catch (FileNotFoundException)
-        {
-            await Send.NotFoundAsync(ct);
-        }
+        var data = result.Data!;
+        await Send.StreamAsync(
+            data.Stream, 
+            fileName: data.FileName, 
+            fileLengthBytes: null, 
+            contentType: data.MimeType, 
+            cancellation: ct);
     }
 }

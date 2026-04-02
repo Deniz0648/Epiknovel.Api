@@ -51,7 +51,7 @@ export function clearAuthCookies(response: NextResponse) {
 }
 
 export async function exchangeLogin(credentials: { email: string; password: string }) {
-  return backendApiRequest<LoginResponse>("/identity/login", {
+  return backendApiRequest<LoginResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
   });
@@ -61,7 +61,7 @@ export async function exchangeLoginWithHeaders(
   credentials: { email: string; password: string },
   requestHeaders: Headers,
 ) {
-  return backendApiRequest<LoginResponse>("/identity/login", {
+  return backendApiRequest<LoginResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify(credentials),
     headers: buildProxyHeaders(requestHeaders),
@@ -69,7 +69,7 @@ export async function exchangeLoginWithHeaders(
 }
 
 export async function forwardRegister(payload: { email: string; password: string; displayName: string }) {
-  return backendApiRequest<{ message: string }>("/identity/register", {
+  return backendApiRequest<{ message: string }>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -101,14 +101,14 @@ export async function getSessionTokens(): Promise<SessionTokens> {
 }
 
 export async function refreshSessionTokens(refreshToken: string) {
-  return backendApiRequest<LoginResponse>("/identity/refresh-token", {
+  return backendApiRequest<LoginResponse>("/auth/refresh-token", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
   });
 }
 
 export async function refreshSessionTokensWithHeaders(refreshToken: string, requestHeaders: Headers) {
-  return backendApiRequest<LoginResponse>("/identity/refresh-token", {
+  return backendApiRequest<LoginResponse>("/auth/refresh-token", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
     headers: buildProxyHeaders(requestHeaders),
@@ -241,7 +241,7 @@ export async function forwardLogout(): Promise<LogoutResponse> {
   }
 
   try {
-    return await backendApiRequest<LogoutResponse>("/identity/logout", {
+    return await backendApiRequest<LogoutResponse>("/auth/logout", {
       method: "POST",
       token: accessToken,
       body: JSON.stringify({ refreshToken }),

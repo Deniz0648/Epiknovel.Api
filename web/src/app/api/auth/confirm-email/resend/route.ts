@@ -8,7 +8,7 @@ type ResendConfirmEmailResponse = {
 
 export async function POST(request: NextRequest) {
   try {
-    const result = await performAuthenticatedIdentityRequest<ResendConfirmEmailResponse>("/identity/confirm-email/resend", {
+    const result = await performAuthenticatedIdentityRequest<ResendConfirmEmailResponse>("/auth/confirm-email/resend", {
       method: "POST",
     }, request.headers);
 

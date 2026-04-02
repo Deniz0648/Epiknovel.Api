@@ -1,8 +1,7 @@
 using FastEndpoints;
-using Microsoft.EntityFrameworkCore;
-using Epiknovel.Modules.Social.Data;
-using Epiknovel.Modules.Social.Domain;
+using Epiknovel.Modules.Social.Features.Votes.Commands.AddVote;
 using Epiknovel.Shared.Core.Models;
+using MediatR;
 using System.Security.Claims;
 
 namespace Epiknovel.Modules.Social.Endpoints.Votes.Add;
@@ -10,10 +9,10 @@ namespace Epiknovel.Modules.Social.Endpoints.Votes.Add;
 public record Request
 {
     public Guid BookId { get; init; }
-    public int Value { get; init; } // Örn: 1 (Tek oy) veya VIP için daha fazla
+    public int Value { get; init; }
 }
 
-public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<string>>
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -33,18 +32,14 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<stri
             return;
         }
 
-        // Günlük oy sınırı vb. kontroller eklenebilir
-        var vote = new BookVote
+        var result = await mediator.Send(new AddVoteCommand(userId, req.BookId, req.Value), ct);
+
+        if (!result.IsSuccess)
         {
-            BookId = req.BookId,
-            UserId = userId,
-            Value = Math.Max(1, req.Value),
-            CreatedAt = DateTime.UtcNow
-        };
+            await Send.ResponseAsync(Result<string>.Failure(result.Message), 400, ct);
+            return;
+        }
 
-        dbContext.BookVotes.Add(vote);
-        await dbContext.SaveChangesAsync(ct);
-
-        await Send.ResponseAsync(Result<string>.Success("Oyunuz başarıyla kaydedildi."), 200, ct);
+        await Send.ResponseAsync(Result<string>.Success(result.Message), 200, ct);
     }
 }

@@ -70,7 +70,7 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
         var existingParagraphs = chapter.Paragraphs.ToList();
         var incomingLines = req.Lines;
 
-        var incomingIds = incomingLines.Where(l => l.Id.HasValue).Select(l => l.Id!.Value).ToList();
+        var incomingIds = incomingLines.Select(l => l.Id).ToList();
         var toRemove = existingParagraphs.Where(p => !incomingIds.Contains(p.Id)).ToList();
         
         foreach (var p in toRemove) dbContext.Paragraphs.Remove(p);
@@ -83,15 +83,12 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
             currentOrder++;
             var sanitizedContent = sanitizer.Sanitize(line.Content);
 
-            if (line.Id.HasValue)
+            var existing = existingParagraphs.FirstOrDefault(p => p.Id == line.Id);
+            if (existing != null)
             {
-                var existing = existingParagraphs.FirstOrDefault(p => p.Id == line.Id.Value);
-                if (existing != null)
-                {
-                    existing.Content = sanitizedContent;
-                    existing.Type = line.Type;
-                    existing.Order = currentOrder;
-                }
+                existing.Content = sanitizedContent;
+                existing.Type = line.Type;
+                existing.Order = currentOrder;
             }
             else
             {
@@ -101,7 +98,7 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
                     Content = sanitizedContent,
                     Type = line.Type,
                     Order = currentOrder,
-                    Id = Guid.NewGuid()
+                    Id = line.Id
                 });
             }
 

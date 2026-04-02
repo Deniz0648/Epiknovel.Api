@@ -5,7 +5,7 @@ import { backendApiRequest } from "@/lib/backend-api";
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { email?: string };
-    const data = await backendApiRequest<{ message: string }>("/identity/forgot-password", {
+    const data = await backendApiRequest<{ message: string }>("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email: body.email?.trim() ?? "" }),
     });
