@@ -1,6 +1,7 @@
 using FastEndpoints;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Shared.Core.Constants;
+using Epiknovel.Shared.Core.Interfaces.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -12,14 +13,8 @@ public class UpdateRequest
     public string Value { get; set; } = string.Empty;
 }
 
-public class Update : Endpoint<UpdateRequest>
+public class Update(ManagementDbContext dbContext, ISystemSettingsBroadcastService broadcastService) : Endpoint<UpdateRequest>
 {
-    private readonly ManagementDbContext dbContext;
-    public Update(ManagementDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
-
     public override void Configure()
     {
         Put("/management/system/settings");
@@ -52,6 +47,10 @@ public class Update : Endpoint<UpdateRequest>
         setting.UpdatedByUserId = actorId;
 
         await dbContext.SaveChangesAsync(ct);
+
+        // 🚀 REAL-TIME BROADCAST: Tüm istemcilere ayar değişikliğini duyur via Abstraction
+        await broadcastService.BroadcastSettingUpdatedAsync(req.Key, req.Value, ct);
+
         await Send.NoContentAsync(ct);
     }
 }

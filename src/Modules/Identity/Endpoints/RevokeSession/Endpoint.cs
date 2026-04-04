@@ -4,17 +4,19 @@ using Epiknovel.Modules.Identity.Data;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Constants;
 using System.Security.Claims;
-
+using Microsoft.Extensions.Caching.Distributed;
 using Epiknovel.Shared.Core.Attributes;
 
 namespace Epiknovel.Modules.Identity.Endpoints.RevokeSession;
 
 [AuditLog("Oturum Sonlandırıldı")]
-public class Endpoint(IdentityDbContext dbContext) : Endpoint<Request, Result<Response>>
+public class Endpoint(
+    IdentityDbContext dbContext,
+    IDistributedCache cache) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
-        Delete("/identity/sessions/{SessionId}");
+        Delete("/auth/sessions/{sessionId}");
         Summary(s => {
             s.Summary = "Belirli bir oturumu sonlandırır.";
             s.Description = "Seçilen cihazdaki oturumu kapatır ve Refresh Token'ı geçersiz kılar.";
@@ -34,7 +36,7 @@ public class Endpoint(IdentityDbContext dbContext) : Endpoint<Request, Result<Re
         
         // 1. Session'ı bul ve kullanıcının olduğundan emin ol (Güvenlik!)
         var session = await dbContext.UserSessions
-            .FirstOrDefaultAsync(x => x.Id == req.SessionId && x.UserId == userId, ct);
+            .FirstOrDefaultAsync(x => x.Id == req.sessionId && x.UserId == userId, ct);
 
         if (session == null)
         {
@@ -42,7 +44,16 @@ public class Endpoint(IdentityDbContext dbContext) : Endpoint<Request, Result<Re
             return;
         }
 
-        // 2. Oturumu kapat
+        // 2. HARDENING: Aktif JWT'yi Redis'te anında iptal et
+        if (!string.IsNullOrEmpty(session.AccessTokenJti))
+        {
+            await cache.SetStringAsync($"revoked_token:{session.AccessTokenJti}", "1", new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60)
+            }, ct);
+        }
+
+        // 3. Oturumu kapat
         dbContext.UserSessions.Remove(session);
         await dbContext.SaveChangesAsync(ct);
 

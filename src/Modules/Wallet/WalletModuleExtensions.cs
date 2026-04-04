@@ -11,7 +11,10 @@ public static class WalletModuleExtensions
     public static IServiceCollection AddWalletModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<WalletDbContext>(options =>
-            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "wallet")));
+            options.UseNpgsql(connectionString, x => 
+                x.MigrationsHistoryTable("__EFMigrationsHistory", "wallet")
+                 .EnableRetryOnFailure())
+                 .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
         services.AddScoped<IWalletProvider, WalletProvider>();
         services.AddScoped<IIyzicoService, IyzicoService>();

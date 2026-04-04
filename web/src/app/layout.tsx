@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { HeaderIsland } from "@/components/layout/header-island";
 import { NotificationsProvider } from "@/components/providers/notifications-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { RealtimeProvider } from "@/components/providers/realtime-provider";
 
 export const metadata: Metadata = {
   title: "EpikNovel",
@@ -20,9 +21,10 @@ export default function RootLayout({
     <html lang="tr" data-theme="light" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <ToastProvider>
-          <AuthProvider>
-            <NotificationsProvider>
-              <div className="flex min-h-screen flex-col">
+          <RealtimeProvider>
+            <AuthProvider>
+              <NotificationsProvider>
+                <div className="flex min-h-screen flex-col">
                 <div className="fixed inset-x-0 top-0 z-50">
                   <div className="site-shell mx-auto px-4 pt-3 sm:px-8 sm:pt-4">
                     <HeaderIsland />
@@ -33,8 +35,9 @@ export default function RootLayout({
               </div>
             </NotificationsProvider>
           </AuthProvider>
-        </ToastProvider>
-      </body>
+        </RealtimeProvider>
+      </ToastProvider>
+    </body>
     </html>
   );
 }

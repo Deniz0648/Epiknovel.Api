@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Epiknovel.Modules.Compliance.Migrations
 {
     [DbContext(typeof(ComplianceDbContext))]
-    [Migration("20260331015849_InitialCompliance")]
-    partial class InitialCompliance
+    [Migration("20260404043229_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -22,7 +22,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("compliance")
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -40,7 +40,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("InitialDescription")
                         .HasColumnType("text");
@@ -56,7 +56,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("ResolvedByAdminId")
                         .HasColumnType("uuid");
@@ -68,7 +68,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -87,7 +87,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("MimeType")
                         .IsRequired()
@@ -127,19 +127,19 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsVerified")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("IssuedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("VerifiedByUserId")
                         .HasColumnType("uuid");
@@ -156,7 +156,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("AcceptedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("IpAddress")
                         .IsRequired()
@@ -187,10 +187,10 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("ExpiryDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime>("GivenAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -232,7 +232,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("VerifiedByUserId")
                         .HasColumnType("uuid");

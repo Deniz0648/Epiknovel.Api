@@ -27,10 +27,9 @@ public class Endpoint(
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        // 1. Mevcut indeksleri temizle (Truncate)
-        // Eğer tablo boyutu çok büyükse ExecuteSqlRaw ile TRUNCATE daha iyi olabilir, 
-        // ancak EF Core üzerinden güvenli silme:
-        await dbContext.Database.ExecuteSqlRawAsync("TRUNCATE TABLE search.\"SearchDocuments\"", ct);
+        // 1. Mevcut indeksleri temizle (Mass Delete)
+        // EF Core 7+ ExecuteDeleteAsync, TRUNCATE kadar verimli ve tamamen "doğal" bir yöntemdir.
+        await dbContext.SearchDocuments.ExecuteDeleteAsync(ct);
 
         int totalIndexed = 0;
 

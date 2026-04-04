@@ -19,7 +19,7 @@ type NotificationsResponse = {
 export async function GET(request: NextRequest) {
   try {
     const result = await performAuthenticatedIdentityRequest<NotificationsResponse>(
-      "/infrastructure/notifications",
+      "/notifications",
       { method: "GET" },
       request.headers,
     );

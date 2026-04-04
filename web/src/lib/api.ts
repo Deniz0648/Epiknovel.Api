@@ -54,7 +54,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     body,
     cache: "no-store",
     headers: {
-      ...(hasJsonBody || isWriteMethod ? { "Content-Type": "application/json" } : {}),
+      ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },

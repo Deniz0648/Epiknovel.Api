@@ -30,6 +30,11 @@ const BOOK_STATUS_OPTIONS = [
   { label: "Iptal Edildi", value: 4, internal: "Cancelled" },
 ] as const;
 
+const BOOK_TYPE_OPTIONS = [
+  { label: "Orijinal Eser", value: 0, internal: "Original" },
+  { label: "Çeviri Eser", value: 1, internal: "Translation" },
+] as const;
+
 const CONTENT_RATING_OPTIONS = [
   { label: "Genel Izleyici (G)", value: 0, internal: "General" },
   { label: "13+ (PG-13)", value: 1, internal: "Teen" },
@@ -51,6 +56,8 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
   const [tags, setTags] = useState("");
   const [status, setStatus] = useState<number>(0);
   const [contentRating, setContentRating] = useState<number>(0);
+  const [bookType, setBookType] = useState<number>(0);
+  const [originalAuthorName, setOriginalAuthorName] = useState("");
   
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,9 +123,14 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
         
         const currentStatus = BOOK_STATUS_OPTIONS.find(opt => opt.internal === bookData.status)?.value ?? 0;
         const currentRating = CONTENT_RATING_OPTIONS.find(opt => opt.internal === bookData.contentRating)?.value ?? 0;
+        const currentType = typeof bookData.type === 'string' 
+            ? (bookData.type === 'Translation' ? 1 : 0) 
+            : bookData.type;
         
         setStatus(currentStatus);
         setContentRating(currentRating);
+        setBookType(currentType);
+        setOriginalAuthorName(bookData.originalAuthorName || "");
         setSelectedCategories(bookData.categories.map(c => (c as any).id || c));
 
         setCategories(categoriesData.categories);
@@ -193,6 +205,8 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
         coverImageUrl,
         status,
         contentRating,
+        type: bookType,
+        originalAuthorName: originalAuthorName,
         categoryIds: selectedCategories,
         tags: parsedTags,
       });
@@ -371,14 +385,49 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
                   <label className="flex min-w-0 flex-col gap-1.5">
                     <p className="mb-1 text-xs font-black uppercase tracking-[0.1em] text-base-content/52">Anahtar Kelimeler / Etiketler</p>
                     <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="virgul ile ayirarak yazin" className="input input-bordered h-12 w-full rounded-xl border-base-content/12 bg-base-100/20 font-medium" />
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {tagSuggestions.slice(0, 18).map(t => (
-                        <button key={t.id} type="button" onClick={() => setTags(c => c ? `${c}, ${t.name}` : t.name)} className="rounded-full bg-base-100/35 px-3 py-1.5 text-xs font-bold transition hover:text-primary">
-                          #{t.name}
-                        </button>
-                      ))}
-                    </div>
                   </label>
+
+                  {/* Eser Tipi Yonetimi (Sadece Admin) */}
+                  {profile?.permissions?.adminAccess && (
+                    <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20">
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-xs font-black uppercase tracking-[0.1em] text-primary/70">Yonetici: Eser Tipi</span>
+                        <select 
+                          value={bookType} 
+                          onChange={(e) => setBookType(Number(e.target.value))} 
+                          className="select select-bordered h-12 w-full rounded-xl border-primary/30 bg-base-100 font-bold"
+                        >
+                          {BOOK_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Orijinal Yazar Bilgisi (Ceviri eseri ise her zaman gorunur) */}
+                  {bookType === 1 && (
+                    <div className={`p-5 rounded-2xl border ${profile?.permissions?.adminAccess ? 'bg-primary/5 border-primary/20' : 'bg-base-100/35 border-base-content/10'}`}>
+                      <label className="flex flex-col gap-1.5">
+                        <span className={`text-xs font-black uppercase tracking-[0.1em] ${profile?.permissions?.adminAccess ? 'text-primary/70' : 'text-base-content/52'}`}>
+                          {profile?.permissions?.adminAccess ? "Yonetici: Orijinal Yazar" : "Orijinal Yazar Adi"}
+                        </span>
+                        <input 
+                          type="text" 
+                          value={originalAuthorName} 
+                          onChange={(e) => setOriginalAuthorName(e.target.value)} 
+                          placeholder="Orijinal yazar adini girin..." 
+                          className={`input input-bordered h-12 w-full rounded-xl font-extrabold bg-base-100 ${profile?.permissions?.adminAccess ? 'border-primary/30' : 'border-base-content/12'}`}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {tagSuggestions.slice(0, 18).map(t => (
+                      <button key={t.id} type="button" onClick={() => setTags(c => c ? `${c}, ${t.name}` : t.name)} className="rounded-full bg-base-100/35 px-3 py-1.5 text-xs font-bold transition hover:text-primary">
+                        #{t.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </section>
 

@@ -10,7 +10,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
     const { sessionId } = await context.params;
     const result = await performAuthenticatedIdentityRequest<{ message: string }>(
-      `/identity/sessions/${sessionId}`,
+      `/auth/sessions/${sessionId}`,
       { method: "DELETE" },
       _request.headers,
     );

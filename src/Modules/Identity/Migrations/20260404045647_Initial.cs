@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Epiknovel.Modules.Identity.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialIdentity : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -74,6 +74,7 @@ namespace Epiknovel.Modules.Identity.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     RefreshToken = table.Column<string>(type: "text", nullable: false),
+                    AccessTokenJti = table.Column<string>(type: "text", nullable: true),
                     UserAgent = table.Column<string>(type: "text", nullable: false),
                     IpAddress = table.Column<string>(type: "text", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),

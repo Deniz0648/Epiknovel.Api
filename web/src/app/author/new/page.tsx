@@ -24,6 +24,11 @@ const CONTENT_RATING_OPTIONS = [
   { label: "18+ (R)", value: 2 },
 ] as const;
 
+const BOOK_TYPE_OPTIONS = [
+  { label: "Orijinal Eser", value: 0 },
+  { label: "Çeviri Eser", value: 1 },
+] as const;
+
 export default function NewAuthorBookPage() {
   const { profile, isLoading } = useAuth();
   const router = useRouter();
@@ -36,6 +41,8 @@ export default function NewAuthorBookPage() {
   const [tags, setTags] = useState("");
   const [status, setStatus] = useState<number>(0);
   const [contentRating, setContentRating] = useState<number>(0);
+  const [bookType, setBookType] = useState<number>(0);
+  const [originalAuthorName, setOriginalAuthorName] = useState("");
   const [isMetadataLoading, setIsMetadataLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
@@ -161,8 +168,8 @@ export default function NewAuthorBookPage() {
         coverImageUrl,
         status,
         contentRating,
-        type: 0,
-        originalAuthorName: null,
+        type: profile?.permissions?.adminAccess ? bookType : 0,
+        originalAuthorName: profile?.permissions?.adminAccess ? originalAuthorName : null,
         categoryIds: selectedCategories,
         tags: parsedTags,
       });

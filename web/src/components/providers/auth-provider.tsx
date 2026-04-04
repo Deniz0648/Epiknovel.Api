@@ -20,7 +20,7 @@ import {
   type RegisterRequest,
 } from "@/lib/auth";
 import { dispatchHubInvocation } from "@/lib/hub-events";
-import { connectNotificationHub, type HubInvocation } from "@/lib/signalr-client";
+import { connectHub, type HubInvocation } from "@/lib/signalr-client";
 
 const AUTH_REFRESH_LOCK_KEY = "epiknovel.auth.refresh.lock";
 const AUTH_REFRESH_LOCK_TTL_MS = 10_000;
@@ -239,10 +239,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    return connectNotificationHub({
+    const unsubscribe = connectHub("/hubs/notifications", {
       onInvocation: handleInvocation,
       onUnauthorized: synchronizeAuthState,
     });
+
+    return unsubscribe;
   }, [profile?.userId]);
 
   return (

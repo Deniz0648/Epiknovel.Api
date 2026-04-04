@@ -13,6 +13,7 @@ public record Request
 }
 
 [AuditLog("Bölüm Kilidi Açıldı")]
+[Idempotency(6)] // 6 saat boyunca mükerrer işlemi önler (Double-spending koruması)
 public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 {
     public override void Configure()

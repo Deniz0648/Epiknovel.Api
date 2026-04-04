@@ -23,7 +23,7 @@ export interface ParagraphData {
 export interface TiptapEditorRef {
     getHTML: () => string
     getParagraphs: () => ParagraphData[]
-    getTextContent: () => string
+    getWordCount: () => number
 }
 
 interface TiptapEditorProps {
@@ -33,15 +33,28 @@ interface TiptapEditorProps {
     onWordCountChange?: (count: number) => void
     placeholder?: string
     stickyOffset?: string
+    isSimple?: boolean
+    minHeight?: string
 }
 
 export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
-    ({ initialContent, initialParagraphs, onChange, onWordCountChange, placeholder, stickyOffset = "top-16" }, ref) => {
+    ({ initialContent, initialParagraphs, onChange, onWordCountChange, placeholder, stickyOffset = "top-16", isSimple = false, minHeight = "500px" }, ref) => {
         const getInitialHTML = useCallback(() => {
             if (initialParagraphs && initialParagraphs.length > 0) {
                 return initialParagraphs
                     .sort((a, b) => a.order - b.order)
-                    .map(p => p.content)
+                    .map(p => {
+                        // Inject data-uuid into the tag if it exists
+                        if (p.content.includes('>')) {
+                            const tagEndIndex = p.content.indexOf('>')
+                            const firstTag = p.content.substring(0, tagEndIndex)
+                            // Skip if already has uuid
+                            if (firstTag.includes('data-uuid')) return p.content
+                            
+                            return p.content.substring(0, tagEndIndex) + ` data-uuid="${p.id}"` + p.content.substring(tagEndIndex)
+                        }
+                        return `<p data-uuid="${p.id}">${p.content}</p>`
+                    })
                     .join('')
             }
             if (initialContent) {
@@ -59,31 +72,32 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
         const editor = useEditor({
             extensions: [
                 StarterKit.configure({
-                    paragraph: false,
-                    heading: false,
-                    blockquote: false,
-                    codeBlock: false,
-                    bulletList: false,
-                    orderedList: false,
-                    listItem: false,
+                    paragraph: isSimple ? undefined : false,
+                    heading: isSimple ? undefined : false,
+                    blockquote: isSimple ? undefined : false,
+                    codeBlock: isSimple ? undefined : false,
+                    bulletList: isSimple ? undefined : false,
+                    orderedList: isSimple ? undefined : false,
+                    listItem: isSimple ? undefined : false,
                     dropcursor: false,
                     underline: false,
                     link: false,
                 }),
-                CustomParagraph,
-                CustomHeading,
-                CustomBlockquote,
-                CustomCodeBlock,
-                CustomBulletList,
-                CustomOrderedList,
-                CustomListItem,
-                Underline,
-                BlockUUIDManager,
-                DropCursor.configure({
-                    width: 2,
-                    color: 'oklch(var(--p))',
-                    class: 'drop-cursor',
-                }),
+                ...(!isSimple ? [
+                    CustomParagraph,
+                    CustomHeading,
+                    CustomBlockquote,
+                    CustomCodeBlock,
+                    CustomBulletList,
+                    CustomOrderedList,
+                    CustomListItem,
+                    BlockUUIDManager,
+                    DropCursor.configure({
+                        width: 4,
+                        color: 'oklch(var(--p))',
+                        class: 'drop-cursor',
+                    }),
+                ] : []),
                 TextAlign.configure({
                     types: ['heading', 'paragraph'],
                 }),
@@ -97,7 +111,8 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
             content: getInitialHTML(),
             editorProps: {
                 attributes: {
-                    class: 'tiptap-editor-content prose prose-lg max-w-none prose-headings:font-serif prose-headings:font-bold prose-a:text-primary focus:outline-none min-h-[500px] p-6 pl-12', 
+                    class: `tiptap-editor-content prose prose-lg max-w-none prose-headings:font-serif prose-headings:font-bold prose-a:text-primary focus:outline-none p-6 ${isSimple ? 'pl-6' : 'pl-12'}`, 
+                    style: `min-height: ${minHeight}`,
                 },
             },
             onUpdate: ({ editor }) => {
@@ -111,7 +126,10 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
 
         useImperativeHandle(ref, () => ({
             getHTML: () => editor?.getHTML() || '',
-            getTextContent: () => editor?.getText() || '',
+            getWordCount: () => {
+                const text = editor?.getText() || ''
+                return text.trim().split(/\s+/).filter(w => !!w).length
+            },
             getParagraphs: () => {
                 if (!editor) return []
                 const paragraphs: ParagraphData[] = []
@@ -169,14 +187,14 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
         }
 
         return (
-            <div className="tiptap-editor-wrapper w-full mb-4 border border-base-200 rounded-3xl bg-base-100 relative shadow-sm overflow-visible">
+            <div className={`tiptap-editor-wrapper w-full mb-4 border border-base-200 rounded-3xl bg-base-100 relative shadow-sm overflow-visible ${isSimple ? 'simple-mode' : ''}`}>
                 <div className={`sticky ${stickyOffset} z-30 bg-base-100 border-b border-base-200 rounded-t-3xl transition-shadow duration-300 shadow-sm`}>
-                    <EditorToolbar editor={editor} />
+                    <EditorToolbar editor={editor} isSimple={isSimple} />
                 </div>
                 <div className="relative bg-base-100 rounded-b-[32px]">
                     <EditorContent editor={editor} />
                     {editor.isEmpty && placeholder && (
-                        <div className="absolute top-6 left-12 text-gray-400 pointer-events-none font-serif text-lg">
+                        <div className={`absolute top-6 ${isSimple ? 'left-6' : 'left-12'} text-gray-400 pointer-events-none font-serif text-lg`}>
                             {placeholder}
                         </div>
                     )}

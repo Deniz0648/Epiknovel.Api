@@ -19,9 +19,10 @@ namespace Epiknovel.Modules.Search.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("search")
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Epiknovel.Modules.Search.Domain.SearchDocument", b =>

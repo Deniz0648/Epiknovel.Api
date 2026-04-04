@@ -29,6 +29,7 @@ public class WalletDbContext(DbContextOptions<WalletDbContext> options) : DbCont
         });
 
         modelBuilder.Entity<WalletTransaction>(b => b.ToTable("WalletTransactions"));
+
         modelBuilder.Entity<CoinPackage>(b => b.ToTable("CoinPackages"));
         modelBuilder.Entity<CoinPurchaseOrder>(b => b.ToTable("CoinPurchaseOrders"));
         modelBuilder.Entity<UserUnlockedChapter>(b => b.ToTable("UserUnlockedChapters"));

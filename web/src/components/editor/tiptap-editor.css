@@ -5,16 +5,48 @@
     overflow: visible;
 }
 
-.tiptap-editor-wrapper::before {
+@keyframes author-page-entrance {
+    from { opacity: 0; transform: translateY(12px); filter: blur(4px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+.author-page-animate {
+    animation: author-page-entrance 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tiptap-editor-wrapper:not(.simple-mode)::before {
     content: '';
     position: absolute;
     left: 48px;
-    top: 72px;
-    bottom: 24px;
+    top: 60px;
+    bottom: 20px;
     width: 2px;
-    background-color: oklch(var(--b2));
-    z-index: 0;
+    background-color: oklch(var(--bc) / 0.1);
+    z-index: 1;
     pointer-events: none;
+}
+
+/* 🚀 NEON DROP CURSOR - GUARANTEED VISIBILITY */
+.drop-cursor, .ProseMirror-dropcursor {
+    background-color: #a855f7 !important; /* Vivid Purple */
+    width: 6px !important;
+    z-index: 999999 !important;
+    pointer-events: none;
+    transition: all 0.1s ease-out;
+    box-shadow: 0 0 15px #a855f7, 0 0 30px #a855f7, 0 0 45px #a855f7 !important;
+    border-radius: 6px;
+    opacity: 1 !important;
+}
+
+/* Sürükleme esnasında hedef alanın parlaması */
+.ProseMirror-dropcursor {
+    border-left: 4px solid oklch(var(--p)) !important;
+    animation: drop-pulse 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes drop-pulse {
+    from { opacity: 0.4; }
+    to { opacity: 1; }
 }
 
 .tiptap-editor-content {
@@ -49,10 +81,13 @@
     cursor: grabbing;
 }
 
-.tiptap-editor-content .drop-cursor {
-    background-color: oklch(var(--p));
-    width: 2px;
-    transition: all 0.2s;
+.tiptap-editor-content .draggable-item {
+    transition: margin-top 0.2s, margin-bottom 0.2s, transform 0.2s;
+}
+
+.tiptap-editor-content .ProseMirror-selectednode {
+    outline: 2px solid oklch(var(--p) / 0.5);
+    background-color: oklch(var(--p) / 0.05);
 }
 
 [data-node-type="bulletList"] [data-node-type="paragraph"] .drag-handle,

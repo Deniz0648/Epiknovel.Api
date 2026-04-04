@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Epiknovel.Modules.Users.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialUsers : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -31,11 +31,11 @@ namespace Epiknovel.Modules.Users.Migrations
                     PhoneNumber = table.Column<string>(type: "text", nullable: false),
                     TaxNumber = table.Column<string>(type: "text", nullable: true),
                     TaxOffice = table.Column<string>(type: "text", nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
@@ -54,23 +54,43 @@ namespace Epiknovel.Modules.Users.Migrations
                     Slug = table.Column<string>(type: "text", nullable: false),
                     Bio = table.Column<string>(type: "text", nullable: true),
                     AvatarUrl = table.Column<string>(type: "text", nullable: true),
-                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    LastRewardClaimedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    LastRewardClaimedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     TotalFollowers = table.Column<int>(type: "integer", nullable: false),
                     TotalFollowing = table.Column<int>(type: "integer", nullable: false),
                     IsAuthor = table.Column<bool>(type: "boolean", nullable: false),
                     IsPaidAuthor = table.Column<bool>(type: "boolean", nullable: false),
                     VerifiedIban = table.Column<string>(type: "text", nullable: true),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserProfiles", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserSlugHistories",
+                schema: "users",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Slug = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
+                    ModerationNote = table.Column<string>(type: "text", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserSlugHistories", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -81,11 +101,11 @@ namespace Epiknovel.Modules.Users.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     FollowerId = table.Column<Guid>(type: "uuid", nullable: false),
                     FollowingId = table.Column<Guid>(type: "uuid", nullable: false),
-                    FollowedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FollowedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -125,6 +145,19 @@ namespace Epiknovel.Modules.Users.Migrations
                 table: "UserProfiles",
                 column: "Slug",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSlugHistories_Slug",
+                schema: "users",
+                table: "UserSlugHistories",
+                column: "Slug",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSlugHistories_UserId",
+                schema: "users",
+                table: "UserSlugHistories",
+                column: "UserId");
         }
 
         /// <inheritdoc />
@@ -136,6 +169,10 @@ namespace Epiknovel.Modules.Users.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserAddresses",
+                schema: "users");
+
+            migrationBuilder.DropTable(
+                name: "UserSlugHistories",
                 schema: "users");
 
             migrationBuilder.DropTable(

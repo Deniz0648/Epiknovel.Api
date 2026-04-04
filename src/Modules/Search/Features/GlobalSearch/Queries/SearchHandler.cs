@@ -31,13 +31,14 @@ public partial class GlobalSearchHandler(SearchDbContext dbContext, IConnectionM
             queryable = queryable.Where(d => d.Type == request.Type.Value);
         }
 
-        // Apply FTS
+        // Apply FTS with Unaccent support for Turkish characters
+        // Database index is generated with 'unaccent', so the query must also be unaccented.
         queryable = queryable.Where(d => 
-            d.SearchVector.Matches(EF.Functions.ToTsQuery("simple", tsQueryString)));
+            d.SearchVector.Matches(EF.Functions.ToTsQuery("simple", EF.Functions.Unaccent(tsQueryString))));
 
-        // Rank and Score
+        // Rank and Score (Also using unaccent for accurate scoring)
         var orderedQuery = queryable.OrderByDescending(d => 
-            d.SearchVector.Rank(EF.Functions.ToTsQuery("simple", tsQueryString)));
+            d.SearchVector.Rank(EF.Functions.ToTsQuery("simple", EF.Functions.Unaccent(tsQueryString))));
 
         var totalRecords = await orderedQuery.CountAsync(ct);
         var totalPages = (int)Math.Ceiling((double)totalRecords / request.Size);

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Epiknovel.Modules.Management.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialManagement : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -32,7 +32,7 @@ namespace Epiknovel.Modules.Management.Migrations
                     Country = table.Column<string>(type: "text", nullable: true),
                     Endpoint = table.Column<string>(type: "text", nullable: false),
                     Method = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -51,12 +51,12 @@ namespace Epiknovel.Modules.Management.Migrations
                     PlannedWork = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     RejectionReason = table.Column<string>(type: "text", nullable: true),
-                    ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReviewedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ReviewedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -74,11 +74,11 @@ namespace Epiknovel.Modules.Management.Migrations
                     Content = table.Column<string>(type: "text", nullable: false),
                     AuthorName = table.Column<string>(type: "text", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    PublishDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PublishDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -98,15 +98,15 @@ namespace Epiknovel.Modules.Management.Migrations
                     TargetId = table.Column<Guid>(type: "uuid", nullable: true),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Value = table.Column<decimal>(type: "numeric", nullable: false),
-                    StartsAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    EndsAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartsAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    EndsAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     UsageLimit = table.Column<int>(type: "integer", nullable: true),
                     UsedCount = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -127,10 +127,10 @@ namespace Epiknovel.Modules.Management.Migrations
                     Body = table.Column<string>(type: "text", nullable: false),
                     Variables = table.Column<string>(type: "text", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -150,10 +150,10 @@ namespace Epiknovel.Modules.Management.Migrations
                     Order = table.Column<int>(type: "integer", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     Category = table.Column<string>(type: "text", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -170,13 +170,13 @@ namespace Epiknovel.Modules.Management.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Type = table.Column<string>(type: "text", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
-                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     Error = table.Column<string>(type: "text", nullable: true),
                     AttemptCount = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -198,12 +198,12 @@ namespace Epiknovel.Modules.Management.Migrations
                     BankName = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     AdminNote = table.Column<string>(type: "text", nullable: true),
-                    ReviewedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ReviewedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ReviewedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -226,12 +226,12 @@ namespace Epiknovel.Modules.Management.Migrations
                     AdminNote = table.Column<string>(type: "text", nullable: true),
                     FailureReason = table.Column<string>(type: "text", nullable: true),
                     IdempotencyKey = table.Column<string>(type: "text", nullable: true),
-                    ProcessedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ProcessedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ProcessedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -250,12 +250,12 @@ namespace Epiknovel.Modules.Management.Migrations
                     Title = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    LastRespondedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    LastRespondedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     AssignedToUserId = table.Column<Guid>(type: "uuid", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -272,7 +272,7 @@ namespace Epiknovel.Modules.Management.Migrations
                     Key = table.Column<string>(type: "text", nullable: false),
                     Value = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     UpdatedByUserId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
@@ -289,7 +289,7 @@ namespace Epiknovel.Modules.Management.Migrations
                     TicketId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Content = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     IsAdminResponse = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>

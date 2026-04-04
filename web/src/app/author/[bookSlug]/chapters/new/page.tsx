@@ -25,7 +25,7 @@ export default async function NewChapterPage({ params }: { params: Promise<{ boo
       headers: { Authorization: `Bearer ${session.accessToken}` },
       next: { revalidate: 0 }
     })
-    
+
     if (bookRes.ok) {
       const bookData = await bookRes.json()
       if (bookData.isSuccess) {
@@ -35,18 +35,20 @@ export default async function NewChapterPage({ params }: { params: Promise<{ boo
       }
     }
 
-    // Fetch chapters to calculate next order
-    const res = await fetch(`${apiUrl}/Books/${bookSlug}/chapters?IncludeDrafts=true&pageSize=1000`, {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-      next: { revalidate: 0 }
-    })
-    
-    if (res.ok) {
-      const data = await res.json()
-      if (data.isSuccess) {
-        const chapters = data.data?.items || data.data || []
-        if (Array.isArray(chapters) && chapters.length > 0) {
-          nextOrder = Math.max(...chapters.map((c: any) => c.order || 0)) + 1
+    if (bookId) {
+      // Fetch chapters to calculate next order
+      const res = await fetch(`${apiUrl}/books/${bookId}/chapters?IncludeDrafts=true&pageSize=1000`, {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+        next: { revalidate: 0 }
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if (data.isSuccess) {
+          const chapters = data.data?.chapters || data.data || []
+          if (Array.isArray(chapters) && chapters.length > 0) {
+            nextOrder = Math.max(...chapters.map((c: any) => c.order || 0)) + 1
+          }
         }
       }
     }
@@ -55,14 +57,16 @@ export default async function NewChapterPage({ params }: { params: Promise<{ boo
   }
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <EditChapterForm 
-        bookId={bookId || bookSlug} 
-        nextOrder={nextOrder} 
-        bookTitle={bookTitle} 
-        bookType={bookType} 
-        bookSlug={bookSlug} 
-      />
+    <div className="min-h-screen bg-base-200 pt-28 pb-12">
+      <div className="container mx-auto px-4 md:px-8">
+        <EditChapterForm
+          bookId={bookId || bookSlug}
+          nextOrder={nextOrder}
+          bookTitle={bookTitle}
+          bookType={bookType}
+          bookSlug={bookSlug}
+        />
+      </div>
     </div>
   )
 }

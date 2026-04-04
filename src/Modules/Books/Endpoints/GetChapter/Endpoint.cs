@@ -122,8 +122,8 @@ public class Endpoint(
                 : null
         };
 
-        // --- OKUYUCU İSTEĞİ: Kısıtlama Uygula ---
-        if (!isConfirmed)
+        // --- OKUYUCU İSTEĞİ: Kısıtlama Uygula (Yazarlar ve Moderatörler muaf) ---
+        if (!isConfirmed && !isAuthorizedToSeeDraft)
         {
             if (chapter.Order > 1)
             {

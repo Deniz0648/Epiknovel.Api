@@ -55,93 +55,91 @@ public class OutboxWorker(
         var dbContext = scope.ServiceProvider.GetRequiredService<ManagementDbContext>();
         var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
-        // PostgreSQL row-level lock with SKIP LOCKED prevents duplicate processing
-        // across multiple worker instances without central coordination.
-        await using var tx = await dbContext.Database.BeginTransactionAsync(ct);
+        // 🛡️ Connection Resiliency: Retry strategy ile uyumlu transaction yönetimi
+        var strategy = dbContext.Database.CreateExecutionStrategy();
 
-        var messages = await dbContext.OutboxMessages
-            .FromSqlInterpolated($@"
-                SELECT *
-                FROM management.""Outbox""
-                WHERE ""ProcessedAt"" IS NULL
-                  AND ""AttemptCount"" < 5
-                ORDER BY ""CreatedAt""
-                LIMIT {_batchSize}
-                FOR UPDATE SKIP LOCKED")
-            .ToListAsync(ct);
-
-        if (messages.Count == 0)
+        return await strategy.ExecuteAsync(async () =>
         {
+            await using var tx = await dbContext.Database.BeginTransactionAsync(ct);
+
+            var messages = await dbContext.OutboxMessages
+                .FromSqlInterpolated($@"
+                    SELECT *
+                    FROM management.""Outbox""
+                    WHERE ""ProcessedAt"" IS NULL
+                      AND ""AttemptCount"" < 5
+                    ORDER BY ""CreatedAt""
+                    LIMIT {_batchSize}
+                    FOR UPDATE SKIP LOCKED")
+                .ToListAsync(ct);
+
+            if (messages.Count == 0)
+            {
+                await tx.CommitAsync(ct);
+                return 0;
+            }
+
+            foreach (var message in messages)
+            {
+                try
+                {
+                    logger.LogInformation("Processing outbox message {Id} of type {Type}", message.Id, message.Type);
+
+                    if (message.Type == nameof(DeductBalanceForPayoutCommand))
+                    {
+                        var command = JsonSerializer.Deserialize<DeductBalanceForPayoutCommand>(message.Content);
+                        if (command != null)
+                        {
+                            var result = await mediator.Send(command, ct);
+                            if (!result.IsSuccess) throw new Exception(result.Message);
+
+                            var payout = await dbContext.PayoutRequests.FirstOrDefaultAsync(p => p.Id == command.PayoutRequestId, ct);
+                            if (payout != null)
+                            {
+                                payout.Status = PayoutStatus.Completed;
+                                payout.ProcessedAt = DateTime.UtcNow;
+                            }
+                        }
+                    }
+
+                    if (message.Type == nameof(SyncDiscountsCommand))
+                    {
+                        var command = JsonSerializer.Deserialize<SyncDiscountsCommand>(message.Content);
+                        if (command != null)
+                        {
+                            var result = await mediator.Send(command, ct);
+                            if (!result.IsSuccess) throw new Exception(result.Message);
+                        }
+                    }
+
+                    message.ProcessedAt = DateTime.UtcNow;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning("Outbox message {Id} failed: {Message}", message.Id, ex.Message);
+                    message.AttemptCount++;
+                    message.Error = ex.Message;
+
+                    if (message.Type == nameof(DeductBalanceForPayoutCommand))
+                    {
+                        var command = JsonSerializer.Deserialize<DeductBalanceForPayoutCommand>(message.Content);
+                        if (command != null)
+                        {
+                            var payout = await dbContext.PayoutRequests.FirstOrDefaultAsync(p => p.Id == command.PayoutRequestId, ct);
+                            if (payout != null)
+                            {
+                                payout.Status = PayoutStatus.Failed;
+                                payout.FailureReason = ex.Message;
+                            }
+                        }
+                    }
+                }
+
+                await dbContext.SaveChangesAsync(ct);
+            }
+
             await tx.CommitAsync(ct);
-            return 0;
-        }
-
-        foreach (var message in messages)
-        {
-            try
-            {
-                logger.LogInformation("Processing outbox message {Id} of type {Type}", message.Id, message.Type);
-
-                if (message.Type == nameof(DeductBalanceForPayoutCommand))
-                {
-                    var command = JsonSerializer.Deserialize<DeductBalanceForPayoutCommand>(message.Content);
-                    if (command != null)
-                    {
-                        var result = await mediator.Send(command, ct);
-                        if (!result.IsSuccess)
-                        {
-                            throw new Exception(result.Message);
-                        }
-
-                        // Success: Update Payout table status
-                        var payout = await dbContext.PayoutRequests.FirstOrDefaultAsync(p => p.Id == command.PayoutRequestId, ct);
-                        if (payout != null)
-                        {
-                            payout.Status = PayoutStatus.Completed;
-                            payout.ProcessedAt = DateTime.UtcNow;
-                        }
-                    }
-                }
-                
-                if (message.Type == nameof(SyncDiscountsCommand))
-                {
-                    var command = JsonSerializer.Deserialize<SyncDiscountsCommand>(message.Content);
-                    if (command != null)
-                    {
-                        var result = await mediator.Send(command, ct);
-                        if (!result.IsSuccess) throw new Exception(result.Message);
-                    }
-                }
-                
-                message.ProcessedAt = DateTime.UtcNow;
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning("Outbox message {Id} failed: {Message}", message.Id, ex.Message);
-                message.AttemptCount++;
-                message.Error = ex.Message;
-
-                // Sync Failure state back if it was a payout item
-                if (message.Type == nameof(DeductBalanceForPayoutCommand))
-                {
-                    var command = JsonSerializer.Deserialize<DeductBalanceForPayoutCommand>(message.Content);
-                    if (command != null)
-                    {
-                        var payout = await dbContext.PayoutRequests.FirstOrDefaultAsync(p => p.Id == command.PayoutRequestId, ct);
-                        if (payout != null)
-                        {
-                            payout.Status = PayoutStatus.Failed;
-                            payout.FailureReason = ex.Message;
-                        }
-                    }
-                }
-            }
-
-            // Save after each message or in batches
-            await dbContext.SaveChangesAsync(ct);
-        }
-
-        await tx.CommitAsync(ct);
-        return messages.Count;
+            return messages.Count;
+        });
     }
 }

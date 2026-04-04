@@ -7,25 +7,28 @@ using Epiknovel.Shared.Core.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Ganss.Xss;
+using System.Threading;
 
 namespace Epiknovel.Modules.Books.Features.Chapters.Commands.AddChapter;
 
 public class AddChapterHandler(
     BooksDbContext dbContext,
     ISlugService slugService,
-    IMediator mediator,
-    IPermissionService permissionService) : IRequestHandler<AddChapterCommand, Result<AddChapterResponse>>
+    IMediator mediator) : IRequestHandler<AddChapterCommand, Result<AddChapterResponse>>
 {
     public async Task<Result<AddChapterResponse>> Handle(AddChapterCommand request, CancellationToken ct)
     {
-        // 1. Mülkiyet Kontrolü (BOLA: Bu kitabın yazarı mı?)
-        var book = await dbContext.Books
-            .FirstOrDefaultAsync(x => x.Id == request.BookId && x.AuthorId == request.UserId, ct);
+        // 1. Mülkiyet ve Ekip Kontrolü (BOLA)
+        bool isOwner = await dbContext.Books.AnyAsync(x => x.Id == request.BookId && x.AuthorId == request.UserId, ct);
+        bool isCollaborator = await dbContext.BookAuthors.AnyAsync(ba => ba.BookId == request.BookId && ba.UserId == request.UserId, ct);
 
-        if (book == null)
+        if (!isOwner && !isCollaborator)
         {
-            return Result<AddChapterResponse>.Failure("Kitap bulunamadı veya yetkiniz yok.");
+            return Result<AddChapterResponse>.Failure("Kitap bulunamadı veya bu kitaba bölüm ekleme yetkiniz yok.");
         }
+
+        // Event yayını ve diğer işlemler için kitap bilgilerini al
+        var book = await dbContext.Books.FirstAsync(x => x.Id == request.BookId, ct);
 
         // 2. Ücretli Yazarlık Yetki Kontrolü
         if (!request.IsFree || request.Price > 0)
@@ -82,27 +85,56 @@ public class AddChapterHandler(
         chapter.WordCount = totalWords;
         dbContext.Chapters.Add(chapter);
         
-        try 
-        {
-            await dbContext.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException)
-        {
-            return Result<AddChapterResponse>.Failure("Bu sırada zaten bir bölüm mevcut. Lütfen sayfanızı yenileyin.");
-        }
+        // 🚀 TRANSACTIONAL INTEGRITY: Ensure Save & Broadcast are atomic
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () => {
+            using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
+            try {
+                // Eğer eklenen sıra mevcutsa sonrakileri kaydır
+                // PostgreSQL'de unique kısıtı satır bazlı kontrol edildiği için iki aşamalı (negate-shift) yapıyoruz
+                var affectedChapters = dbContext.Chapters
+                    .Where(x => x.BookId == request.BookId && x.Order >= request.Order);
+                
+                await affectedChapters.ExecuteUpdateAsync(s => s.SetProperty(p => p.Order, p => -p.Order), ct);
+                await dbContext.Chapters
+                    .Where(x => x.BookId == request.BookId && x.Order < 0)
+                    .ExecuteUpdateAsync(s => s.SetProperty(p => p.Order, p => Math.Abs(p.Order) + 1), ct);
 
-        // 6. Domain Event Yayınla (Sadece Yayınlanmışsa)
-        if (chapter.Status == ChapterStatus.Published)
-        {
-            await mediator.Publish(new ChapterPublishedEvent(
-                chapter.BookId,
-                chapter.Id,
-                chapter.Title,
-                chapter.Slug,
-                chapter.UserId,
-                chapter.PublishedAt ?? DateTime.UtcNow), ct);
-        }
+                await dbContext.SaveChangesAsync(ct);
+                
+                // 6. Domain Event Yayınla (Sadece Yayınlanmışsa)
+                if (chapter.Status == ChapterStatus.Published)
+                {
+                    await mediator.Publish(new ChapterPublishedEvent(
+                        book.Id,
+                        book.Title,
+                        chapter.Id,
+                        chapter.Title,
+                        chapter.Slug,
+                        chapter.UserId,
+                        chapter.PublishedAt ?? DateTime.UtcNow), ct);
+                }
+                
+                await transaction.CommitAsync(ct);
+                return Result<AddChapterResponse>.Success(new AddChapterResponse(chapter.Id, chapter.Slug, "Bölüm satır bazlı olarak başarıyla yayınlandı."));
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync(ct);
+                string message = "Bölüm kaydedilirken bir veritabanı kuralı ihlal edildi.";
+                
+                if (dbEx.InnerException?.Message.Contains("IX_Chapters_BookId_Order") == true)
+                    message = $"Bu kitap için {request.Order}. bölüm sırası zaten mevcut. Lütfen farklı bir sıra numarası girin.";
+                else if (dbEx.InnerException?.Message.Contains("IX_Chapters_Slug") == true)
+                    message = "Bu bölüm linki (slug) zaten mevcut. Lütfen başlığı değiştirin.";
 
-        return Result<AddChapterResponse>.Success(new AddChapterResponse(chapter.Id, chapter.Slug, "Bölüm satır bazlı olarak başarıyla yayınlandı."));
+                return Result<AddChapterResponse>.Failure(message);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync(ct);
+                throw;
+            }
+        });
     }
 }

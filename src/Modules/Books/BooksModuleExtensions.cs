@@ -12,7 +12,10 @@ public static class BooksModuleExtensions
     {
         // 1. DbContext Kaydı
         services.AddDbContext<BooksDbContext>(options =>
-            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "books")));
+            options.UseNpgsql(connectionString, x => 
+                x.MigrationsHistoryTable("__EFMigrationsHistory", "books")
+                 .EnableRetryOnFailure())
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605)));
 
         // 2. Background Workers (İstatistik Senkronizasyonu + Zamanlanmış Yayın)
         services.AddHostedService<Epiknovel.Modules.Books.Workers.ChapterStatsSyncWorker>();

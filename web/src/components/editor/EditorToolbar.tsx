@@ -11,9 +11,10 @@ import {
 
 interface EditorToolbarProps {
     editor: Editor
+    isSimple?: boolean
 }
 
-export function EditorToolbar({ editor }: EditorToolbarProps) {
+export function EditorToolbar({ editor, isSimple = false }: EditorToolbarProps) {
     const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false)
     const [linkUrl, setLinkUrl] = useState('')
     const [linkText, setLinkText] = useState('')
@@ -54,7 +55,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
             onClick={onClick}
             disabled={disabled}
             title={title}
-            className={`p-2 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 ${isActive ? 'bg-gray-200 text-gray-900' : ''}`}
+            className={`p-2 lg:p-1.5 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 ${isActive ? 'bg-gray-200 text-gray-900' : ''}`}
         >
             {children}
         </button>
@@ -85,19 +86,19 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     </ToolbarButton>
                 </div>
 
-                <ToolbarDivider />
-
-                <div className="flex items-center gap-1">
-                    <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} title="Başlık 1">
-                        <Heading1 size={18} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} title="Başlık 2">
-                        <Heading2 size={18} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive('heading', { level: 3 })} title="Başlık 3">
-                        <Heading3 size={18} />
-                    </ToolbarButton>
-                </div>
+                {!isSimple && (
+                    <>
+                        <ToolbarDivider />
+                        <div className="flex items-center gap-1">
+                            <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive('heading', { level: 1 })} title="Başlık 1">
+                                <Heading1 size={18} />
+                            </ToolbarButton>
+                            <ToolbarButton onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive('heading', { level: 2 })} title="Başlık 2">
+                                <Heading2 size={18} />
+                            </ToolbarButton>
+                        </div>
+                    </>
+                )}
 
                 <ToolbarDivider />
 
@@ -108,38 +109,34 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
                     <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} title="Numaralı Liste">
                         <ListOrdered size={18} />
                     </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} isActive={editor.isActive('blockquote')} title="Alıntı">
-                        <Quote size={18} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} title="Kod Bloğu">
-                        <SquareCode size={18} />
-                    </ToolbarButton>
+                    {!isSimple && (
+                        <>
+                            <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} isActive={editor.isActive('blockquote')} title="Alıntı">
+                                <Quote size={18} />
+                            </ToolbarButton>
+                            <ToolbarButton onClick={() => editor.chain().focus().toggleCodeBlock().run()} isActive={editor.isActive('codeBlock')} title="Kod Bloğu">
+                                <SquareCode size={18} />
+                            </ToolbarButton>
+                        </>
+                    )}
                 </div>
 
-                <ToolbarDivider />
-
-                <div className="flex items-center gap-1">
-                    <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} title="Sola Hizala">
-                        <AlignLeft size={18} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={editor.isActive({ textAlign: 'center' })} title="Ortala">
-                        <AlignCenter size={18} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={editor.isActive({ textAlign: 'right' })} title="Sağa Hizala">
-                        <AlignRight size={18} />
-                    </ToolbarButton>
-                    <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('justify').run()} isActive={editor.isActive({ textAlign: 'justify' })} title="İki Yana Yasla">
-                        <AlignJustify size={18} />
-                    </ToolbarButton>
-                </div>
-
-                <ToolbarDivider />
-
-                <div className="flex items-center gap-1">
-                    <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} title="Yatay Çizgi">
-                        <Minus size={18} />
-                    </ToolbarButton>
-                </div>
+                {!isSimple && (
+                    <>
+                        <ToolbarDivider />
+                        <div className="flex items-center gap-1">
+                            <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} title="Sola Hizala">
+                                <AlignLeft size={18} />
+                            </ToolbarButton>
+                            <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('center').run()} isActive={editor.isActive({ textAlign: 'center' })} title="Ortala">
+                                <AlignCenter size={18} />
+                            </ToolbarButton>
+                            <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('right').run()} isActive={editor.isActive({ textAlign: 'right' })} title="Sağa Hizala">
+                                <AlignRight size={18} />
+                            </ToolbarButton>
+                        </div>
+                    </>
+                )}
 
                 <ToolbarDivider />
 

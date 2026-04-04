@@ -13,8 +13,8 @@ using NpgsqlTypes;
 namespace Epiknovel.Modules.Search.Migrations
 {
     [DbContext(typeof(SearchDbContext))]
-    [Migration("20260331015831_InitialSearch")]
-    partial class InitialSearch
+    [Migration("20260404045650_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -22,9 +22,10 @@ namespace Epiknovel.Modules.Search.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("search")
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Epiknovel.Modules.Search.Domain.SearchDocument", b =>

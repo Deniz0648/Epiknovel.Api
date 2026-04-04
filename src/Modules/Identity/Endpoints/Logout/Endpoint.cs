@@ -4,7 +4,7 @@ using Epiknovel.Modules.Identity.Data;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Constants;
 using System.Security.Claims;
-
+using Microsoft.Extensions.Caching.Distributed;
 using Epiknovel.Shared.Core.Attributes;
 
 namespace Epiknovel.Modules.Identity.Endpoints.Logout;
@@ -12,7 +12,7 @@ namespace Epiknovel.Modules.Identity.Endpoints.Logout;
 [AuditLog("Çıkış Yapıldı")]
 public class Endpoint(
     IdentityDbContext dbContext, 
-    StackExchange.Redis.IConnectionMultiplexer redis) : Endpoint<Request, Result<Response>>
+    IDistributedCache cache) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -34,14 +34,15 @@ public class Endpoint(
 
         var userId = Guid.Parse(userIdString);
 
-        // 1. JWT Blacklisting (Hardening)
-        // JWT içindeki JTI'yı al ve Redis'te kara listeye ekle
-        var jti = User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti);
+        // 1. JWT Blacklisting (IDistributedCache ile standartlaştırma)
+        var jti = User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti) ?? User.FindFirstValue("jti");
         if (!string.IsNullOrEmpty(jti))
         {
-            var db = redis.GetDatabase();
-            // JWT 60 dk geçerli olduğu için 60 dk blacklist yeterli
-            await db.StringSetAsync($"revoked_token:{jti}", "1", TimeSpan.FromMinutes(60));
+            // Middleware ile aynı kuralı uyguluyoruz
+            await cache.SetStringAsync($"revoked_token:{jti}", "1", new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60)
+            }, ct);
         }
 
         // 2. Refresh Token'ı bul ve sil

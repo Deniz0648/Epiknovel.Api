@@ -11,13 +11,15 @@ namespace Epiknovel.Modules.Infrastructure.Handlers;
 public class NotificationHandlers(
     INotificationService notificationService,
     IAuthStateService authStateService,
-    IHubContext<GlobalNotificationHub> hubContext) : 
+    IHubContext<GlobalNotificationHub> hubContext,
+    ILibraryProvider libraryProvider) : // 📚 Bildirim hedefi için eklendi
     INotificationHandler<AuthorApplicationReviewedEvent>,
     INotificationHandler<PaidAuthorApplicationReviewedEvent>,
     INotificationHandler<InvoiceUploadedEvent>,
     INotificationHandler<OrderPaidEvent>,
     INotificationHandler<UserRoleUpdatedEvent>,
-    INotificationHandler<CommentCreatedEvent>
+    INotificationHandler<CommentCreatedEvent>,
+    INotificationHandler<ChapterPublishedEvent> // 📚 Yeni bildirim hattı
 {
     // Polly Resiliency Policy: 3 kez dene, her seferinde bekleme süresini artır (Exponential Backoff)
     private readonly IAsyncPolicy _retryPolicy = Policy
@@ -129,5 +131,34 @@ public class NotificationHandlers(
             ct);
 
         await PushRealTimeAsync(notification.UserId, "WalletUpdated", new { amount = notification.Amount, coinAmount = notification.CoinAmount }, ct);
+    }
+
+    public async Task Handle(ChapterPublishedEvent notification, CancellationToken ct)
+    {
+        // 1. Kitabı takip eden aboneleri bul (Social Modülü üzerinden)
+        var subscribers = await libraryProvider.GetSubscribersAsync(notification.BookId, ct);
+
+        if (subscribers == null || subscribers.Count == 0) return;
+
+        var title = "Yeni Bölüm!";
+        var message = $"`{notification.BookTitle}` kitabına yeni bir bölüm eklendi: `{notification.ChapterTitle}`";
+        var url = $"/books/chapters/{notification.ChapterSlug}";
+
+        // 2. Veritabanına Toplu Bildirim Kaydet (PERFORMANS: Tek seferde DB'ye yazar)
+        await notificationService.SendSystemNotificationBatchAsync(subscribers, title, message, url, ct);
+
+        // 3. Real-time (SignalR) Push - TOPLU GÖNDERİM (Hub üzerindeki Clients.Users)
+        // SignalR motoru, bu liste içindeki tüm bağlı client'lara tek seferde fırlatır.
+        var subscriberIdsStrings = subscribers.Select(id => id.ToString()).ToList();
+        
+        await _retryPolicy.ExecuteAsync(async () => 
+        {
+            await hubContext.Clients.Users(subscriberIdsStrings).SendAsync("NotificationReceived", new { 
+                title, 
+                message, 
+                url,
+                type = "NewChapter"
+            }, ct);
+        });
     }
 }

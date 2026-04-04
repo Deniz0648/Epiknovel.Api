@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Epiknovel.Modules.Books.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialBooks : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -35,10 +35,10 @@ namespace Epiknovel.Modules.Books.Migrations
                     VoteCount = table.Column<int>(type: "integer", nullable: false),
                     AverageRating = table.Column<double>(type: "double precision", nullable: false),
                     ViewCount = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -58,10 +58,10 @@ namespace Epiknovel.Modules.Books.Migrations
                     Description = table.Column<string>(type: "text", nullable: true),
                     IconUrl = table.Column<string>(type: "text", nullable: true),
                     DisplayOrder = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -78,10 +78,10 @@ namespace Epiknovel.Modules.Books.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Slug = table.Column<string>(type: "text", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },
@@ -99,7 +99,7 @@ namespace Epiknovel.Modules.Books.Migrations
                     BookId = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Role = table.Column<int>(type: "integer", nullable: false),
-                    JoinedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    JoinedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -128,16 +128,16 @@ namespace Epiknovel.Modules.Books.Migrations
                     Price = table.Column<int>(type: "integer", nullable: false),
                     DiscountedPrice = table.Column<int>(type: "integer", nullable: true),
                     IsFree = table.Column<bool>(type: "boolean", nullable: false),
-                    PublishedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ScheduledPublishDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    PublishedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ScheduledPublishDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     Status = table.Column<int>(type: "integer", nullable: false),
                     IsTitleSpoiler = table.Column<bool>(type: "boolean", nullable: false),
                     ViewCount = table.Column<long>(type: "bigint", nullable: false),
                     IsHidden = table.Column<bool>(type: "boolean", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
-                    DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DeletedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DeletedByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     ModerationNote = table.Column<string>(type: "text", nullable: true)
                 },

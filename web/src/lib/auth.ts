@@ -140,6 +140,7 @@ export type MyBookListItem = {
   viewCount: number;
   averageRating: number;
   voteCount: number;
+  originalAuthorName: string | null;
   type: "Original" | "Translation" | number;
   authorId: string;
   categories: BookCategoryItem[];
@@ -534,6 +535,8 @@ export async function updateBook(
     contentRating: number;
     categoryIds: string[];
     tags: string[];
+    type?: number;
+    originalAuthorName?: string | null;
   },
 ) {
   return apiRequest<{ message: string; slug: string }>(`/books/${id}`, {

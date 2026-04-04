@@ -15,6 +15,8 @@ public class Request : IOwnable
     public string? CoverImageUrl { get; set; }
     public BookStatus Status { get; set; }
     public ContentRating ContentRating { get; set; }
+    public BookType Type { get; set; }
+    public string? OriginalAuthorName { get; set; }
     public List<Guid> CategoryIds { get; set; } = new();
     public List<string> Tags { get; set; } = new();
 }

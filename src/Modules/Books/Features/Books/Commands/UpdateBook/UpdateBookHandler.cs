@@ -24,8 +24,8 @@ public class UpdateBookHandler(
             return Result<UpdateBookResponse>.Failure("Kitap bulunamadı.");
         }
 
-        // BOLA Check (Handled by PreProcessor but verified here for extra safety)
-        if (book.AuthorId != request.UserId)
+        // BOLA Check (Admin bypass allowed for management)
+        if (book.AuthorId != request.UserId && !request.IsAdmin)
         {
             return Result<UpdateBookResponse>.Failure("Bu kitabı güncelleme yetkiniz yok.");
         }
@@ -40,6 +40,28 @@ public class UpdateBookHandler(
         book.CoverImageUrl = request.CoverImageUrl;
         book.Status = request.Status;
         book.ContentRating = request.ContentRating;
+
+        // 🚀 SMART API-LEVEL RESTRICTION
+        // 1. Tip Degisikligi Kotrolu (Sadece Admin Degistirebilir)
+        if (book.Type != request.Type && !request.IsAdmin)
+        {
+            return Result<UpdateBookResponse>.Failure("Eser tipi sadece yöneticiler tarafından değiştirilebilir.");
+        }
+
+        // 2. Orijinal Yazar Bilgisi Kontrolu (Sadece Çeviri eserlerde izin verilir)
+        if (book.OriginalAuthorName != request.OriginalAuthorName)
+        {
+            // Eger eser orijinalse ve yazar bu alanı doldurmaya calisiyorsa engelle.
+            if (request.Type == BookType.Original && !string.IsNullOrWhiteSpace(request.OriginalAuthorName))
+            {
+                return Result<UpdateBookResponse>.Failure("Orijinal eserler için orijinal yazar bilgisi girilemez.");
+            }
+            
+            // Not: Eger eser Translation ise, yazarın bu alanı editlemesine izin veriyoruz (Gereklilik).
+        }
+
+        book.Type = request.Type;
+        book.OriginalAuthorName = request.OriginalAuthorName;
 
         // Categories
         book.Categories.Clear();

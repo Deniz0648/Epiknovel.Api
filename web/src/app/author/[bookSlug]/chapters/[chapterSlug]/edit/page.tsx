@@ -48,18 +48,20 @@ export default async function EditChapterPage({ params }: { params: Promise<{ bo
   const chapterData = result.data
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <EditChapterForm 
-        bookId={bookId || bookSlug} 
-        chapterId={chapterData.id} 
-        initialData={{
-          ...chapterData,
-          paragraphs: chapterData.lines // In v2, lines are mapped to paragraphs
-        }} 
-        nextOrder={chapterData.order} 
-        bookTitle={bookTitle}
-        bookSlug={bookSlug}
-      />
+    <div className="min-h-screen bg-base-200 pt-28 pb-12">
+      <div className="container mx-auto px-4 md:px-8">
+        <EditChapterForm 
+          bookId={bookId || bookSlug} 
+          chapterId={chapterData.id} 
+          initialData={{
+            ...chapterData,
+            paragraphs: chapterData.paragraphs
+          }} 
+          nextOrder={chapterData.order} 
+          bookTitle={bookTitle}
+          bookSlug={bookSlug}
+        />
+      </div>
     </div>
   )
 }

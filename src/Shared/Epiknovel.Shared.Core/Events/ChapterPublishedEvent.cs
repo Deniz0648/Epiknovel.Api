@@ -4,12 +4,12 @@ namespace Epiknovel.Shared.Core.Events;
 
 /// <summary>
 /// Bir kitap bölümü başarıyla yayınlandığında fırlatılır. 
-/// Bu sayede Arama, Bildirim ve Sosyal modüller asenkron olarak haberdar edilir.
 /// </summary>
 public record ChapterPublishedEvent(
     Guid BookId, 
+    string BookTitle,
     Guid ChapterId, 
-    string Title, 
-    string Slug, 
+    string ChapterTitle, 
+    string ChapterSlug, 
     Guid UserId, 
     DateTime PublishedAt) : INotification;

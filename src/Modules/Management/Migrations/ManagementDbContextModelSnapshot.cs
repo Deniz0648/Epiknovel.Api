@@ -18,7 +18,7 @@ namespace Epiknovel.Modules.Management.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("management")
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -37,7 +37,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Endpoint")
                         .IsRequired()
@@ -90,10 +90,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -116,7 +116,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("ReviewedByUserId")
                         .HasColumnType("uuid");
@@ -129,7 +129,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -154,10 +154,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -172,10 +172,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("PublishDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -192,16 +192,16 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("EndsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
@@ -216,7 +216,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("StartsAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("TargetId")
                         .HasColumnType("uuid");
@@ -225,7 +225,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<int?>("UsageLimit")
                         .HasColumnType("integer");
@@ -252,10 +252,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -282,7 +282,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Variables")
                         .IsRequired()
@@ -310,10 +310,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -335,7 +335,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -356,10 +356,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -374,14 +374,14 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.HasKey("Id");
 
@@ -406,10 +406,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -429,7 +429,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ReviewedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("ReviewedByUserId")
                         .HasColumnType("uuid");
@@ -438,7 +438,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -465,10 +465,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("numeric");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -490,7 +490,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("ProcessedByUserId")
                         .HasColumnType("uuid");
@@ -499,7 +499,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -519,10 +519,10 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
@@ -535,7 +535,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastRespondedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<string>("ModerationNote")
                         .HasColumnType("text");
@@ -548,7 +548,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -569,7 +569,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<bool>("IsAdminResponse")
                         .HasColumnType("boolean");
@@ -597,7 +597,7 @@ namespace Epiknovel.Modules.Management.Migrations
                         .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp without time zone");
 
                     b.Property<Guid?>("UpdatedByUserId")
                         .HasColumnType("uuid");

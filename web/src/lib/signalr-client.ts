@@ -16,7 +16,7 @@ class HubUnauthorizedError extends Error {}
 
 export type HubInvocation = {
   target: string;
-  payload: unknown;
+  args: unknown[];
 };
 
 type ConnectNotificationHubOptions = {
@@ -25,14 +25,14 @@ type ConnectNotificationHubOptions = {
   reconnectDelayMs?: number;
 };
 
-function resolveHubUrl() {
+function resolveHubUrl(path: string) {
   const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BACKEND_API_BASE_URL).replace(/\/+$/, "");
   const hubBaseUrl = apiBaseUrl.endsWith("/api") ? apiBaseUrl.slice(0, -4) : apiBaseUrl;
-  return `${hubBaseUrl}/hubs/notifications`;
+  return `${hubBaseUrl.replace(/\/+$/, "")}${path}`;
 }
 
 function toWebSocketUrl(url: string) {
-  const resolvedUrl = new URL(url, window.location.origin);
+  const resolvedUrl = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost");
   resolvedUrl.protocol = resolvedUrl.protocol === "https:" ? "wss:" : "ws:";
   return resolvedUrl.toString();
 }
@@ -40,10 +40,10 @@ function toWebSocketUrl(url: string) {
 async function negotiateConnection(hubUrl: string, signal: AbortSignal) {
   const response = await fetch(`${hubUrl}/negotiate?negotiateVersion=1`, {
     method: "POST",
-    credentials: "include",
     headers: {
       "X-Requested-With": "XMLHttpRequest",
     },
+    credentials: "include", // 🔐 Kimlik doğrulama çerezlerini gönder
     signal,
   });
 
@@ -70,8 +70,8 @@ async function readFrameData(rawData: Blob | ArrayBuffer | string) {
   return new TextDecoder().decode(rawData);
 }
 
-export function connectNotificationHub(options: ConnectNotificationHubOptions) {
-  const hubUrl = resolveHubUrl();
+export function connectHub(path: string, options: ConnectNotificationHubOptions) {
+  const hubUrl = resolveHubUrl(path);
   const reconnectDelayMs = options.reconnectDelayMs ?? 5000;
 
   let disposed = false;
@@ -106,7 +106,7 @@ export function connectNotificationHub(options: ConnectNotificationHubOptions) {
       if (message.type === 1 && typeof message.target === "string") {
         await options.onInvocation({
           target: message.target,
-          payload: message.arguments?.[0] ?? null,
+          args: message.arguments ?? [],
         });
       }
 

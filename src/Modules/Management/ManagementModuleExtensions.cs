@@ -10,7 +10,10 @@ public static class ManagementModuleExtensions
     public static IServiceCollection AddManagementModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<ManagementDbContext>(options =>
-            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "management")));
+            options.UseNpgsql(connectionString, x => 
+                x.MigrationsHistoryTable("__EFMigrationsHistory", "management")
+                 .EnableRetryOnFailure())
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605)));
 
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider, Services.SystemSettingProvider>();
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService, Services.EmailTemplateService>();

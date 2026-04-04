@@ -13,14 +13,18 @@ public static class InfrastructureModuleExtensions
     public static IServiceCollection AddInfrastructureModule(this IServiceCollection services, string connectionString)
     {
         services.AddDbContext<InfrastructureDbContext>(options =>
-            options.UseNpgsql(connectionString, x => x.MigrationsHistoryTable("__EFMigrationsHistory", "infrastructure")));
+            options.UseNpgsql(connectionString, x => 
+                x.MigrationsHistoryTable("__EFMigrationsHistory", "infrastructure")
+                 .EnableRetryOnFailure())
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605)));
 
         // 1. Bildirim Servisi
         services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddScoped<INotificationService, NotificationService>();
 
-        // Arka Plan Temizlik Servisi
+        // Arka Plan Bakım Servisleri
         services.AddHostedService<OrphanFileCleanupWorker>();
+        // services.AddHostedService<DataRetentionWorker>(); // Partitioning kaldırıldı
 
         return services;
     }

@@ -30,7 +30,7 @@ public class WalletDbContextFactory : IDesignTimeDbContextFactory<WalletDbContex
 
         // 3. DbContext Opsiyonlarını Oluştur
         var optionsBuilder = new DbContextOptionsBuilder<WalletDbContext>();
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseNpgsql(connectionString, x => x.EnableRetryOnFailure());
 
         return new WalletDbContext(optionsBuilder.Options);
     }

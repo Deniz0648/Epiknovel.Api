@@ -2,7 +2,7 @@ namespace Epiknovel.Modules.Identity.Endpoints.RevokeSession;
 
 public class Request
 {
-    public Guid SessionId { get; set; }
+    public Guid sessionId { get; set; }
 }
 
 public class Response 

@@ -9,7 +9,7 @@ using Epiknovel.Shared.Core.Attributes;
 namespace Epiknovel.Modules.Books.Endpoints.AddChapter;
 
 [AuditLog("Bölüm Yayınlandı (Satır Bazlı)")]
-public class Endpoint(IMediator mediator, IPermissionService permissionService) : Endpoint<Request, Result<Response>>
+public class Endpoint(IMediator mediator, IPermissionService permissionService, Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider settings) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -26,6 +26,14 @@ public class Endpoint(IMediator mediator, IPermissionService permissionService) 
         // 1. Ücretli Yazarlık Yetki Kontrolü (Yetki kontrolü Handler yerine API katmanında kalabilir)
         if (!req.IsFree || req.Price > 0)
         {
+            // 🚀 GLOBAL ECONOMY CHECK
+            var economyEnabled = await settings.GetSettingValueAsync<string>("Economy_EnableWalletSystem", ct);
+            if (economyEnabled == "false")
+            {
+                await Send.ResponseAsync(Result<Response>.Failure("Ücretli içerik sistemi şu anda kapalıdır."), 403, ct);
+                return;
+            }
+
             var canPublishPaidChapters = await permissionService.HasPermissionAsync(User, PermissionNames.PublishPaidChapters, ct);
             if (!canPublishPaidChapters)
             {

@@ -17,7 +17,7 @@ public class SearchDbContextFactory : IDesignTimeDbContextFactory<SearchDbContex
         var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION") 
                                ?? "Host=localhost;Database=epiknovel_db;Username=postgres;Password=password";
 
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseNpgsql(connectionString, x => x.EnableRetryOnFailure());
 
         return new SearchDbContext(optionsBuilder.Options);
     }

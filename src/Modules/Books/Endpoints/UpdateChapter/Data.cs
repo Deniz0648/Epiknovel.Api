@@ -12,6 +12,9 @@ public class Request : IOwnable
     public int Order { get; set; }
     public bool IsFree { get; set; }
     public int Price { get; set; }
+    public ChapterStatus Status { get; set; }
+    public bool IsTitleSpoiler { get; set; }
+    public DateTime? ScheduledPublishDate { get; set; }
     
     /// <summary>
     /// Güncellenmiş satır listesi. 

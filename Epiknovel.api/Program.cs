@@ -23,8 +23,13 @@ using Epiknovel.Modules.Wallet.Data;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Modules.Compliance.Data;
 using Epiknovel.Modules.Infrastructure.Data;
+using Epiknovel.Modules.Management.Hubs;
 
 DotNetEnv.Env.Load();
+
+// 🛡️ HARDENING: Npgsql & PostgreSQL 17 Compatibility Switches
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -86,39 +91,70 @@ using (var scope = app.Services.CreateScope())
         services.GetRequiredService<InfrastructureDbContext>()
     };
 
-    Console.WriteLine($"[DB INIT] Running in environment: {app.Environment.EnvironmentName}");
+    Console.WriteLine($"[DB INIT] STARTING - Environment: {app.Environment.EnvironmentName}");
 
+    // --- FAZ 1: Şemaları Oluştur ---
+    Console.WriteLine("[DB INIT] PHASE 1: Schema creation for all modules...");
     foreach (var context in contexts)
     {
         var contextName = context.GetType().Name;
         try 
         {
             var schema = context.Model.GetDefaultSchema() ?? "public";
-            Console.WriteLine($"[DB INIT] Processing {contextName} (Schema: {schema})...");
-
-            // Use raw string formatting for schema creation (safe as schema names are controlled)
+            Console.WriteLine($"[DB INIT] Phase 1 - Checking schema '{schema}' for {contextName}...");
             #pragma warning disable EF1002
             await context.Database.ExecuteSqlRawAsync($"CREATE SCHEMA IF NOT EXISTS \"{schema}\";");
             #pragma warning restore EF1002
-
-            // 🚀 Otomatik Migration Uygulama 🚀
-            await context.Database.MigrateAsync();
-            Console.WriteLine($"[DB INIT] {contextName} migrated successfully.");
+            Console.WriteLine($"[DB INIT] Phase 1 - SUCCESS: Schema '{schema}' verified/created for {contextName}.");
         }
         catch (Exception ex)
         {
-             Console.WriteLine($"[DB GLOBAL ERROR] {contextName}: {ex.Message}");
+            Console.WriteLine($"[DB INIT] Phase 1 - ERROR for {contextName}: {ex.Message}");
         }
     }
-    
-    // Rollerimizi ve Şablonlarımızı Oluşturalım
+
+    // --- FAZ 2: Migrasyonları Uygula ---
+    Console.WriteLine("[DB INIT] PHASE 2: Running migrations for all modules...");
+    foreach (var context in contexts)
+    {
+        var contextName = context.GetType().Name;
+        try 
+        {
+            Console.WriteLine($"[DB INIT] Phase 2 - Migrating {contextName}...");
+            // 🚀 Otomatik Migration Uygulama 🚀
+            await context.Database.MigrateAsync();
+            Console.WriteLine($"[DB INIT] Phase 2 - SUCCESS: {contextName} fully migrated.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[DB INIT] Phase 2 - FATAL ERROR for {contextName}: {ex.Message}");
+            if (ex.InnerException != null)
+                Console.WriteLine($"[DB INIT] Inner Error: {ex.InnerException.Message}");
+        }
+    }
+    Console.WriteLine("[DB INIT] PHASE 2: All module migrations processed.");
+}
+
+// 4.1 Seed Data (EN SONDA - Veritabanı yapısı %100 tamamlandıktan sonra)
+Console.WriteLine("[DB INIT] PHASE 3: Data seeding...");
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
     try {
+        Console.WriteLine("[DB INIT] Phase 3 - Seeding Identity Roles...");
         await IdentityModuleExtensions.SeedRolesAsync(services);
+        
+        Console.WriteLine("[DB INIT] Phase 3 - Seeding Management Templates...");
         await ManagementModuleExtensions.SeedTemplatesAsync(services);
+        
+        Console.WriteLine("[DB INIT] Phase 3 - SUCCESS: All initial data seeded.");
     } catch (Exception ex) {
-        Console.WriteLine($"[DB SEED ERROR]: {ex.Message}");
+        Console.WriteLine($"[DB INIT] Phase 3 - SEED ERROR: {ex.Message}");
+        if (ex.InnerException != null)
+             Console.WriteLine($"[DB INIT] Seed Inner Error: {ex.InnerException.Message}");
     }
 }
+Console.WriteLine("[DB INIT] COMPLETED.");
 
 // 5. Pipeline & Scalar UI
 if (app.Environment.IsDevelopment() || true) 
@@ -139,6 +175,6 @@ if (app.Environment.IsDevelopment() || true)
 app.UseSharedPipeline();
 
 // Real-time Support Module Map
-app.MapHub<Epiknovel.Modules.Management.Hubs.SupportTicketHub>("/hubs/support");
+app.MapHub<SupportTicketHub>("/hubs/support");
 
 app.Run();

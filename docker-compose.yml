@@ -2,6 +2,7 @@ services:
   # 🐘 Veritabanı (PostgreSQL)
   postgres_db:
     image: postgres:17-alpine
+    restart: always
     ports:
       - "5432:5432"
     container_name: epiknovel_db
@@ -20,6 +21,7 @@ services:
   # 🚄 Önbellek & Oturum (Redis)
   redis_cache:
     image: redis:8-alpine
+    restart: always
     container_name: epiknovel_cache
     volumes:
       - redis_data:/data
@@ -29,6 +31,7 @@ services:
     build:
       context: .
       dockerfile: Epiknovel.api/Dockerfile
+    restart: always
     container_name: epiknovel_api
     ports:
       - "8080:8080"
@@ -55,6 +58,7 @@ services:
     build:
       context: ./web
       dockerfile: Dockerfile
+    restart: always
     container_name: epiknovel_web
     ports:
       - "3000:3000"

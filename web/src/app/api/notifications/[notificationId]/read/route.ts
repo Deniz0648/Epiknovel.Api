@@ -12,7 +12,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const { notificationId } = await context.params;
     const result = await performAuthenticatedIdentityRequest<{ message: string }>(
-      `/infrastructure/notifications/${notificationId}/read`,
+      `/notifications/${notificationId}/read`,
       { method: "POST" },
       request.headers,
     );

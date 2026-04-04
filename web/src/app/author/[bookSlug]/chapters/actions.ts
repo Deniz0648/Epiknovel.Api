@@ -1,6 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { performAuthenticatedIdentityRequest } from '@/lib/server-auth'
+import { isApiErrorLike } from '@/lib/api'
 
 interface ChapterData {
     title: any
@@ -9,65 +11,86 @@ interface ChapterData {
     order: number
     status: number
     slug: string
-    publishedAt: string | null
+    scheduledPublishDate: string | null
     isFree: boolean
     price: number
     isTitleSpoiler: boolean
 }
 
-export async function createChapter(bookSlug: string, data: ChapterData) {
+export async function createChapter(bookSlug: string, bookId: string, data: ChapterData) {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/books/chapters`, {
+        const result = await performAuthenticatedIdentityRequest<any>("/books/chapters", {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 ...data,
-                bookSlug // The internal API uses bookSlug or bookId
+                bookId // Guid
             })
         })
-        const result = await response.json()
-        if (!result.isSuccess) return { error: result.message }
         
+        // 🚀 API Response Logic: Handle Boolean, String, and casing differences
+        const rawSuccess = result.data?.isSuccess ?? result.data?.IsSuccess;
+        const normalizedSuccess = String(rawSuccess).toLowerCase() === 'true';
+        
+        const message = result.data?.message || result.data?.Message || result.data?.data?.message || result.data?.Data?.Message || 'Bölüm oluşturulurken bir hata oluştu.';
+
+        // Fail-safe: If message looks like success, it IS success (backend quirk protection)
+        const isActuallySuccess = normalizedSuccess || message.includes("başarıyla");
+
+        if (!isActuallySuccess) {
+            return { error: message }
+        }
+
         revalidatePath(`/author/${bookSlug}`)
-        return { chapterId: result.data?.id, slug: result.data?.slug }
+        const resData = result.data?.data || result.data?.Data;
+        return { chapterId: resData?.id, slug: resData?.slug }
     } catch (err) {
-        return { error: 'Bölüm oluşturulurken bir hata oluştu.' }
+        if (isApiErrorLike(err)) return { error: err.message }
+        return { error: 'Bölüm oluştururken bir sistem hatası oluştu.' }
     }
 }
 
-export async function updateChapter(bookSlug: string, chapterSlug: string, data: ChapterData) {
+export async function updateChapter(bookSlug: string, chapterId: string, data: ChapterData) {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/books/chapters`, {
+        const result = await performAuthenticatedIdentityRequest<any>(`/books/chapters/${chapterId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 ...data,
-                chapterId: chapterSlug, 
-                bookSlug
+                ChapterId: chapterId // Guid (Still sending in body for robustness)
             })
         })
-        const result = await response.json()
-        if (!result.isSuccess) return { error: result.message }
+        
+        // 🚀 API Response Logic: Handle Boolean, String, and casing differences
+        const rawSuccess = result.data?.isSuccess ?? result.data?.IsSuccess;
+        const normalizedSuccess = String(rawSuccess).toLowerCase() === 'true';
+        
+        const message = result.data?.message || result.data?.Message || result.data?.data?.message || result.data?.Data?.Message || 'Bölüm güncellenirken bir hata oluştu.';
+
+        // Fail-safe: If message looks like success, it IS success (backend quirk protection)
+        const isActuallySuccess = normalizedSuccess || message.includes("başarıyla");
+
+        if (!isActuallySuccess) {
+            return { error: message }
+        }
 
         revalidatePath(`/author/${bookSlug}`)
-        revalidatePath(`/author/${bookSlug}/chapters/${chapterSlug}/edit`)
+        revalidatePath(`/author/${bookSlug}/chapters/${chapterId}/edit`)
         return { success: true }
     } catch (err) {
-        return { error: 'Bölüm güncellenirken bir hata oluştu.' }
+        if (isApiErrorLike(err)) return { error: err.message }
+        return { error: 'Bölüm güncellenirken bir sistem hatası oluştu.' }
     }
 }
 
-export async function deleteChapter(bookSlug: string, chapterSlug: string) {
+export async function deleteChapter(bookSlug: string, chapterId: string) {
     try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/books/chapters/${chapterSlug}`, {
+        await performAuthenticatedIdentityRequest<any>(`/books/chapters/${chapterId}`, {
             method: 'DELETE'
         })
-        const result = await response.json()
-        if (!result.isSuccess) return { error: result.message }
-
+        
         revalidatePath(`/author/${bookSlug}`)
         return { success: true }
     } catch (err) {
+        if (isApiErrorLike(err)) return { error: err.message }
         return { error: 'Bölüm silinirken bir hata oluştu.' }
     }
 }

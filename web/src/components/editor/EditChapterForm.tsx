@@ -3,13 +3,15 @@
 import { useState, useEffect, useRef } from "react"
 import { createChapter, updateChapter, deleteChapter } from "@/app/author/[bookSlug]/chapters/actions"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+import { showToast } from "@/lib/toast"
 import { Save, ChevronLeft, Type, Zap, Trash2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { TiptapEditor, TiptapEditorRef, ParagraphData } from "./TiptapEditor"
-import { getApiUrl } from "@/lib/config"
+import { usePublicSettings } from "@/components/providers/realtime-provider"
+import { useAuth } from "@/components/providers/auth-provider"
 import { slugify } from "@/lib/utils"
 import { ShareModal } from "@/components/ui/ShareModal"
+import "./tiptap-editor.css"
 
 interface EditChapterFormProps {
   bookId: string
@@ -33,9 +35,15 @@ interface EditChapterFormProps {
 }
 
 export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, bookTitle, bookType, bookSlug }: EditChapterFormProps) {
+  const { profile } = useAuth()
+  const { isEnableEconomy: siteEconomyEnabled } = usePublicSettings()
+  
+  const authorHasPaidPermission = profile?.permissions?.publishPaidChapters === true
+  const canSetPrice = siteEconomyEnabled && authorHasPaidPermission
+
   const [loading, setLoading] = useState(false)
   const [wordCount, setWordCount] = useState(0)
-  const [enableEconomy, setEnableEconomy] = useState(true)
+  const [enableEconomy, setEnableEconomy] = useState(canSetPrice)
   const [isScheduled, setIsScheduled] = useState(initialData?.status === 2)
   const [publishDate, setPublishDate] = useState<string>(() => {
     if (initialData?.publishedAt) {
@@ -56,23 +64,10 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
   const editorRef = useRef<TiptapEditorRef>(null)
 
   useEffect(() => {
-    async function fetchSettings() {
-      try {
-        const apiUrl = getApiUrl()
-        const res = await fetch(`${apiUrl}/Settings/public`)
-        if (res.ok) {
-          const settings = await res.json()
-          if (settings["Economy_EnableWalletSystem"] === "false" || settings["Economy_EnablePurchasing"] === "false") {
-            setEnableEconomy(false)
-          }
-        }
-      } catch (e) {
-        console.error("Settings fetch error:", e)
-      }
-    }
+    setEnableEconomy(canSetPrice)
+  }, [canSetPrice])
 
-    fetchSettings()
-
+  useEffect(() => {
     if (initialData?.content) {
       const count = initialData.content.trim().split(/\s+/).filter(w => w).length
       setWordCount(count)
@@ -100,51 +95,66 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
         content: p.content,
         type: p.type
       })),
-      order: parseInt(formData.get("order") as string),
+      order: parseInt(formData.get("order") as string) || (initialData?.order ?? nextOrder),
       status: finalStatus,
       slug: slug,
-      publishedAt: isScheduled ? new Date(publishDate).toISOString() : null,
       isFree: !enableEconomy || formData.get("isFree") === "true",
       price: enableEconomy ? parseInt(formData.get("price") as string || "0") : 0,
-      isTitleSpoiler: isTitleSpoiler
+      isTitleSpoiler: isTitleSpoiler,
+      scheduledPublishDate: isScheduled ? publishDate : null
     }
+
+    // 🛡️ Debug Log: Form Submission State
+    console.log('Submitting Form:', { chapterId, isEdit: !!chapterId });
 
     try {
       if (chapterId) {
-        const result = await updateChapter(bookId, chapterId, data)
-        if (result?.error) toast.error(result.error)
-        else {
-          toast.success("Bölüm kaydedildi")
-          router.refresh()
+        // UPDATE MODE
+        const res = await updateChapter(bookSlug || "", chapterId, data)
+        if (res.error) {
+          showToast({ title: "Hata", description: res.error, tone: "error" })
+        } else {
+          showToast({ title: "Başarılı", description: "Bölüm başarıyla güncellendi.", tone: "success" })
+          setTimeout(() => {
+            router.push(`/author/${bookSlug}`)
+          }, 1000)
         }
       } else {
-        const result = await createChapter(bookId, data)
-        if (result?.error) toast.error(result.error)
-        else {
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
-          const finalSlug = slug || result?.slug || result?.chapterId
-          const finalBookSlug = bookSlug || bookId
-          setCreatedChapterUrl(`${baseUrl}/books/${finalBookSlug}/${finalSlug}`)
-          setShowShareModal(true)
-
-          toast.success("Bölüm başarıyla yayınlandı!")
-          window.sessionStorage.setItem('pendingRedirect', `/author/${bookId}`)
+        // CREATE MODE
+        const res = await createChapter(bookSlug || "", bookId, data)
+        if (res.error) {
+          showToast({ title: "Hata", description: res.error, tone: "error" })
+        } else {
+          showToast({ title: "Başarılı", description: "Bölüm başarıyla oluşturuldu.", tone: "success" })
+          if (res.slug) {
+            setCreatedChapterUrl(`/read/${bookSlug}/${res.slug}`)
+            setShowShareModal(true)
+          } else {
+            router.push(`/author/${bookSlug}`)
+          }
         }
       }
-    } catch (err: unknown) {
-      const error = err as Error
-      toast.error(error.message)
+    } catch (err: any) {
+      showToast({ title: "Sistem Hatası", description: "İşlem sırasında beklenmedik bir hata oluştu.", tone: "error" })
+      console.error(err)
     } finally {
       setLoading(false)
     }
   }
 
+  // Generate slug if not manual
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isManualSlug) {
+      setSlug(slugify(e.target.value))
+    }
+  }
+
   return (
     <>
-      <form onSubmit={onSubmit} className="flex flex-col min-h-screen gap-6 pt-24 sm:pt-28 pb-12 px-4 max-w-[1600px] mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-100 p-4 rounded-3xl border border-base-200 sticky top-24 z-[20] shadow-sm">
+      <form onSubmit={onSubmit} className="flex flex-col min-h-[80vh] gap-6 author-page-animate">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-100 p-4 rounded-3xl border border-base-200 sticky top-[84px] z-[50] shadow-sm">
           <div className="flex items-center gap-4">
-            <Link href={`/author/${bookSlug || bookId}`} className="btn btn-ghost btn-circle">
+            <Link href={`/author/${bookSlug}`} className="btn btn-ghost btn-circle">
               <ChevronLeft />
             </Link>
             <div>
@@ -157,9 +167,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                 className="bg-transparent border-none text-xl font-serif font-bold text-base-content focus:outline-none focus:ring-0 w-full md:w-96"
                 defaultValue={initialData?.title}
                 onChange={(e) => {
-                  if (!isManualSlug && !chapterId) {
-                    setSlug(slugify(e.target.value))
-                  }
+                  handleTitleChange(e)
                 }}
                 required
               />
@@ -176,7 +184,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                     value={slug}
                     disabled={!!chapterId}
                     onChange={(e) => {
-                      setSlug(slugify(e.target.value))
+                      setSlug(e.target.value)
                       setIsManualSlug(true)
                     }}
                     className={`bg-transparent border-none text-[10px] font-mono text-base-content/50 focus:outline-none focus:ring-0 w-48 transition-colors ${chapterId ? 'cursor-not-allowed opacity-50' : 'hover:text-primary'}`}
@@ -188,17 +196,6 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
           </div>
 
           <div className="flex items-center gap-2 w-full md:w-auto">
-            <label htmlFor="status" className="sr-only">Yayın Durumu</label>
-            <select
-              id="status"
-              name="status"
-              className="select select-sm select-bordered rounded-xl"
-              value={status}
-              onChange={(e) => setStatus(parseInt(e.target.value))}
-            >
-              <option value={0}>Taslak</option>
-              <option value={1}>Yayında</option>
-            </select>
             <button
               type="button"
               onClick={() => setIsTitleSpoiler(!isTitleSpoiler)}
@@ -208,7 +205,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
               {isTitleSpoiler ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
             <button type="submit" disabled={loading} className="btn btn-primary btn-sm flex-1 md:flex-none rounded-xl px-6 shadow-lg shadow-primary/20">
-              {loading ? <span className="loading loading-spinner loading-xs"></span> : <><Save size={16} /> Kaydet</>}
+              {loading ? <span className="loading loading-spinner loading-xs"></span> : <><Save size={16} /> {chapterId ? "Güncelle" : "Yayınla"}</>}
             </button>
             {chapterId && (
               <button
@@ -218,9 +215,14 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                 onClick={async () => {
                   if (confirm("Bu bölümü silmek istediğinize emin misiniz?")) {
                     setLoading(true)
-                    await deleteChapter(bookSlug || bookId, chapterId)
-                    router.push(`/author/${bookSlug || bookId}`)
-                    toast.success("Bölüm silindi")
+                    const res = await deleteChapter(bookSlug || "", chapterId)
+                    if (res.success) {
+                      showToast({ title: "Başarılı", description: "Bölüm silindi.", tone: "success" })
+                      router.push(`/author/${bookSlug}`)
+                    } else {
+                      showToast({ title: "Hata", description: res.error || "Bölüm silinemedi.", tone: "error" })
+                      setLoading(false)
+                    }
                   }
                 }}
                 disabled={loading}
@@ -240,13 +242,13 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                 initialParagraphs={initialData?.paragraphs}
                 onWordCountChange={setWordCount}
                 placeholder="Burası senin dünyan. Hikayeni yazmaya başla..."
-                stickyOffset="top-36"
+                stickyOffset="top-[180px]"
               />
             </div>
           </div>
 
-          <div className="space-y-6 lg:sticky lg:top-36 lg:self-start">
-            <div className="card bg-base-100 border border-base-200 shadow-sm">
+          <div className="space-y-6 lg:sticky lg:top-[180px] lg:self-start">
+            <div className="card bg-base-100 border border-base-200 shadow-sm rounded-3xl">
               <div className="card-body p-6">
                 <h3 className="card-title text-sm font-bold opacity-60 flex items-center gap-2">
                   <Zap size={16} /> BÖLÜM AYARLARI
@@ -264,70 +266,108 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                     required
                   />
                 </div>
-                {status === 0 && (
-                  <div className="space-y-4 mt-4 pt-4 border-t border-base-200">
-                    <div className="form-control">
-                      <label htmlFor="is-scheduled-checkbox" className="label cursor-pointer justify-start gap-3">
-                        <input
-                          id="is-scheduled-checkbox"
-                          type="checkbox"
-                          className="checkbox checkbox-sm checkbox-secondary"
-                          checked={isScheduled}
-                          onChange={(e) => setIsScheduled(e.target.checked)}
-                        />
-                        <span className="label-text font-bold uppercase text-xs tracking-wider">İleri Tarihte Yayınla</span>
+                
+                <div className="space-y-4 mt-4 pt-4 border-t border-base-200">
+                  <div className="form-control">
+                    <label htmlFor="is-scheduled-checkbox" className="label cursor-pointer justify-start gap-3">
+                      <input
+                        id="is-scheduled-checkbox"
+                        type="checkbox"
+                        className="checkbox checkbox-sm checkbox-secondary"
+                        checked={isScheduled}
+                        onChange={(e) => setIsScheduled(e.target.checked)}
+                      />
+                      <span className="label-text font-bold uppercase text-xs tracking-wider">İleri Tarihte Yayınla</span>
+                    </label>
+                  </div>
+                  {isScheduled ? (
+                    <div className="form-control animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label htmlFor="publish-date" className="label">
+                        <span className="label-text font-bold">Yayın Tarihi</span>
                       </label>
+                      <input
+                        id="publish-date"
+                        type="datetime-local"
+                        className="input input-bordered input-sm rounded-lg"
+                        value={publishDate}
+                        onChange={(e) => setPublishDate(e.target.value)}
+                        required={isScheduled}
+                      />
                     </div>
-                    {isScheduled && (
-                      <div className="form-control animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label htmlFor="publish-date" className="label">
-                          <span className="label-text font-bold">Yayın Tarihi</span>
-                        </label>
-                        <input
-                          id="publish-date"
-                          type="datetime-local"
-                          className="input input-bordered input-sm rounded-lg"
-                          value={publishDate}
-                          onChange={(e) => setPublishDate(e.target.value)}
-                          required={isScheduled}
-                        />
+                  ) : (
+                    <div className="form-control">
+                      <label htmlFor="status" className="label">
+                        <span className="label-text font-bold">Yayın Durumu</span>
+                      </label>
+                      <select
+                        id="status"
+                        name="status"
+                        className="select select-sm select-bordered rounded-lg w-full"
+                        value={status}
+                        onChange={(e) => setStatus(parseInt(e.target.value))}
+                      >
+                        <option value={1}>Yayında</option>
+                        <option value={0}>Taslak</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                <div className={`mt-6 pt-6 border-t border-base-200 space-y-4 transition-all duration-300 ${!enableEconomy ? 'grayscale opacity-60' : ''}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold opacity-60 flex items-center gap-2">
+                       <Zap size={16} className="text-warning" /> EKONOMİ
+                    </span>
+                    {!enableEconomy && (
+                      <div className="badge badge-error badge-xs py-2 px-2 text-[10px]">
+                        {!siteEconomyEnabled ? "Site Kapalı" : "Yetki Yok"}
                       </div>
                     )}
                   </div>
-                )}
-                {enableEconomy && (
-                  <>
-                    <div className="form-control mt-4">
-                      <label htmlFor="is-free-checkbox" className="label cursor-pointer justify-start gap-3">
-                        <input
-                          id="is-free-checkbox"
-                          type="checkbox"
-                          name="isFree"
-                          value="true"
-                          className="checkbox checkbox-sm checkbox-primary"
-                          defaultChecked={initialData?.isFree ?? true}
-                        />
-                        <span className="label-text font-bold uppercase text-xs tracking-wider">Ücretsiz Bölüm</span>
-                      </label>
-                    </div>
-                    <div className="form-control mt-2">
-                      <label htmlFor="chapter-price" className="label">
-                        <span className="label-text font-bold">Fiyat (Jeton)</span>
-                      </label>
+
+                  <div className="form-control">
+                    <label htmlFor="is-free-checkbox" className="label cursor-pointer justify-start gap-3">
+                      <input
+                        id="is-free-checkbox"
+                        type="checkbox"
+                        name="isFree"
+                        value="true"
+                        className="checkbox checkbox-sm checkbox-primary"
+                        defaultChecked={initialData?.isFree ?? true}
+                        disabled={!enableEconomy}
+                      />
+                      <span className="label-text font-bold uppercase text-xs tracking-wider">Ücretsiz Bölüm</span>
+                    </label>
+                  </div>
+                  <div className="form-control">
+                    <label htmlFor="chapter-price" className="label">
+                      <span className="label-text font-bold">Fiyat (Jeton)</span>
+                    </label>
+                    <div className="relative">
                       <input
                         id="chapter-price"
                         type="number"
                         name="price"
-                        className="input input-bordered input-sm rounded-lg"
+                        className="input input-bordered input-sm rounded-lg w-full pr-10"
                         placeholder="0"
                         defaultValue={initialData?.price ?? 0}
+                        disabled={!enableEconomy}
                       />
-                      <div className="label">
-                        <span className="label-text-alt text-base-content/40">Kilitliyse kaç jeton gereksin?</span>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                        <Zap size={12} className="text-warning" />
                       </div>
                     </div>
-                  </>
-                )}
+                  </div>
+                  {!enableEconomy && (
+                    <div className="bg-error/10 p-2 rounded-lg border border-error/20">
+                      <p className="text-[10px] text-error leading-relaxed">
+                        {!siteEconomyEnabled 
+                          ? "Platform genelinde ücretli içerikler şu an devre dışı." 
+                          : "Ücretli içerik yayınlamak için 'Cüzdan Sistemi' yetkiniz yok."}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="alert alert-info shadow-sm rounded-3xl text-xs font-medium">
@@ -342,11 +382,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
         isOpen={showShareModal}
         onClose={() => {
           setShowShareModal(false)
-          const redirectUrl = window.sessionStorage.getItem('pendingRedirect')
-          if (redirectUrl) {
-            window.sessionStorage.removeItem('pendingRedirect')
-            router.push(redirectUrl)
-          }
+          router.push(`/author/${bookSlug}`)
         }}
         title="Yeni Bölüm Yayında!"
         text={`${bookTitle || 'Kitabıma'} yeni bir bölüm ekledim! Okumak isterseniz aşağıdaki bağlantıya tıklayabilirsiniz.`}
@@ -354,4 +390,5 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
       />
     </>
   )
+
 }

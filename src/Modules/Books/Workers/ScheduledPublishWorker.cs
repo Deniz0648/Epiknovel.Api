@@ -58,8 +58,9 @@ public class ScheduledPublishWorker(
 
         try
         {
-            // Zamanı gelmiş Scheduled bölümleri bul (Global Query Filter OLMADAN — IsDeleted olanları da görmemek için IgnoreQueryFilters kullanmıyoruz)
+            // Zamanı gelmiş Scheduled bölümleri bul
             var chaptersToPublish = await dbContext.Chapters
+                .Include(c => c.Book) // 📚 Kitap ismine ihtiyacımız var (Bildirim için)
                 .Where(c => c.Status == ChapterStatus.Scheduled
                          && c.ScheduledPublishDate != null
                          && c.ScheduledPublishDate <= now
@@ -86,6 +87,7 @@ public class ScheduledPublishWorker(
                 {
                     await mediator.Publish(new ChapterPublishedEvent(
                         chapter.BookId,
+                        chapter.Book.Title,
                         chapter.Id,
                         chapter.Title,
                         chapter.Slug,

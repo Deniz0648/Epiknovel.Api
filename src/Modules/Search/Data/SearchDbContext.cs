@@ -14,6 +14,9 @@ public class SearchDbContext(DbContextOptions<SearchDbContext> options) : DbCont
         
         // Modüler Monolit: Her modülün kendi şeması vardır
         modelBuilder.HasDefaultSchema("search");
+        
+        // Full-Text Search için unaccent eklentisini etkinleştir
+        modelBuilder.HasPostgresExtension("unaccent");
 
         // Konfigürasyonlar
         modelBuilder.Entity<SearchHistory>(b => b.ToTable("SearchHistories"));

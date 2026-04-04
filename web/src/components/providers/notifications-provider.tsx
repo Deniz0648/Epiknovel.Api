@@ -9,9 +9,9 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError } from "@/lib/api";
-import { getHubInvocationEventName } from "@/lib/hub-events";
+import { dispatchHubInvocation, getHubInvocationEventName } from "@/lib/hub-events";
 import { getNotifications, markNotificationAsRead, type NotificationItem } from "@/lib/notifications";
-import type { HubInvocation } from "@/lib/signalr-client";
+import { connectHub, type HubInvocation } from "@/lib/signalr-client";
 import { showToast } from "@/lib/toast";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -120,7 +120,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const payload = normalizeRealtimePayload(message.payload);
+      const payload = normalizeRealtimePayload(message.args[0]);
       const marker = `${message.target}:${payload?.title ?? ""}:${payload?.message ?? ""}`;
       if (lastRealtimeMarkerRef.current !== marker) {
         lastRealtimeMarkerRef.current = marker;
@@ -142,6 +142,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
 
     window.addEventListener(eventName, onHubInvocation);
+    
     return () => {
       window.removeEventListener(eventName, onHubInvocation);
     };

@@ -11,6 +11,15 @@ public class DeductBalanceForPayoutCommandHandler(WalletDbContext dbContext) : I
 {
     public async Task<Result<string>> Handle(DeductBalanceForPayoutCommand request, CancellationToken ct)
     {
+        // 🛡️ IDEMPOTENCY: Bu PayoutRequest için daha önce işlem yapılmış mı? (Double-Spending Koruması)
+        var exists = await dbContext.WalletTransactions
+            .AnyAsync(x => x.ReferenceId == request.PayoutRequestId && x.Type == TransactionType.Withdrawal, ct);
+
+        if (exists)
+        {
+            return Result<string>.Success("Bakiye bu talep için zaten düşülmüş (İdempozans Koruma).");
+        }
+
         var wallet = await dbContext.Wallets
             .Include(w => w.Transactions)
             .FirstOrDefaultAsync(w => w.UserId == request.UserId, ct);
@@ -36,10 +45,8 @@ public class DeductBalanceForPayoutCommandHandler(WalletDbContext dbContext) : I
             CreatedAt = DateTime.UtcNow
         });
 
-        var result = await dbContext.SaveChangesAsync(ct);
+        await dbContext.SaveChangesAsync(ct);
         
-        return result > 0 
-            ? Result<string>.Success("Balance deducted successfully.") 
-            : Result<string>.Failure("Failed to persist balance changes.");
+        return Result<string>.Success("Balance deducted successfully.");
     }
 }

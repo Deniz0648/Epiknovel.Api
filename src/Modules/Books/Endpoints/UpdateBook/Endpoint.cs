@@ -29,11 +29,14 @@ public class Endpoint(IMediator mediator, IOutputCacheStore cacheStore) : Endpoi
         {
             Id = req.Id,
             UserId = req.UserId,
+            IsAdmin = User.IsInRole(RoleNames.Admin),
             Title = req.Title,
             Description = req.Description,
             CoverImageUrl = req.CoverImageUrl,
             Status = req.Status,
             ContentRating = req.ContentRating,
+            Type = req.Type,
+            OriginalAuthorName = req.OriginalAuthorName,
             CategoryIds = req.CategoryIds,
             Tags = req.Tags
         }, ct);

@@ -4,6 +4,7 @@ using Epiknovel.Modules.Social.Data;
 using Epiknovel.Modules.Social.Domain;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Epiknovel.Modules.Social.Endpoints.InlineComments.Add;
 
@@ -14,7 +15,10 @@ public record Request
     public string Content { get; init; } = string.Empty;
 }
 
-public class Endpoint(SocialDbContext dbContext, Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider) : Endpoint<Request, Result<Guid>>
+public class Endpoint(
+    SocialDbContext dbContext, 
+    Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider,
+    IDistributedCache cache) : Endpoint<Request, Result<Guid>>
 {
     public override void Configure()
     {
@@ -35,7 +39,16 @@ public class Endpoint(SocialDbContext dbContext, Epiknovel.Shared.Core.Interface
             return;
         }
 
-        // 2. Paragraf ve Bölüm Doğrulaması (BOLA & Integrity)
+        // 2. Spam Kalkanı (Rate Limiting) - Redis tabanlı (3 Yorum / 1 Dakika)
+        var limitKey = $"rl:social:inline:{userId}:{req.ChapterId}";
+        var countStr = await cache.GetStringAsync(limitKey, ct);
+        if (int.TryParse(countStr, out var count) && count >= 3)
+        {
+            await Send.ResponseAsync(Result<Guid>.Failure("Çok sık yorum yapıyorsunuz. Lütfen biraz bekleyin."), 429, ct);
+            return;
+        }
+
+        // 3. Paragraf ve Bölüm Doğrulaması (BOLA & Integrity)
         var isChapterActive = await bookProvider.IsChapterActiveAsync(req.ChapterId, ct);
         if (!isChapterActive)
         {
@@ -50,7 +63,7 @@ public class Endpoint(SocialDbContext dbContext, Epiknovel.Shared.Core.Interface
             return;
         }
 
-        // 3. Yorum Ekle
+        // 4. Yorum Ekle
         var comment = new InlineComment
         {
             UserId = userId,
@@ -62,6 +75,12 @@ public class Endpoint(SocialDbContext dbContext, Epiknovel.Shared.Core.Interface
 
         dbContext.InlineComments.Add(comment);
         await dbContext.SaveChangesAsync(ct);
+
+        // 5. Rate Limit Güncelle
+        await cache.SetStringAsync(limitKey, (count + 1).ToString(), new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
+        }, ct);
 
         await Send.ResponseAsync(Result<Guid>.Success(comment.Id), 200, ct);
     }

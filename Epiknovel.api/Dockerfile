@@ -1,5 +1,5 @@
 # build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build-env
 WORKDIR /app
 
 # Copy all .csproj files to leverage layer caching for restore
@@ -26,8 +26,12 @@ COPY . .
 RUN dotnet publish Epiknovel.api/Epiknovel.api.csproj -c Release -o out
 
 # runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine
 WORKDIR /app
+
+# 🛡️ Hardening Alpine for Npgsql 10 & PostgreSQL 17
+# libgssapi_krb5.so.2 ve icu-libs (Postgres/Npgsql uyumu için)
+RUN apk add --no-cache icu-libs krb5-libs
 COPY --from=build-env /app/out .
 
 EXPOSE 8080

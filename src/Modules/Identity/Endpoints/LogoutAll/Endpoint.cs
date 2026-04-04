@@ -4,7 +4,7 @@ using Epiknovel.Modules.Identity.Data;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Constants;
 using System.Security.Claims;
-
+using Microsoft.Extensions.Caching.Distributed;
 using Epiknovel.Shared.Core.Attributes;
 
 namespace Epiknovel.Modules.Identity.Endpoints.LogoutAll;
@@ -12,11 +12,11 @@ namespace Epiknovel.Modules.Identity.Endpoints.LogoutAll;
 [AuditLog("Tüm Oturumlardan Çıkış Yapıldı")]
 public class Endpoint(
     IdentityDbContext dbContext,
-    StackExchange.Redis.IConnectionMultiplexer redis) : EndpointWithoutRequest<Result<Response>>
+    IDistributedCache cache) : EndpointWithoutRequest<Result<Response>>
 {
     public override void Configure()
     {
-        Delete("/identity/sessions/all");
+        Delete("/auth/sessions/all");
         Summary(s => {
             s.Summary = "Tüm cihazlardan çıkış yapar.";
             s.Description = "Kullanıcıya ait tüm aktif Refresh Token'ları siler ve aktif JWT'leri kara listeye alır.";
@@ -41,14 +41,16 @@ public class Endpoint(
 
         if (sessions.Any())
         {
-            // 2. TÜM AKTİF JWT'LERİ REDIS BAZLI İPTAL ET (Hardening)
-            var db = redis.GetDatabase();
+            // 2. TÜM AKTİF JWT'LERİ REDIS BAZLI İPTAL ET (IDistributedCache uyumu için)
             foreach (var s in sessions)
             {
                 if (!string.IsNullOrEmpty(s.AccessTokenJti))
                 {
-                    // Her cihazdaki aktif JWT'yi 60 dk boyunca kara listeye al
-                    await db.StringSetAsync($"revoked_token:{s.AccessTokenJti}", "1", TimeSpan.FromMinutes(60));
+                    // Middleware ile aynı key formatını ve IDistributedCache'i kullanıyoruz
+                    await cache.SetStringAsync($"revoked_token:{s.AccessTokenJti}", "1", new DistributedCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(60)
+                    }, ct);
                 }
             }
 

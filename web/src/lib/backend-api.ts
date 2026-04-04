@@ -62,9 +62,7 @@ export async function backendApiRequest<T>(
     cache: "no-store",
     headers: {
       Accept: "application/json",
-      ...(hasJsonBody || isWriteMethod
-        ? { "Content-Type": "application/json" }
-        : {}),
+      ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },

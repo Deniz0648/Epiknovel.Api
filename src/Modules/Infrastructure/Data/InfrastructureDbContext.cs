@@ -18,8 +18,8 @@ public class InfrastructureDbContext(DbContextOptions<InfrastructureDbContext> o
         // Modüler Monolit: Her modülün kendi şeması vardır
         modelBuilder.HasDefaultSchema("infrastructure");
 
-        // Konfigurasyonlar
         modelBuilder.Entity<Notification>(b => b.ToTable("Notifications"));
+
         modelBuilder.Entity<Announcement>(b => b.ToTable("Announcements"));
         modelBuilder.Entity<Quote>(b => b.ToTable("Quotes"));
         modelBuilder.Entity<Faq>(b => b.ToTable("Faqs"));

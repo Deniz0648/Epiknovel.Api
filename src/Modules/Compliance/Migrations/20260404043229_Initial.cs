@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Epiknovel.Modules.Compliance.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCompliance : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -28,9 +28,9 @@ namespace Epiknovel.Modules.Compliance.Migrations
                     ReportCount = table.Column<int>(type: "integer", nullable: false),
                     ReporterIds = table.Column<List<Guid>>(type: "uuid[]", nullable: false),
                     Status = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ResolvedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
+                    ResolvedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     ResolvedByAdminId = table.Column<Guid>(type: "uuid", nullable: true),
                     ResolutionAction = table.Column<string>(type: "text", nullable: true)
                 },
@@ -50,7 +50,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                     StoredFileName = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Category = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     MimeType = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -65,11 +65,11 @@ namespace Epiknovel.Modules.Compliance.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     DocumentNumber = table.Column<string>(type: "text", nullable: false),
-                    IssuedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IssuedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     DocumentUrl = table.Column<string>(type: "text", nullable: false),
                     IsVerified = table.Column<bool>(type: "boolean", nullable: false),
-                    VerifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    VerifiedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     VerifiedByUserId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
@@ -86,7 +86,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                     UserId = table.Column<Guid>(type: "uuid", nullable: false),
                     Type = table.Column<int>(type: "integer", nullable: false),
                     Version = table.Column<string>(type: "text", nullable: false),
-                    AcceptedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AcceptedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     IpAddress = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
@@ -104,8 +104,8 @@ namespace Epiknovel.Modules.Compliance.Migrations
                     AdminId = table.Column<Guid>(type: "uuid", nullable: false),
                     TicketId = table.Column<Guid>(type: "uuid", nullable: true),
                     Reason = table.Column<string>(type: "text", nullable: false),
-                    GivenAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ExpiryDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                    GivenAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    ExpiryDate = table.Column<DateTime>(type: "timestamp without time zone", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -123,7 +123,7 @@ namespace Epiknovel.Modules.Compliance.Migrations
                     AccountHolderName = table.Column<string>(type: "text", nullable: false),
                     SwiftCode = table.Column<string>(type: "text", nullable: false),
                     IsVerified = table.Column<bool>(type: "boolean", nullable: false),
-                    VerifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    VerifiedAt = table.Column<DateTime>(type: "timestamp without time zone", nullable: true),
                     VerifiedByUserId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>

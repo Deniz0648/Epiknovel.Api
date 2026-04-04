@@ -15,4 +15,10 @@ public class DummyNotificationService : INotificationService
         Console.WriteLine($"[NOTIFICATION] User: {userId} | Title: {title} | Link: {link}");
         return Task.CompletedTask;
     }
+
+    public Task SendSystemNotificationBatchAsync(IEnumerable<Guid> userIds, string title, string message, string? link = null, CancellationToken ct = default)
+    {
+        Console.WriteLine($"[BATCH_NOTIFICATION] Count: {userIds.Count()} | Title: {title}");
+        return Task.CompletedTask;
+    }
 }

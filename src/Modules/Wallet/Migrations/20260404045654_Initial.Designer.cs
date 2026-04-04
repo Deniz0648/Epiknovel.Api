@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Epiknovel.Modules.Wallet.Migrations
 {
     [DbContext(typeof(WalletDbContext))]
-    [Migration("20260331015924_InitialWallet")]
-    partial class InitialWallet
+    [Migration("20260404045654_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,7 +21,7 @@ namespace Epiknovel.Modules.Wallet.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("wallet")
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
