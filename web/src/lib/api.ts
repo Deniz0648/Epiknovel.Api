@@ -53,6 +53,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     method,
     body,
     cache: "no-store",
+    credentials: rest.credentials ?? "include", // Oturum çerezlerini (cookies) iletmek için kritik
     headers: {
       ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -106,12 +107,24 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 export function resolveMediaUrl(url?: string | null): string {
   if (!url) return "";
 
-  // Docker internal host'u browser'ın anlayacağı hale getir
+  // 1. Eğer URL bizim proxy adresimizse, doğrudan içindeki yolu alalım.
+  // Bu hem URL'yi kısaltır hem de Next.js'in /uploads rewrite mekanizmasını kullanmasını sağlar.
+  if (url.includes("/api/media/file?path=")) {
+    const parts = url.split("/api/media/file?path=");
+    if (parts.length > 1) {
+      // Decode the path if it's encoded in the query
+      try {
+        return decodeURIComponent(parts[1]);
+      } catch {
+        return parts[1];
+      }
+    }
+  }
+
+  // 2. Docker internal host'u browser'ın anlayacağı hale getir (Fallback)
   if (url.includes("epiknovel_api:8080")) {
     return url.replace("epiknovel_api:8080", "localhost:8080");
   }
 
-  // Eğer relative path ise ve browser'da çalışıyorsak (localhost:3000), 
-  // Next.js rewrite (/uploads -> localhost:8080/uploads) sayesinde doğrudan çalışır.
   return url;
 }

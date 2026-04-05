@@ -11,11 +11,17 @@ using Epiknovel.Shared.Core.Constants;
 using MediatR;
 using Epiknovel.Shared.Core.Events;
 using System.Threading;
+using Epiknovel.Shared.Infrastructure.Security;
 
 namespace Epiknovel.Modules.Books.Endpoints.UpdateChapter;
 
 [AuditLog("Bölüm İçeriği Güncellendi (Sync Modu)")]
-public class Endpoint(BooksDbContext dbContext, IPermissionService permissionService, IOutputCacheStore cacheStore, IMediator mediator, Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider settings) : Endpoint<Request, Result<Response>>
+public class Endpoint(
+    BooksDbContext dbContext, 
+    IPermissionService permissionService, 
+    IOutputCacheStore cacheStore, 
+    Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider settings,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService chapterCache) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -72,7 +78,6 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
             }
         }
 
-        var sanitizer = new Ganss.Xss.HtmlSanitizer();
         bool isFirstTimePublished = req.Status == ChapterStatus.Published && chapter.PublishedAt == null;
 
         // 2. Metadata güncelle
@@ -84,7 +89,9 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
         chapter.Price = req.Price;
         chapter.Status = req.Status;
         chapter.IsTitleSpoiler = req.IsTitleSpoiler;
-        chapter.ScheduledPublishDate = req.Status == ChapterStatus.Scheduled ? req.ScheduledPublishDate : null;
+        chapter.ScheduledPublishDate = req.Status == ChapterStatus.Scheduled && req.ScheduledPublishDate.HasValue 
+            ? DateTime.SpecifyKind(req.ScheduledPublishDate.Value, DateTimeKind.Utc) 
+            : null;
         
         if (isFirstTimePublished)
         {
@@ -108,7 +115,7 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
         foreach (var line in incomingLines)
         {
             currentOrder++;
-            var sanitizedContent = sanitizer.Sanitize(line.Content);
+            var sanitizedContent = SanitizerHelper.Sanitize(line.Content);
 
             var existing = existingParagraphs.FirstOrDefault(p => p.Id == line.Id);
             if (existing != null)
@@ -189,18 +196,19 @@ public class Endpoint(BooksDbContext dbContext, IPermissionService permissionSer
                 // Eğer bölüm ilk kez yayınlanıyorsa event at
                 if (isFirstTimePublished)
                 {
-                    await mediator.Publish(new ChapterPublishedEvent(
+                    dbContext.EnqueueOutboxMessage(new ChapterPublishedEvent(
                         chapter.BookId,
                         chapter.Book.Title,
                         chapter.Id,
                         chapter.Title,
                         chapter.Slug,
                         chapter.UserId,
-                        chapter.PublishedAt ?? DateTime.UtcNow), ct);
+                        chapter.PublishedAt ?? DateTime.UtcNow));
                 }
 
-                // Cache Invalidation
+                // Cache Invalidation (Technical Decision 1 Fix)
                 await cacheStore.EvictByTagAsync("ChapterCache", ct);
+                await chapterCache.RemoveChapterAsync(chapter.Slug);
                 
                 await transaction.CommitAsync(ct);
                 return Result<Response>.Success(new Response { Message = "Bölüm içeriği başarıyla güncellendi." });

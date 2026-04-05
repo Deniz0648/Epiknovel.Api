@@ -17,9 +17,10 @@ public static class BooksModuleExtensions
                  .EnableRetryOnFailure())
                  .ConfigureWarnings(w => w.Ignore(20100, 20605)));
 
-        // 2. Background Workers (İstatistik Senkronizasyonu + Zamanlanmış Yayın)
+        // 2. Background Workers (İstatistik Senkronizasyonu + Zamanlanmış Yayın + Outbox)
         services.AddHostedService<Epiknovel.Modules.Books.Workers.ChapterStatsSyncWorker>();
         services.AddHostedService<Epiknovel.Modules.Books.Workers.ScheduledPublishWorker>();
+        services.AddHostedService<Epiknovel.Modules.Books.Workers.OutboxProcessorWorker>();
 
         // 3. Services Register
         services.AddScoped<IFileUsageProvider, BooksFileUsageProvider>();

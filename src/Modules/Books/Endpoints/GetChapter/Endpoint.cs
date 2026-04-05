@@ -11,16 +11,20 @@ using MediatR;
 using System.Security.Claims;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Constants;
+using Microsoft.Extensions.DependencyInjection;
+using Epiknovel.Shared.Core.Interfaces.Wallet;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetChapter;
 
 public class Endpoint(
     BooksDbContext dbContext, 
     StackExchange.Redis.IConnectionMultiplexer redis,
-    IMediator mediator,
     IReadingProgressProvider progressProvider,
     IUserAccountProvider userAccountProvider,
-    IPermissionService permissionService) : Endpoint<Request, Result<Response>>
+    IPermissionService permissionService,
+    IServiceScopeFactory scopeFactory,
+    IWalletProvider walletProvider,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService chapterCache) : Endpoint<Request, Result<Response>>
 {
     private const int MaxParagraphsPerResponse = 2000;
 
@@ -37,10 +41,109 @@ public class Endpoint(
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        // 1. Bölümü ve sıralı paragrafları doğrudan Projeksiyon (Select) ile getir
-        // AsNoTracking()'ten daha hızlıdır ve RAM şişmesini (LOH) engeller
+        // 0. Kimlik ve Ortam Hazırlığı
+        var userIdStrRaw = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        Guid currentUserId = Guid.Empty;
+        bool isAuthenticated = !string.IsNullOrEmpty(userIdStrRaw) && Guid.TryParse(userIdStrRaw, out currentUserId);
+        
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+        bool isConfirmed = false;
+        if (isAuthenticated)
+        {
+            isConfirmed = env == "Development" || await userAccountProvider.IsEmailConfirmedAsync(currentUserId, ct);
+        }
+
+        // 1. Cache Stampede Korumalı Data Alımı (Technical Decision 1 & 4)
+        // Eğer bölüm Published ise cache'den gelir, yoksa DB'den çekilip cache'lenir.
+        // Taslaklar (Draft) DB'den çekilir ama cache'lenmez (shouldCache predicate).
+        var response = await chapterCache.GetOrAddAsync(
+            req.Slug,
+            async () => await FetchChapterFromDbAsync(req.Slug, ct),
+            res => res.Status == ChapterStatus.Published);
+
+        if (response == null)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+
+        // 2. Yetki ve Taslak Gizliliği Kontrolü (Personalized)
+        bool isOwner = isAuthenticated && response.AuthorUserId == currentUserId;
+        bool canModerate = await permissionService.HasPermissionAsync(User, PermissionNames.ModerateContent, ct);
+
+        if (response.Status != ChapterStatus.Published)
+        {
+            if (!isOwner && !canModerate)
+            {
+                await Send.ResponseAsync(Result<Response>.Failure("Bu bölüm henüz yayınlanmamış."), 403, ct);
+                return;
+            }
+        }
+
+        // 3. Kullanıcıya Özel Overlays (Personalized - Bu kısımlar cache'lenmez)
+        // İçerik erişim yetkisi var mı? (Ücretsiz mi, Sahibi mi, Moderatör mü?)
+        bool hasFullAccess = response.IsFree || isOwner || canModerate;
+
+        if (isAuthenticated)
+        {
+            // Okuma ilerlemesi
+            response.LastReadScrollPercentage = await progressProvider.GetProgressPercentageAsync(currentUserId, response.BookId, response.Id, ct);
+            
+            // Eğer hala yetki yoksa cüzdan kontrolü yap (Satın alınmış mı?)
+            if (!hasFullAccess)
+            {
+                hasFullAccess = await walletProvider.HasUserUnlockedChapterAsync(currentUserId, response.Id, ct);
+            }
+
+            // Kısıtlama Koşulları: E-posta onaylanmamışsa (Order > 1) VEYA Ücretli olup satın alınmamışsa
+            bool restrictedByEmail = !isConfirmed && response.Order > 1;
+            bool restrictedByPayment = !hasFullAccess && !response.IsFree;
+
+            if (restrictedByEmail || restrictedByPayment)
+            {
+                int takeCount = (int)Math.Ceiling(response.Paragraphs.Count * 0.15);
+                if (takeCount < 1 && response.Paragraphs.Count > 0) takeCount = 1;
+                response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
+                response.IsPreview = true;
+                response.PreviewMessage = restrictedByPayment 
+                    ? "Bu bölüm ücretlidir. Tamamını okumak için lütfen satın alın."
+                    : "Bu bölümün sadece %15'lik kısmını görmektesiniz. Tamamını okumak için lütfen hesabınızı onaylayın.";
+            }
+        }
+        else if (!response.IsFree)
+        {
+            // Giriş yapmamış kullanıcı ücretli bölümü sadece preview olarak görebilir
+            int takeCount = (int)Math.Ceiling(response.Paragraphs.Count * 0.15);
+            if (takeCount < 1 && response.Paragraphs.Count > 0) takeCount = 1;
+            response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
+            response.IsPreview = true;
+            response.PreviewMessage = "Bu bölüm ücretlidir. Okumak için lütfen giriş yapın ve satın alın.";
+        }
+
+        // 4. Arka Plan İşlemleri (Hit sayacı vb.)
+        ProcessBackgroundTasks(response.Id, response.BookId, currentUserId, isAuthenticated);
+
+        // 🚀 ANLIK GÖRSEL İYİLEŞTİRME (Technical Decision 4)
+        // SQL'den gelen değere Redis'te birikmiş ama henüz SQL'e yazılmamış (5 dk'lık buffer) hitleri ekle.
+        // Böylece kullanıcı yenilediğinde sayacı artmış görür.
+        try 
+        {
+            var db = redis.GetDatabase();
+            var pendingHits = await db.StringGetAsync($"chapter:hits:{response.Id}");
+            if (pendingHits.HasValue)
+            {
+                response.ViewCount += (long)pendingHits;
+            }
+        } catch { }
+
+        await Send.ResponseAsync(Result<Response>.Success(response), 200, ct);
+    }
+
+    private async Task<Response?> FetchChapterFromDbAsync(string slug, CancellationToken ct)
+    {
+        // DB ve Navigasyon işlemleri bu factory içinde Thundering Herd korumalı çalışır
         var chapter = await dbContext.Chapters
-            .Where(x => x.Slug == req.Slug)
+            .Where(x => x.Slug == slug)
             .Select(c => new 
             {
                 c.Id,
@@ -54,7 +157,12 @@ public class Endpoint(
                 c.IsFree,
                 c.Price,
                 c.IsTitleSpoiler,
+                BookTitle = c.Book.Title,
+                BookSlug = c.Book.Slug,
+                TotalChapters = dbContext.Chapters.Count(x => x.BookId == c.BookId && x.Status == ChapterStatus.Published),
                 c.PublishedAt,
+                c.ScheduledPublishDate,
+                c.ViewCount,
                 ParagraphCount = c.Paragraphs.Count(),
                 Paragraphs = c.Paragraphs.OrderBy(p => p.Order).Select(p => new ParagraphDto
                 {
@@ -66,41 +174,12 @@ public class Endpoint(
             })
             .FirstOrDefaultAsync(ct);
 
-        if (chapter == null)
-        {
-            await Send.NotFoundAsync(ct);
-            return;
-        }
+        if (chapter == null) return null;
 
-        // 1.1 Taslak Gizliliği Kontrolü
-        var userIdStrRaw = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-        bool isAuthorizedToSeeDraft = false;
-        if (!string.IsNullOrEmpty(userIdStrRaw) && Guid.TryParse(userIdStrRaw, out var currentUserId))
-        {
-            var canModerateContent = await permissionService.HasPermissionAsync(User, PermissionNames.ModerateContent, ct);
-            if (chapter.UserId == currentUserId || canModerateContent)
-            {
-                isAuthorizedToSeeDraft = true;
-            }
-        }
-
-        if (chapter.Status != ChapterStatus.Published && !isAuthorizedToSeeDraft)
-        {
-            await Send.ResponseAsync(Result<Response>.Failure("Bu bölüm henüz yayınlanmamış."), 403, ct);
-            return;
-        }
-
-        // 2. Yetki ve Onay Kontrolü (%15 Kısıtlaması)
-        bool isConfirmed = false;
-        if (!string.IsNullOrEmpty(userIdStrRaw) && Guid.TryParse(userIdStrRaw, out var userId))
-        {
-            isConfirmed = await userAccountProvider.IsEmailConfirmedAsync(userId, ct);
-        }
-
-        // 3. Response hazırla
-        var response = new Response
+        var res = new Response
         {
             Id = chapter.Id,
+            AuthorUserId = chapter.UserId, // BOLA kontrolü için DTO'ya eklenmeli
             Title = chapter.Title,
             WordCount = chapter.WordCount,
             Order = chapter.Order,
@@ -108,100 +187,89 @@ public class Endpoint(
             Price = chapter.Price,
             Status = chapter.Status,
             IsTitleSpoiler = chapter.IsTitleSpoiler,
+            BookTitle = chapter.BookTitle,
+            BookSlug = chapter.BookSlug,
+            BookId = chapter.BookId,
+            TotalChapters = chapter.TotalChapters,
             PublishedAt = chapter.PublishedAt ?? DateTime.UtcNow,
-            Paragraphs = chapter.Paragraphs.Select(p => new ParagraphDto
-            {
-                Id = p.Id,
-                Content = p.Content,
-                Type = p.Type.ToString(),
-                Order = p.Order
-            }).ToList(),
+            ScheduledPublishDate = chapter.ScheduledPublishDate.HasValue 
+                ? DateTime.SpecifyKind(chapter.ScheduledPublishDate.Value, DateTimeKind.Utc) 
+                : null,
+            ViewCount = chapter.ViewCount,
+            Paragraphs = chapter.Paragraphs,
             IsTruncated = chapter.ParagraphCount > MaxParagraphsPerResponse,
             TruncationMessage = chapter.ParagraphCount > MaxParagraphsPerResponse
                 ? $"Bu bölüm çok büyük olduğu için ilk {MaxParagraphsPerResponse} satır gösteriliyor."
                 : null
         };
 
-        // --- OKUYUCU İSTEĞİ: Kısıtlama Uygula (Yazarlar ve Moderatörler muaf) ---
-        if (!isConfirmed && !isAuthorizedToSeeDraft)
-        {
-            if (chapter.Order > 1)
-            {
-                await Send.ResponseAsync(Result<Response>.Failure("Sadece ilk bölümün bir kısmını önizleyebilirsiniz. Devamı için e-postanızı onaylayın."), 403, ct);
-                return;
-            }
-            else
-            {
-                int takeCount = (int)Math.Ceiling(chapter.Paragraphs.Count * 0.15);
-                if (takeCount < 1 && chapter.Paragraphs.Count > 0) takeCount = 1;
-                
-                response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
-                response.IsPreview = true;
-                response.PreviewMessage = "Bu bölümün sadece %15'lik kısmını görmektesiniz. Tamamını okumak için lütfen hesabınızı onaylayın.";
-            }
-        }
-
-        // 4. Navigasyon Bilgilerini Getir (Sonraki/Önceki Bölüm)
+        // Navigasyon Bilgileri
         var baseNavQuery = dbContext.Chapters
             .AsNoTracking()
             .Where(x => x.BookId == chapter.BookId && x.Status == ChapterStatus.Published);
 
-        response.PreviousChapterSlug = await baseNavQuery
+        res.PreviousChapterSlug = await baseNavQuery
             .Where(x => x.Order < chapter.Order)
             .OrderByDescending(x => x.Order)
             .Select(x => x.Slug)
             .FirstOrDefaultAsync(ct);
 
-        response.NextChapterSlug = await baseNavQuery
+        res.NextChapterSlug = await baseNavQuery
             .Where(x => x.Order > chapter.Order)
             .OrderBy(x => x.Order)
             .Select(x => x.Slug)
             .FirstOrDefaultAsync(ct);
 
-        // 5. Okuma İlerlemesini Getir (Eğer kullanıcı giriş yapmışsa)
-        if (!string.IsNullOrEmpty(userIdStrRaw) && Guid.TryParse(userIdStrRaw, out var userIdProgress))
-        {
-            response.LastReadScrollPercentage = await progressProvider.GetProgressPercentageAsync(userIdProgress, chapter.BookId, chapter.Id, ct);
-        }
+        return res;
+    }
 
-        // 6. Arka Plan İşlemleri: İzlenme Sayısı ve Okuma Geçmişi
-        var chapterId = chapter.Id;
-        var bookId = chapter.BookId;
+    private void ProcessBackgroundTasks(Guid chapterId, Guid bookId, Guid userId, bool isAuthenticated)
+    {
         var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "anon";
-        var userClaims = User.Claims.Select(c => new Claim(c.Type, c.Value)).ToList();
 
+        // Arka planda güvenli çalışma (Scope dışı bağımlılıkları yönetmek için)
         _ = Task.Run(async () => {
             try 
             {
+                using var scope = scopeFactory.CreateScope();
+                var internalMediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+                
                 var db = redis.GetDatabase();
                 var chapterIdStr = chapterId.ToString();
-                var userIdStr = userClaims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                var identifier = userIdStr ?? remoteIp;
+                var identifier = isAuthenticated ? userId.ToString() : remoteIp;
                 
-                var today = DateTime.UtcNow.ToString("yyyyMMdd");
-                var uniqueHitKey = $"chapter:hits:unique:{chapterIdStr}:{today}";
+                var uniqueHitKey = $"chapter:hits:unique:{chapterIdStr}";
                 
                 if (await db.SetAddAsync(uniqueHitKey, identifier))
                 {
-                    await db.KeyExpireAsync(uniqueHitKey, TimeSpan.FromHours(24));
                     await db.StringIncrementAsync($"chapter:hits:{chapterIdStr}");
                     await db.SetAddAsync("chapters:dirty", chapterIdStr);
-                }
-
-                if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var userIdParsed))
-                {
-                    await mediator.Publish(new Epiknovel.Shared.Core.Events.ChapterReadEvent(
-                        bookId,
-                        chapterId,
-                        userIdParsed,
-                        0,
-                        DateTime.UtcNow));
+                    
+                    // 📚 Kitap istatistiklerini de artır
+                    if (bookId != Guid.Empty)
+                    {
+                        var bookIdStr = bookId.ToString();
+                        await db.StringIncrementAsync($"book:hits:{bookIdStr}");
+                        await db.SetAddAsync("books:dirty", bookIdStr);
+                    }
+                    
+                    if (isAuthenticated)
+                    {
+                        await internalMediator.Publish(new Epiknovel.Shared.Core.Events.ChapterReadEvent(
+                            bookId,
+                            chapterId,
+                            userId,
+                            0,
+                            DateTime.UtcNow));
+                    }
                 }
             }
-            catch { }
-        }, ct);
-
-        await Send.ResponseAsync(Result<Response>.Success(response), 200, ct);
+            catch (Exception ex)
+            {
+                // Sessiz hata ama loglanabilir
+                System.Diagnostics.Debug.WriteLine($"Stats Error: {ex.Message}");
+            }
+        });
     }
 }
 

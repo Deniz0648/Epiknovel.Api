@@ -26,7 +26,15 @@ type ConnectNotificationHubOptions = {
 };
 
 function resolveHubUrl(path: string) {
-  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BACKEND_API_BASE_URL).replace(/\/+$/, "");
+  // 📚 PROXY SUPPORT (SignalR'ın 8080 yerine 3000 üzerinden geçmesi için)
+  // Eğer tarayıcı tarafındaysak göreceli yol kullan, Next.js /hubs/* isteklerini otomatik proxy'ler.
+  if (typeof window !== "undefined") {
+    return path;
+  }
+
+  let apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? DEFAULT_BACKEND_API_BASE_URL;
+  
+  apiBaseUrl = apiBaseUrl.replace(/\/+$/, "");
   const hubBaseUrl = apiBaseUrl.endsWith("/api") ? apiBaseUrl.slice(0, -4) : apiBaseUrl;
   return `${hubBaseUrl.replace(/\/+$/, "")}${path}`;
 }

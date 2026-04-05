@@ -63,31 +63,37 @@
 
 .tiptap-editor-content:focus { outline: none; }
 
-.drag-handle {
-    width: 24px;
-    height: 24px;
-    cursor: grab;
-    background-color: oklch(var(--bc) / 0.3);
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='12' r='1'/%3E%3Ccircle cx='9' cy='5' r='1'/%3E%3Ccircle cx='9' cy='19' r='1'/%3E%3Ccircle cx='15' cy='12' r='1'/%3E%3Ccircle cx='15' cy='5' r='1'/%3E%3Ccircle cx='15' cy='19' r='1'/%3E%3C/svg%3E");
-    mask-repeat: no-repeat;
-    mask-position: center;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-    z-index: 50;
+/* .drag-handle styles moved to Tailwind in DraggableBlock.tsx */
+.tiptap-editor-content [data-drag-handle] {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
 }
 
-.drag-handle:hover {
-    background-color: oklch(var(--p));
-    cursor: grabbing;
+.tiptap-editor-content .draggable-item:hover [data-drag-handle] {
+    opacity: 1;
+    pointer-events: all;
 }
 
 .tiptap-editor-content .draggable-item {
-    transition: margin-top 0.2s, margin-bottom 0.2s, transform 0.2s;
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .tiptap-editor-content .ProseMirror-selectednode {
-    outline: 2px solid oklch(var(--p) / 0.5);
-    background-color: oklch(var(--p) / 0.05);
+    outline: none !important;
+    background-color: oklch(var(--b1)) !important;
+    border-color: oklch(var(--p) / 0.5) !important;
+    box-shadow: 0 0 20px oklch(var(--p) / 0.15), 0 0 40px oklch(var(--p) / 0.05), var(--shadow-xl) !important;
+    transform: scale(1.02) !important;
+    z-index: 50 !important;
+    position: relative;
+    border-radius: 1rem !important;
+    cursor: grabbing !important;
+}
+
+.tiptap-editor-content .draggable-item:hover {
+    box-shadow: var(--shadow-sm);
+    z-index: 5;
 }
 
 [data-node-type="bulletList"] [data-node-type="paragraph"] .drag-handle,

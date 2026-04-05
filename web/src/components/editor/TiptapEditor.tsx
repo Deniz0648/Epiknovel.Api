@@ -44,13 +44,10 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
                 return initialParagraphs
                     .sort((a, b) => a.order - b.order)
                     .map(p => {
-                        // Inject data-uuid into the tag if it exists
                         if (p.content.includes('>')) {
                             const tagEndIndex = p.content.indexOf('>')
                             const firstTag = p.content.substring(0, tagEndIndex)
-                            // Skip if already has uuid
                             if (firstTag.includes('data-uuid')) return p.content
-                            
                             return p.content.substring(0, tagEndIndex) + ` data-uuid="${p.id}"` + p.content.substring(tagEndIndex)
                         }
                         return `<p data-uuid="${p.id}">${p.content}</p>`
@@ -124,48 +121,48 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
             },
         })
 
+        const getParagraphs = useCallback(() => {
+            if (!editor) return []
+            const paragraphs: ParagraphData[] = []
+            let order = 0
+            const serializer = DOMSerializer.fromSchema(editor.schema)
+
+            editor.state.doc.forEach((node, offset) => {
+                const type = node.type.name
+                if (['paragraph', 'heading', 'blockquote', 'codeBlock', 'bulletList', 'orderedList'].includes(type) || node.isBlock) {
+                    let uuid = node.attrs.uuid
+                    const dom = serializer.serializeNode(node)
+                    const tmp = document.createElement('div')
+                    tmp.appendChild(dom)
+                    let html = tmp.innerHTML
+
+                    if (html === '<p></p>') html = '<p><br></p>'
+
+                    if (!uuid) {
+                        const match = html.match(/data-uuid="([^"]+)"/)
+                        uuid = match ? match[1] : uuidv4()
+                    }
+
+                    paragraphs.push({
+                        id: uuid,
+                        order: order++,
+                        content: html,
+                        type: 0
+                    })
+                }
+            })
+
+            return paragraphs
+        }, [editor])
+
         useImperativeHandle(ref, () => ({
             getHTML: () => editor?.getHTML() || '',
             getWordCount: () => {
                 const text = editor?.getText() || ''
                 return text.trim().split(/\s+/).filter(w => !!w).length
             },
-            getParagraphs: () => {
-                if (!editor) return []
-                const paragraphs: ParagraphData[] = []
-                let order = 0
-                const serializer = DOMSerializer.fromSchema(editor.schema)
-
-                editor.state.doc.forEach((node, offset) => {
-                    const type = node.type.name
-                    if (['paragraph', 'heading', 'blockquote', 'codeBlock', 'bulletList', 'orderedList'].includes(type) || node.isBlock) {
-                        let uuid = node.attrs.uuid
-                        const dom = serializer.serializeNode(node)
-                        const tmp = document.createElement('div')
-                        tmp.appendChild(dom)
-                        let html = tmp.innerHTML
-
-                        if (html === '<p></p>') {
-                            html = '<p><br></p>'
-                        }
-
-                        if (!uuid) {
-                            const match = html.match(/data-uuid="([^"]+)"/)
-                            uuid = match ? match[1] : uuidv4()
-                        }
-
-                        paragraphs.push({
-                            id: uuid,
-                            order: order++,
-                            content: html,
-                            type: 0 // Default to Text (ParagraphType.Text)
-                        })
-                    }
-                })
-
-                return paragraphs
-            },
-        }), [editor])
+            getParagraphs: getParagraphs,
+        }), [editor, getParagraphs])
 
         useEffect(() => {
             if (editor && !editor.isDestroyed) {

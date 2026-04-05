@@ -10,6 +10,9 @@ import { RealtimeProvider } from "@/components/providers/realtime-provider";
 export const metadata: Metadata = {
   title: "EpikNovel",
   description: "Glassmorphism tabanli modern okuma platformu",
+  icons: {
+    icon: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -25,13 +28,15 @@ export default function RootLayout({
             <AuthProvider>
               <NotificationsProvider>
                 <div className="flex min-h-screen flex-col">
-                <div className="fixed inset-x-0 top-0 z-50">
+                <div id="global-header-container" className="fixed inset-x-0 top-0 z-50">
                   <div className="site-shell mx-auto px-4 pt-3 sm:px-8 sm:pt-4">
                     <HeaderIsland />
                   </div>
                 </div>
                 <div className="flex-1">{children}</div>
-                <SiteFooter />
+                <div id="global-footer-container">
+                  <SiteFooter />
+                </div>
               </div>
             </NotificationsProvider>
           </AuthProvider>

@@ -25,6 +25,7 @@ public class Response
     
     public int VoteCount { get; set; }
     public double AverageRating { get; set; }
+    public int? UserRating { get; set; }
     public long ViewCount { get; set; }
     public DateTime CreatedAt { get; set; }
 }

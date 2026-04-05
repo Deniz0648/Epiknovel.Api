@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
         source: "/uploads/:path*",
         destination: "http://epiknovel_api:8080/uploads/:path*",
       },
+      {
+        source: "/hubs/:path*",
+        destination: "http://epiknovel_api:8080/hubs/:path*",
+      },
     ];
   },
 };

@@ -7,7 +7,9 @@ using Epiknovel.Shared.Core.Models;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetMyBooks;
 
-public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<PagedResult<Response>>>
+public class Endpoint(
+    BooksDbContext dbContext,
+    StackExchange.Redis.IConnectionMultiplexer redis) : Endpoint<Request, Result<PagedResult<Response>>>
 {
     public override void Configure()
     {
@@ -92,6 +94,24 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
                 UpdatedAt = x.UpdatedAt ?? x.CreatedAt
             })
             .ToListAsync(ct);
+            
+        // 🚀 Redis üzerinden anlık hitleri bindir
+        try 
+        {
+            var db = redis.GetDatabase();
+            var keys = items.Select(x => (StackExchange.Redis.RedisKey)$"book:hits:{x.Id}").ToArray();
+            if (keys.Length > 0)
+            {
+                var redisHits = await db.StringGetAsync(keys);
+                for (int i = 0; i < items.Count; i++)
+                {
+                    if (redisHits[i].HasValue)
+                    {
+                        items[i].ViewCount += (long)redisHits[i];
+                    }
+                }
+            }
+        } catch { }
 
         var pagedResult = PagedResult<Response>.Create(items, totalCount, pageNumber, pageSize);
         await Send.ResponseAsync(Result<PagedResult<Response>>.Success(pagedResult), 200, ct);

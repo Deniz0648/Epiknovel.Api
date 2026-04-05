@@ -67,6 +67,7 @@ services:
     environment:
       - NODE_ENV=production
       - API_BASE_URL=http://epiknovel_api:8080/api
+      - NEXT_PUBLIC_COOKIE_SECURE=${NEXT_PUBLIC_COOKIE_SECURE}
 
 volumes:
   postgres_data:

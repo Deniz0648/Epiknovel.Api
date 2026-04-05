@@ -30,9 +30,12 @@ export const DraggableBlock = (props: any) => {
     }
 
     return (
-        <NodeViewWrapper className="draggable-item flex items-start gap-2 relative group -ml-12 pl-2" data-node-type={props.node.type.name}>
+        <NodeViewWrapper 
+            className="draggable-item flex items-start gap-4 relative group -ml-14 pl-14 pr-4 py-3 rounded-2xl transition-all duration-200 hover:bg-base-100/50 hover:shadow-sm border border-transparent hover:border-base-content/5 mb-1" 
+            data-node-type={props.node.type.name}
+        >
             <div
-                className="drag-handle opacity-50 hover:opacity-100 transition-opacity p-1 cursor-grab active:cursor-grabbing text-base-content/40 hover:text-base-content hover:bg-base-200 rounded mt-1.5"
+                className="drag-handle flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-base-200/50 text-base-content/20 cursor-grab active:cursor-grabbing hover:bg-primary/15 hover:text-primary transition-all duration-200 absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100"
                 contentEditable={false}
                 draggable="true"
                 data-drag-handle
@@ -41,7 +44,7 @@ export const DraggableBlock = (props: any) => {
             </div>
             <NodeViewContent
                 as={Tag}
-                className={`flex-1 min-w-0 ${contentClass}`}
+                className={`flex-1 min-w-0 ${contentClass} !mb-0`} 
                 style={{ textAlign: props.node.attrs.textAlign }}
             />
         </NodeViewWrapper>

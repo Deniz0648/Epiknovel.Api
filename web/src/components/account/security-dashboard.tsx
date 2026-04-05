@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { KeyRound, Mail, Smartphone, Trash2 } from "lucide-react";
+import { KeyRound, Mail, Monitor, Smartphone, Trash2 } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import {
   changeEmail,
@@ -130,8 +130,18 @@ export function SecurityDashboard() {
     setSessionsError(null);
     setSessionsMessage(null);
 
+    const session = sessions.find((s) => s.sessionId === sessionId);
+    const isRevokingCurrent = (session as any)?.isCurrent === true || (session as any)?.IsCurrent === true;
+
     try {
       const result = await revokeSession(sessionId);
+      
+      if (isRevokingCurrent) {
+        await logout();
+        window.location.href = "/";
+        return;
+      }
+
       setSessions((current) => current.filter((session) => session.sessionId !== sessionId));
       setSessionsMessage(result.message);
     } catch (error) {
@@ -152,6 +162,7 @@ export function SecurityDashboard() {
       setSessions([]);
       setSessionsMessage(result.message);
       await logout();
+      window.location.href = "/";
     } catch (error) {
       if (error instanceof ApiError) {
         setSessionsError(error.message);
@@ -240,30 +251,80 @@ export function SecurityDashboard() {
                 Aktif ek oturum bulunamadi.
               </div>
             ) : null}
-            {sessions.map((session) => (
-              <div key={session.sessionId} className="rounded-[1.4rem] border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <p className="inline-flex items-center gap-2 text-sm font-bold">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-base-100/28 text-primary">
-                        <Smartphone className="h-4 w-4" />
-                      </span>
-                      {session.device || "Bilinmeyen cihaz"}
-                    </p>
-                    <p className="text-xs text-base-content/60">IP: {session.ipAddress || "Bilinmiyor"}</p>
-                    <p className="text-xs text-base-content/60">{sessionDateFormatter.format(new Date(session.createdAt))}</p>
+            {sessions.map((session) => {
+              const deviceName = session.device || "Bilinmeyen Cihaz";
+              const isCurrent = (session as any).isCurrent === true || (session as any).IsCurrent === true;
+              const isMobile = deviceName.toLowerCase().includes("mobil");
+              
+              return (
+                <div 
+                  key={session.sessionId} 
+                  className={`group relative rounded-[1.8rem] border p-4 transition-all duration-300 backdrop-blur-md overflow-hidden ${
+                    isCurrent 
+                      ? 'border-primary/40 bg-gradient-to-br from-primary/15 to-transparent ring-1 ring-primary/20 shadow-xl shadow-primary/5' 
+                      : 'border-base-content/8 bg-base-100/30 hover:border-base-content/15 hover:bg-base-100/40'
+                  }`}
+                >
+                  {/* Dekoratif Arkaplan Glow (Sadece Aktif Oturum İçin) */}
+                  {isCurrent && (
+                    <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/15 blur-2xl transition-all group-hover:bg-primary/25" />
+                  )}
+
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      {/* Platform Ikonu */}
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${
+                        isCurrent ? 'bg-primary text-primary-content shadow-lg shadow-primary/25' : 'bg-base-content/8 text-base-content/70'
+                      }`}>
+                        {isMobile ? <Smartphone className="h-6 w-6" /> : <Monitor className="h-6 w-6" />}
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-sm font-black tracking-tight text-base-content sm:text-base">
+                            {deviceName}
+                          </h4>
+                          {isCurrent && (
+                             <div className="flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-primary ring-1 ring-primary/20">
+                               <span className="relative flex h-1.5 w-1.5">
+                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"></span>
+                                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-primary"></span>
+                               </span>
+                               Bu Cihaz
+                             </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                          <p className="flex items-center gap-1.5 text-xs font-medium text-base-content/60">
+                            <span className="h-1 w-1 rounded-full bg-base-content/30" />
+                            {session.ipAddress || "0.0.0.0"}
+                          </p>
+                          <p className="flex items-center gap-1.5 text-xs text-base-content/50">
+                            {sessionDateFormatter.format(new Date(session.createdAt))}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={() => void handleRevokeSession(session.sessionId)}
+                        className={`btn btn-sm h-10 rounded-2xl border-0 px-4 font-bold shadow-sm transition-all active:scale-95 ${
+                          isCurrent 
+                            ? 'btn-primary shadow-lg shadow-primary/20' 
+                            : 'bg-base-content/5 text-base-content/50 hover:bg-error/15 hover:text-error'
+                        }`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {isCurrent ? "Oturumu Sonlandir" : "Kapat"}
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleRevokeSession(session.sessionId)}
-                    className="btn btn-sm rounded-full border border-error/30 bg-error/10 text-error hover:bg-error/18"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Kapat
-                  </button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </article>
       </div>

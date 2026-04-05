@@ -6,7 +6,9 @@ using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.OutputCaching;
 using Ganss.Xss;
+using Epiknovel.Shared.Infrastructure.Security;
 using System.Threading;
 
 namespace Epiknovel.Modules.Books.Features.Chapters.Commands.AddChapter;
@@ -14,7 +16,7 @@ namespace Epiknovel.Modules.Books.Features.Chapters.Commands.AddChapter;
 public class AddChapterHandler(
     BooksDbContext dbContext,
     ISlugService slugService,
-    IMediator mediator) : IRequestHandler<AddChapterCommand, Result<AddChapterResponse>>
+    IOutputCacheStore cacheStore) : IRequestHandler<AddChapterCommand, Result<AddChapterResponse>>
 {
     public async Task<Result<AddChapterResponse>> Handle(AddChapterCommand request, CancellationToken ct)
     {
@@ -53,18 +55,19 @@ public class AddChapterHandler(
             Price = request.Price,
             Status = request.Status,
             IsTitleSpoiler = request.IsTitleSpoiler,
-            ScheduledPublishDate = request.Status == ChapterStatus.Scheduled ? request.ScheduledPublishDate : null,
+            ScheduledPublishDate = request.Status == ChapterStatus.Scheduled && request.ScheduledPublishDate.HasValue 
+                ? DateTime.SpecifyKind(request.ScheduledPublishDate.Value, DateTimeKind.Utc) 
+                : null,
             PublishedAt = request.Status == ChapterStatus.Published ? DateTime.UtcNow : null
         };
 
         // 5. Paragrafları (Satırları) Temizle ve Oluştur (XSS Koruması)
-        var sanitizer = new HtmlSanitizer();
         int currentOrder = 0;
         int totalWords = 0;
 
         foreach (var line in request.Lines)
         {
-            var sanitizedContent = sanitizer.Sanitize(line.Content);
+            var sanitizedContent = SanitizerHelper.Sanitize(line.Content);
             
             var paragraph = new Paragraph
             {
@@ -105,15 +108,18 @@ public class AddChapterHandler(
                 // 6. Domain Event Yayınla (Sadece Yayınlanmışsa)
                 if (chapter.Status == ChapterStatus.Published)
                 {
-                    await mediator.Publish(new ChapterPublishedEvent(
+                    dbContext.EnqueueOutboxMessage(new ChapterPublishedEvent(
                         book.Id,
                         book.Title,
                         chapter.Id,
                         chapter.Title,
                         chapter.Slug,
                         chapter.UserId,
-                        chapter.PublishedAt ?? DateTime.UtcNow), ct);
+                        chapter.PublishedAt ?? DateTime.UtcNow));
                 }
+                
+                // 7. Cache Invalidation
+                await cacheStore.EvictByTagAsync("ChapterCache", ct);
                 
                 await transaction.CommitAsync(ct);
                 return Result<AddChapterResponse>.Success(new AddChapterResponse(chapter.Id, chapter.Slug, "Bölüm satır bazlı olarak başarıyla yayınlandı."));

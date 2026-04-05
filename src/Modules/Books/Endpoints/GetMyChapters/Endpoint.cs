@@ -78,7 +78,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
                 Slug = x.Slug,
                 Order = x.Order,
                 WordCount = x.WordCount,
-                Status = x.Status.ToString(),
+                Status = x.Status,
                 Price = x.Price,
                 IsFree = x.IsFree,
                 ViewCount = x.ViewCount,

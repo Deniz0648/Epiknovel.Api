@@ -47,6 +47,7 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Response>>
             Type = detail.Type,
             VoteCount = detail.VoteCount,
             AverageRating = detail.AverageRating,
+            UserRating = detail.UserRating,
             ViewCount = detail.ViewCount,
             CreatedAt = detail.CreatedAt,
             Categories = detail.Categories.Select(c => new CategoryDto { Id = c.Id, Name = c.Name, Slug = c.Slug }).ToList(),

@@ -5,11 +5,16 @@ using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Attributes;
 using Microsoft.AspNetCore.OutputCaching;
 using System.Security.Claims;
+using MediatR;
 
 namespace Epiknovel.Modules.Books.Endpoints.DeleteBook;
 
 [AuditLog("Kitap Çöpe Taşındı")]
-public class Endpoint(BooksDbContext dbContext, IOutputCacheStore cacheStore) : Endpoint<Request, Result<Response>>
+public class Endpoint(
+    BooksDbContext dbContext, 
+    IOutputCacheStore cacheStore, 
+    IMediator mediator,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService chapterCache) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -48,7 +53,26 @@ public class Endpoint(BooksDbContext dbContext, IOutputCacheStore cacheStore) : 
             return;
         }
 
-        // 2. Ölçeklenebilir Soft Delete (ExecuteUpdateAsync ile tek SQL hamlesi)
+        // 🚀 ASENKRON ARŞİVLEME (Technical Decision 3)
+        // Veriyi bir kez çekip JSON olarak logluyoruz (Asenkron işlenecek)
+        var fullBookData = await dbContext.Books
+            .AsNoTracking()
+            .Include(x => x.Categories)
+            .Include(x => x.Tags)
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
+        
+        if (fullBookData != null)
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(fullBookData);
+            await mediator.Publish(new Epiknovel.Shared.Core.Events.DataArchivedEvent(
+                "Book",
+                req.Id,
+                json,
+                userId,
+                DateTime.UtcNow), ct);
+        }
+
+        // 2. Ölçeklenebilir Soft Delete...
         var now = DateTime.UtcNow;
 
         // Önce bölümleri toplu silindi olarak işaretle
@@ -71,6 +95,19 @@ public class Endpoint(BooksDbContext dbContext, IOutputCacheStore cacheStore) : 
         await cacheStore.EvictByTagAsync("BookCache", ct);
         await cacheStore.EvictByTagAsync("ChapterCache", ct);
         await cacheStore.EvictByTagAsync($"BookDetails_{req.Id}", ct);
+
+        // 🚀 ÖZEL BINARY CACIHE TEMİZLİĞİ (Technical Decision 1 Fix)
+        // Kitaba bağlı tüm bölümlerin binary cache'lerini temizle
+        var chapterSlugs = await dbContext.Chapters
+            .IgnoreQueryFilters() // Silinmiş olarak işaretlediğimiz için ignore etmeliyiz
+            .Where(c => c.BookId == req.Id)
+            .Select(c => c.Slug)
+            .ToListAsync(ct);
+
+        foreach (var slug in chapterSlugs)
+        {
+            await chapterCache.RemoveChapterAsync(slug);
+        }
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

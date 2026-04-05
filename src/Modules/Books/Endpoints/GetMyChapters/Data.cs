@@ -17,7 +17,7 @@ public class Response
     public string Slug { get; set; } = string.Empty;
     public int Order { get; set; }
     public int WordCount { get; set; }
-    public string Status { get; set; } = string.Empty;
+    public ChapterStatus Status { get; set; }
     public int Price { get; set; }
     public bool IsFree { get; set; }
     public long ViewCount { get; set; }

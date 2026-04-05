@@ -12,6 +12,7 @@ import {
 } from "@/components/book/book-detail-panels";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { fromBookSlug } from "@/lib/books";
+import { RatingStars } from "@/components/book/rating-stars";
 
 const DEFAULT_COVER = {
   image: "/covers/cover-golge.svg",
@@ -20,6 +21,7 @@ const DEFAULT_COVER = {
 };
 
 type BookDetailApiResponse = {
+  id: string;
   title: string;
   slug: string;
   description: string;
@@ -31,7 +33,9 @@ type BookDetailApiResponse = {
   categories: { id: string; name: string; slug: string }[];
   tags: string[];
   averageRating: number;
+  voteCount: number;
   viewCount: number;
+  userRating?: number | null;
 };
 
 type ChaptersApiResponse = {
@@ -44,6 +48,7 @@ type ChaptersApiResponse = {
     isFree: boolean;
     status: string;
     publishedAt?: string | null;
+    viewCount: number;
   }[];
   totalCount: number;
   pageNumber: number;
@@ -53,6 +58,7 @@ type ChaptersApiResponse = {
 
 
 type BookDetailViewModel = {
+  id: string;
   title: string;
   author: string;
   status: string;
@@ -61,20 +67,23 @@ type BookDetailViewModel = {
   categories: string[];
   tags: string[];
   rating: number;
+  voteCount: number;
   reads: number;
   chapters: number;
   cover: { image: string; blurDataURL: string };
   synopsis: string;
+  userRating: number | null;
 };
 
-function mapChaptersFromApi(items: ChaptersApiResponse["chapters"]): BookChapterItem[] {
+function mapChaptersFromApi(items: ChaptersApiResponse["chapters"]): (BookChapterItem & { slug: string })[] {
   return items.map((item, index) => ({
     id: item.id,
+    slug: item.slug,
     number: item.order || index + 1,
     title: item.title,
     publishLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "Taslak",
     dateLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "-",
-    readCount: 0, // Removed mock calculation
+    readCount: item.viewCount || 0,
     isPremium: !item.isFree,
   }));
 }
@@ -332,13 +341,19 @@ export default function BookDetailPage() {
       try {
         setIsLoading(true);
         setApiError(null);
-        const [bookData, chapterData] = await Promise.all([
-          apiRequest<BookDetailApiResponse>(`/books/${bookSlug}`),
-          apiRequest<ChaptersApiResponse>(`/books/${bookSlug}/chapters?pageNumber=1&pageSize=200&sortBy=Order&sortDescending=false`),
-        ]);
-
+        
+        // 1. Önce kitap detaylarını çek
+        const bookData = await apiRequest<BookDetailApiResponse>(`/books/${bookSlug}`);
+        
         if (!isMounted) return;
+
+        // 2. Kitap ID'sini kullanarak bölümleri çek (En Eski İlk: sortDescending=false)
+        const chapterData = await apiRequest<ChaptersApiResponse>(
+           `/books/${bookSlug}/chapters?pageNumber=1&pageSize=500&sortBy=Order&sortDescending=false`
+        );
+
         setDetail({
+          id: bookData.id,
           title: bookData.title,
           author: bookData.authorName || "Yazar",
           status: bookData.status || "Bilinmiyor",
@@ -347,6 +362,7 @@ export default function BookDetailPage() {
           categories: (bookData.categories ?? []).map((x) => x.name),
           tags: bookData.tags ?? [],
           rating: bookData.averageRating > 0 ? Number(bookData.averageRating.toFixed(1)) : 0,
+          voteCount: 0, // Bu alan API response'da yoksa VoteCount eklenebilir
           reads: bookData.viewCount > 0 ? bookData.viewCount : 0,
           chapters: chapterData.totalCount > 0 ? chapterData.totalCount : 0,
           synopsis: bookData.description || "Aciklama bulunamadi.",
@@ -354,6 +370,7 @@ export default function BookDetailPage() {
             image: resolveMediaUrl(bookData.coverImageUrl) || DEFAULT_COVER.image,
             blurDataURL: DEFAULT_COVER.blurDataURL,
           },
+          userRating: bookData.userRating ?? null,
         });
 
         setChapters(chapterData.chapters.length > 0 ? mapChaptersFromApi(chapterData.chapters) : []);
@@ -468,16 +485,19 @@ export default function BookDetailPage() {
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
                     Puanlama
                   </p>
-                  <div className="flex items-center gap-1.5 text-warning">
-                    {Array.from({ length: 5 }, (_, index) => (
-                      <Star
-                        key={index}
-                        className="h-4 w-4"
-                        strokeWidth={1.9}
-                        fill={index < Math.round(detail.rating) ? "currentColor" : "none"}
-                      />
-                    ))}
-                  </div>
+                  <RatingStars 
+                    bookId={detail.id} 
+                    initialRating={detail.rating}
+                    myRating={detail.userRating}
+                    onRatingUpdated={(newAvg, newVoteCount, newMyRating) => {
+                       setDetail(prev => prev ? ({ 
+                          ...prev, 
+                          rating: newAvg, 
+                          voteCount: newVoteCount,
+                          userRating: newMyRating 
+                       }) : null);
+                    }}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
@@ -509,10 +529,20 @@ export default function BookDetailPage() {
               </div>
 
               <div className="flex flex-wrap gap-3 pt-1">
-                <button className="btn btn-primary rounded-full px-7">
-                  <Play className="h-4 w-4 fill-current" />
-                  Oku
-                </button>
+                {chapters.length > 0 ? (
+                  <Link 
+                    href={`/read/${bookSlug}/${chapters[0].slug}`} 
+                    className="btn btn-primary rounded-full px-7"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    Oku
+                  </Link>
+                ) : (
+                  <button disabled className="btn btn-primary rounded-full px-7 opacity-50">
+                    <Play className="h-4 w-4 fill-current" />
+                    Oku
+                  </button>
+                )}
                 <button className="btn rounded-full border border-base-content/20 bg-base-100/28 px-7">
                   <Plus className="h-4 w-4" />
                   Kutuphaneye Ekle

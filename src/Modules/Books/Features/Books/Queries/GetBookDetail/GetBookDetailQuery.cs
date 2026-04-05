@@ -24,6 +24,7 @@ public record BookDetailResponse
     public DateTime CreatedAt { get; init; }
     public List<CategoryDto> Categories { get; init; } = new();
     public List<string> Tags { get; init; } = new();
+    public int? UserRating { get; init; } // Kullanıcının verdiği puan
 }
 
 public record CategoryDto

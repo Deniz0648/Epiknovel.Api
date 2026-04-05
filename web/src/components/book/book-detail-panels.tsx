@@ -21,8 +21,12 @@ import {
 type ChapterSort = "newest" | "oldest";
 type PageSize = 20 | 50 | 100 | 200;
 
+import Link from "next/link";
+import { useParams } from "next/navigation";
+
 export type BookChapterItem = {
   id: string;
+  slug: string;
   number: number;
   title: string;
   publishLabel: string;
@@ -153,6 +157,9 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
     );
   };
 
+  const params = useParams<{ bookSlug: string }>();
+  const bookSlug = params?.bookSlug;
+
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
       <article className="glass-frame flex min-h-[42rem] flex-col gap-4 p-5 sm:p-6">
@@ -248,10 +255,10 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
             </div>
           ) : (
             visibleChapters.map((chapter) => (
-              <button
+              <Link
                 key={chapter.id}
-                type="button"
-                className="group w-full rounded-2xl border border-base-content/12 bg-base-100/22 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-primary/45 hover:bg-base-100/30"
+                href={`/read/${bookSlug}/${chapter.slug}`}
+                className="group block w-full rounded-2xl border border-base-content/12 bg-base-100/22 p-3.5 text-left transition hover:-translate-y-0.5 hover:border-primary/45 hover:bg-base-100/30"
               >
                 <div className="flex items-start justify-between gap-3.5">
                   <div className="flex min-w-0 items-start gap-3">
@@ -304,7 +311,7 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
                     </span>
                   </div>
                 </div>
-              </button>
+              </Link>
             ))
           )}
         </div>

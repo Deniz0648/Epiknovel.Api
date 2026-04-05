@@ -6,25 +6,46 @@ type RouteContext = {
   params: Promise<{ sessionId: string }>;
 };
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { sessionId } = await context.params;
+  
   try {
-    const { sessionId } = await context.params;
     const result = await performAuthenticatedIdentityRequest<{ message: string }>(
       `/auth/sessions/${sessionId}`,
       { method: "DELETE" },
-      _request.headers,
+      request.headers,
     );
 
-    const response = NextResponse.json({ isSuccess: true, message: result.data.message, data: result.data });
+    const response = NextResponse.json({ 
+      isSuccess: true, 
+      message: result.data.message || "Oturum kapatildi.", 
+      data: result.data 
+    });
+
     applyRefreshedTokens(response, result.refreshedTokens);
     return response;
   } catch (error) {
-    if (isApiErrorLike(error)) {
-      const response = NextResponse.json({ isSuccess: false, message: error.message, errors: error.errors }, { status: error.status });
-      if (error.status === 401) {
-        clearAuthCookies(response);
-      }
+    console.error(`[API_PROXY_ERROR] DeleteSession (${sessionId}):`, error);
+
+    // Eger backend 401 veriyorsa, bu oturum zaten backend'de sonlanmis (veya token dusmus) demektir.
+    // Kullanici zaten kapatmak istedigi icin, biz de yerel cerezleri temizleyip basarili donmeliyiz.
+    if (isApiErrorLike(error) && (error.status === 401 || error.status === 403)) {
+      const response = NextResponse.json({ 
+        isSuccess: true, 
+        message: "Oturum sonlandirildi (Zaten gecersizdi).", 
+        data: null 
+      });
+      
+      clearAuthCookies(response);
       return response;
+    }
+
+    if (isApiErrorLike(error)) {
+      return NextResponse.json({ 
+        isSuccess: false, 
+        message: error.message, 
+        errors: error.errors 
+      }, { status: error.status });
     }
 
     return NextResponse.json({ isSuccess: false, message: "Oturum kapatilamadi." }, { status: 500 });

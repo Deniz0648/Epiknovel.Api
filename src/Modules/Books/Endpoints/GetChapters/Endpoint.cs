@@ -22,7 +22,28 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var bookId = Route<Guid>("bookId");
+        // 1. Kitabı ID veya Slug'dan Çöz
+        Guid bookId;
+        if (Guid.TryParse(req.BookId, out var parsedGuid))
+        {
+            bookId = parsedGuid;
+        }
+        else
+        {
+            // Slug üzerinden ID bul
+            var resolvedId = await dbContext.Books
+                .Where(x => x.Slug == req.BookId)
+                .Select(x => x.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (resolvedId == Guid.Empty)
+            {
+                await Send.NotFoundAsync(ct);
+                return;
+            }
+            bookId = resolvedId;
+        }
+
         var pageNumber = req.PageNumber < 1 ? 1 : req.PageNumber;
         var pageSize = req.PageSize < 1 ? 50 : Math.Min(req.PageSize, MaxPageSize);
         
@@ -75,7 +96,8 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
                 Price = x.Price,
                 Status = x.Status,
                 IsTitleSpoiler = x.IsTitleSpoiler,
-                PublishedAt = x.PublishedAt
+                PublishedAt = x.PublishedAt,
+                ViewCount = x.ViewCount
             })
             .ToListAsync(ct);
 

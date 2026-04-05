@@ -102,22 +102,27 @@ function ThemePaletteBadge({
 
 export function ThemeSelector() {
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
-  const [theme, setTheme] = useState<ThemeName>(() => {
-    if (typeof window === "undefined") {
-      return "light";
-    }
+  const [theme, setTheme] = useState<ThemeName>("light");
+  const [mounted, setMounted] = useState(false);
 
+  useEffect(() => {
+    setMounted(true);
     const storedTheme = window.localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const fallbackTheme: ThemeName = prefersDark ? "dark" : "light";
 
-    return isThemeName(storedTheme) ? storedTheme : fallbackTheme;
-  });
+    if (isThemeName(storedTheme)) {
+      setTheme(storedTheme);
+    } else {
+      setTheme(fallbackTheme);
+    }
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     document.documentElement.setAttribute("data-theme", theme);
     window.localStorage.setItem("theme", theme);
-  }, [theme]);
+  }, [theme, mounted]);
 
   useEffect(() => {
     function closeDropdown() {

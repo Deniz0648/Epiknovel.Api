@@ -81,5 +81,90 @@ public class ChapterStatsSyncWorker(
         {
             logger.LogInformation("{Count} adet bölümün izlenme istatistiği SQL'e yansıtıldı.", totalUpdated);
         }
+
+        // 6. 'Dirty' (hit almış) kitapların listesini al ve işle
+        var dirtyBookIds = await db.SetMembersAsync("books:dirty");
+        if (dirtyBookIds.Length > 0)
+        {
+            await db.KeyDeleteAsync("books:dirty");
+            int totalBooksUpdated = 0;
+            
+            foreach (var idValue in dirtyBookIds)
+            {
+                var idString = idValue.ToString();
+                var hitKey = $"book:hits:{idString}";
+                var hits = await db.StringGetAsync(hitKey);
+                
+                if (hits.HasValue && Guid.TryParse(idString, out var bookId))
+                {
+                    var hitCount = (long)hits;
+                    await dbContext.Books
+                        .Where(x => x.Id == bookId)
+                        .ExecuteUpdateAsync(s => s.SetProperty(b => b.ViewCount, b => b.ViewCount + hitCount), ct);
+                        
+                    await db.StringDecrementAsync(hitKey, hitCount);
+                    totalBooksUpdated++;
+                }
+            }
+            
+            if (totalBooksUpdated > 0)
+            {
+                logger.LogInformation("{Count} adet kitabın toplam izlenme istatistiği SQL'e yansıtıldı.", totalBooksUpdated);
+            }
+        }
+
+        // 7. 'Rating Dirty' (yeni puan almış) kitapları işle
+        var dirtyRatingIds = await db.SetMembersAsync("books:v2:rating_dirty");
+        if (dirtyRatingIds.Length > 0)
+        {
+            await db.KeyDeleteAsync("books:v2:rating_dirty");
+            int ratingBooksUpdated = 0;
+
+            foreach (var idValue in dirtyRatingIds)
+            {
+                var idString = idValue.ToString();
+                var sumKey = $"book:v2:rating_sum:{idString}";
+                var countKey = $"book:v2:rating_count:{idString}";
+
+                var deltaSumRaw = await db.StringGetAsync(sumKey);
+                var deltaCountRaw = await db.StringGetAsync(countKey);
+
+                if ((deltaSumRaw.HasValue || deltaCountRaw.HasValue) && Guid.TryParse(idString, out var bookId))
+                {
+                    long deltaSum = (long?)deltaSumRaw ?? 0;
+                    long deltaCount = (long?)deltaCountRaw ?? 0;
+
+                    // Karmaşık matematiksel güncelleme için kitabı çekmemiz gerekiyor 
+                    // (veya SQL'de doğrudan Sum/Count tutuyor olmalıydık).
+                    // Ama burada ViewCount mantığına en yakın şekilde:
+                    var book = await dbContext.Books.FirstOrDefaultAsync(x => x.Id == bookId, ct);
+                    if (book != null)
+                    {
+                        double oldSum = book.AverageRating * book.VoteCount;
+                        double newSum = oldSum + deltaSum;
+                        int newCount = book.VoteCount + (int)deltaCount;
+
+                        if (newCount > 0)
+                        {
+                            book.AverageRating = Math.Round(newSum / newCount, 1);
+                            book.VoteCount = newCount;
+                            book.UpdatedAt = DateTime.UtcNow;
+                        }
+
+                        // Redis'ten işlediğimiz kadarını düşüyoruz
+                        await db.StringDecrementAsync(sumKey, deltaSum);
+                        await db.StringDecrementAsync(countKey, deltaCount);
+                        
+                        ratingBooksUpdated++;
+                    }
+                }
+            }
+            
+            if (ratingBooksUpdated > 0)
+            {
+                await dbContext.SaveChangesAsync(ct);
+                logger.LogInformation("{Count} adet kitabın puan istatistikleri SQL'e yansıtıldı.", ratingBooksUpdated);
+            }
+        }
     }
 }

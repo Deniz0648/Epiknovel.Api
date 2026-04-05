@@ -23,6 +23,7 @@ interface EditChapterFormProps {
     order?: number
     status?: number
     publishedAt?: string
+    scheduledPublishDate?: string
     isFree?: boolean
     price?: number
     slug?: string
@@ -46,10 +47,18 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
   const [enableEconomy, setEnableEconomy] = useState(canSetPrice)
   const [isScheduled, setIsScheduled] = useState(initialData?.status === 2)
   const [publishDate, setPublishDate] = useState<string>(() => {
-    if (initialData?.publishedAt) {
-      const d = new Date(initialData.publishedAt)
+    // 🕒 LOCAL TIME FORMATTER: UTC'den Yerel Saate Dönüştür
+    let dateSource = initialData?.scheduledPublishDate || initialData?.publishedAt
+    if (dateSource && typeof dateSource === 'string') {
+      // API 'Z' koymamışsa bile biz bunun UTC olduğunu bildiğimiz için zorluyoruz
+      if (!dateSource.endsWith('Z') && !dateSource.includes('+')) {
+        dateSource += 'Z';
+      }
+      const d = new Date(dateSource)
       if (!isNaN(d.getTime())) {
-        return d.toISOString().slice(0, 16)
+        // Yerel saat dilimine göre ISO formatında çıktı al (YYYY-MM-DDTHH:mm)
+        const localISO = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+        return localISO
       }
     }
     return ""
@@ -101,7 +110,8 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
       isFree: !enableEconomy || formData.get("isFree") === "true",
       price: enableEconomy ? parseInt(formData.get("price") as string || "0") : 0,
       isTitleSpoiler: isTitleSpoiler,
-      scheduledPublishDate: isScheduled ? publishDate : null
+      // 🕒 TIMEZONE FIX: Yerel saati UTC'ye çevirerek gönder
+      scheduledPublishDate: isScheduled && publishDate ? new Date(publishDate).toISOString() : null
     }
 
     // 🛡️ Debug Log: Form Submission State

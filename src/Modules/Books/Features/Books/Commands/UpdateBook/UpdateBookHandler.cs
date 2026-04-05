@@ -5,12 +5,15 @@ using Epiknovel.Shared.Infrastructure.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Shared.Core.Common;
+using Epiknovel.Shared.Core.Events;
+using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Books.Features.Books.Commands.UpdateBook;
 
 public class UpdateBookHandler(
     BooksDbContext dbContext,
-    ISlugService slugService) : IRequestHandler<UpdateBookCommand, Result<UpdateBookResponse>>
+    ISlugService slugService,
+    IUserProvider userProvider) : IRequestHandler<UpdateBookCommand, Result<UpdateBookResponse>>
 {
     public async Task<Result<UpdateBookResponse>> Handle(UpdateBookCommand request, CancellationToken ct)
     {
@@ -105,6 +108,24 @@ public class UpdateBookHandler(
             foreach (var tag in existingTags) book.Tags.Add(tag);
             foreach (var tag in missingTags) book.Tags.Add(tag);
         }
+
+        // 🚀 OUTBOX ENQUEUE: Arama indeksi için olayı kuyruğa at
+        // Not: Yazar adını tekrar çekiyoruz (Hatalı bir değişikliğe karşı)
+        var profile = await userProvider.GetProfileAsync(book.AuthorId, null, ct);
+        var authorName = (profile.IsSuccess && profile.Data != null) ? profile.Data.DisplayName : "Epiknovel Yazarı";
+
+        dbContext.EnqueueOutboxMessage(new BookUpdatedEvent(
+            book.Id,
+            book.Title,
+            book.Description,
+            book.Slug,
+            book.CoverImageUrl,
+            authorName,
+            book.Categories.Select(c => c.Name),
+            book.Tags.Select(t => t.Name),
+            book.IsHidden,
+            book.IsDeleted
+        ));
 
         await dbContext.SaveChangesAsync(ct);
 

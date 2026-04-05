@@ -4,10 +4,17 @@ using Epiknovel.Modules.Books.Data;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Attributes;
 
+using MediatR;
+using Microsoft.AspNetCore.OutputCaching;
+
 namespace Epiknovel.Modules.Books.Endpoints.DeleteChapter;
 
 [AuditLog("Bölüm Çöpe Taşındı")]
-public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Response>>
+public class Endpoint(
+    BooksDbContext dbContext, 
+    IMediator mediator, 
+    IOutputCacheStore cacheStore,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService chapterCache) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -30,12 +37,34 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
             return;
         }
 
+        // 🚀 ASENKRON ARŞİVLEME (Technical Decision 3)
+        // Bölümü paragraflarıyla birlikte çek ve yedekle
+        var fullChapterData = await dbContext.Chapters
+            .AsNoTracking()
+            .Include(x => x.Paragraphs)
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
+        
+        if (fullChapterData != null)
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(fullChapterData);
+            await mediator.Publish(new Epiknovel.Shared.Core.Events.DataArchivedEvent(
+                "Chapter",
+                req.Id,
+                json,
+                req.UserId,
+                DateTime.UtcNow), ct);
+        }
+
         // 2. Soft Delete (Trash)
         chapter.IsDeleted = true;
         chapter.DeletedAt = DateTime.UtcNow;
         chapter.DeletedByUserId = req.UserId;
 
         await dbContext.SaveChangesAsync(ct);
+        
+        // 3. Cache Eviction
+        await cacheStore.EvictByTagAsync("ChapterCache", ct);
+        await chapterCache.RemoveChapterAsync(chapter.Slug);
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

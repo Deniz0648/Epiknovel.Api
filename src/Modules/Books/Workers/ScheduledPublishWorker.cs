@@ -76,29 +76,20 @@ public class ScheduledPublishWorker(
                 chapter.Status = ChapterStatus.Published;
                 chapter.PublishedAt = now;
                 chapter.UpdatedAt = now;
+
+                // 🚀 OUTBOX ENQUEUE: Olayı atomik olarak kuyruğa yaz
+                dbContext.EnqueueOutboxMessage(new ChapterPublishedEvent(
+                    chapter.BookId,
+                    chapter.Book.Title,
+                    chapter.Id,
+                    chapter.Title,
+                    chapter.Slug,
+                    chapter.UserId,
+                    chapter.PublishedAt!.Value));
             }
 
             await dbContext.SaveChangesAsync(ct);
 
-            // Her bölüm için ChapterPublishedEvent fırlat (Arama, bildirim modülleri dinler)
-            foreach (var chapter in chaptersToPublish)
-            {
-                try
-                {
-                    await mediator.Publish(new ChapterPublishedEvent(
-                        chapter.BookId,
-                        chapter.Book.Title,
-                        chapter.Id,
-                        chapter.Title,
-                        chapter.Slug,
-                        chapter.UserId,
-                        chapter.PublishedAt!.Value), ct);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "ChapterPublishedEvent fırlatılamadı. ChapterId: {ChapterId}", chapter.Id);
-                }
-            }
         }
         finally
         {

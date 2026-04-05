@@ -27,6 +27,11 @@ using Epiknovel.Shared.Infrastructure.Mapping;
 using System.Security.Claims;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authorization;
+using Polly;
+using Polly.Retry;
+using Microsoft.Extensions.Resilience;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Resources;
 
 namespace Epiknovel.Shared.Infrastructure;
 
@@ -49,14 +54,42 @@ public static class InfrastructureExtensions
         Console.Out.Flush();
         services.AddHttpContextAccessor();
 
-        // 1.1 Performans: AutoMapper Entegrasyonu (Doğrudan paket üzerinden - 16.x syntax)
+        // 🛡️ Resilience: Polly Circuit Breaker ve Retry Politikaları
+        services.AddResiliencePipeline("default", builder =>
+        {
+            builder.AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 3,
+                BackoffType = DelayBackoffType.Exponential,
+                UseJitter = true,
+                Delay = TimeSpan.FromSeconds(1)
+            });
+            builder.AddCircuitBreaker(new Polly.CircuitBreaker.CircuitBreakerStrategyOptions
+            {
+                FailureRatio = 0.5,
+                SamplingDuration = TimeSpan.FromSeconds(30),
+                MinimumThroughput = 10,
+                BreakDuration = TimeSpan.FromSeconds(15)
+            });
+        });
+
+        // 📊 Monitoring: OpenTelemetry (Distributed Tracing) Entegrasyonu
+        services.AddOpenTelemetry()
+            .WithTracing(tracing => {
+                tracing.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService("Epiknovel.API"))
+                       .AddAspNetCoreInstrumentation()
+                       .AddHttpClientInstrumentation()
+                       .AddConsoleExporter(); // Şimdilik loglarda görmek için
+            });
+
+        // 1.1 Performans: AutoMapper Entegrasyonu
         services.AddAutoMapper(cfg => cfg.AddMaps(typeof(MappingProfile).Assembly));
 
-        // 1.2 Güvenlik: Veri Koruma (Docker Resetlerinde Oturum Kaybını Önler)
+        // 1.2 Güvenlik: Veri Koruma
         services.AddDataProtection()
                 .PersistKeysToFileSystem(new System.IO.DirectoryInfo("/app/Keys"));
 
-        // 1.3 Güvenlik: CORS Politikası (Web Frontend'in API ile konuşabilmesi için)
+        // 1.3 Güvenlik: CORS Politikası
         services.AddCors(options =>
         {
             options.AddPolicy("AllowAll", builder =>
@@ -65,6 +98,7 @@ public static class InfrastructureExtensions
                            "https://localhost:3000", "http://localhost:3000",
                            "https://127.0.0.1:3000", "http://127.0.0.1:3000",
                            "https://localhost", "http://localhost",
+                           "http://192.168.0.19:3000", "https://192.168.0.19:3000", // Kullanıcının mevcut IP'si
                            "https://127.0.0.1", "http://127.0.0.1")
                        .AllowAnyMethod()
                        .AllowAnyHeader()
@@ -73,8 +107,16 @@ public static class InfrastructureExtensions
         });
 
 
-        // 2. Performans: Yanıt Sıkıştırma (Gzip/Brotli) ve Önbellekleme
+        // 2. Performans: Yanıt Sıkıştırma, Önbellekleme ve ETag
         services.AddResponseCaching();
+        services.AddHttpCacheHeaders(
+            (expirationModelOptions) => {
+                expirationModelOptions.MaxAge = 60;
+                expirationModelOptions.SharedMaxAge = 300;
+            },
+            (validationModelOptions) => {
+                validationModelOptions.MustRevalidate = true;
+            });
         services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;
@@ -101,12 +143,12 @@ public static class InfrastructureExtensions
 
         // 2. Kimlik Doğrulama Katmanı (JWT)
         services.AddAuthentication(o => {
-            o.DefaultScheme = "Bearer"; // Ana şema
+            o.DefaultScheme = "Bearer";
             o.DefaultAuthenticateScheme = "Bearer";
             o.DefaultChallengeScheme = "Bearer";
         })
         .AddJwtBearer("Bearer", s => {
-            s.RequireHttpsMetadata = false; // Docker içi HTTP iletişimi için
+            s.RequireHttpsMetadata = false;
             s.SaveToken = true;
             
             s.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
@@ -117,10 +159,9 @@ public static class InfrastructureExtensions
                 ValidateAudience = false,
                 ValidateLifetime = true,
                 RequireExpirationTime = true,
-                ClockSkew = TimeSpan.FromMinutes(10) // Daha fazla tolerans
+                ClockSkew = TimeSpan.FromMinutes(10)
             };
             
-            // Token doğrulama ve mesaj alım logları
             s.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
             {
                 OnMessageReceived = context =>
@@ -128,7 +169,6 @@ public static class InfrastructureExtensions
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
                     if (!string.IsNullOrEmpty(authHeader))
                     {
-                        // Manuel Yakalama (Fail-safe): Eğer kütüphane otomatik bulamazsa biz veriyoruz
                         if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                         {
                             context.Token = authHeader.Substring("Bearer ".Length).Trim();
@@ -185,28 +225,24 @@ public static class InfrastructureExtensions
 
         // 4. Akıllı Rate Limiting (Sliding Window & Token Bucket)
         services.AddRateLimiter(o => {
-            // Global Korum (Sabit Pencere)
             o.AddFixedWindowLimiter("GlobalPolicy", opt => {
                 opt.Window = TimeSpan.FromSeconds(1);
                 opt.PermitLimit = 10;
                 opt.QueueLimit = 0;
             });
 
-            // Yazma/kimlik gibi daha hassas endpoint'ler için sıkı limit
             o.AddFixedWindowLimiter("StrictPolicy", opt => {
                 opt.Window = TimeSpan.FromSeconds(10);
                 opt.PermitLimit = 10;
                 opt.QueueLimit = 0;
             });
 
-            // Sosyal Etkileşimler (Yorum, Beğeni): Dakikada 15 işlem
             o.AddFixedWindowLimiter("SocialPolicy", opt => {
                 opt.Window = TimeSpan.FromMinutes(1);
                 opt.PermitLimit = 15;
                 opt.QueueLimit = 0;
             });
 
-            // Okuma İlerlemesi: Kullanıcıyı yormayan, sunucuyu koruyan debounce (10 saniyede bir)
             o.AddFixedWindowLimiter("ProgressPolicy", opt => {
                 opt.Window = TimeSpan.FromSeconds(10);
                 opt.PermitLimit = 1;
@@ -214,7 +250,6 @@ public static class InfrastructureExtensions
             });
         });
 
-        // 4. Dosya Yönetimi (Yerel Depolama) & Slug Sistemi & Email Yönetimi
         services.AddScoped<IFileService, LocalFileService>();
         services.AddScoped<ISlugService, SlugService>();
         services.AddScoped<IEmailService, ConsoleEmailService>();
@@ -256,27 +291,10 @@ public static class InfrastructureExtensions
                     In = NSwag.OpenApiSecurityApiKeyLocation.Header
                 });
 
-                // 📚 Endpoint Sıralama Mantığı (Metodlara Göre: GET, POST, PUT, DELETE)
                 s.PostProcess = doc =>
                 {
-                    var sortedPaths = doc.Paths
-                        .OrderBy(p => p.Key) // Önce alfabetik yol
-                        .ToList();
-
-                    // Not: NSwag'de Paths bir sözlüktür (Dictionary), 
-                    // sıralamayı korumak için sözlüğü temizleyip sıralı eklemeliyiz.
+                    var sortedPaths = doc.Paths.OrderBy(p => p.Key).ToList();
                     doc.Paths.Clear();
-                    
-                    // Metod ağırlıkları (Sıralama önceliği)
-                    var methodOrder = new Dictionary<string, int>
-                    {
-                        { "get", 1 },
-                        { "post", 2 },
-                        { "put", 3 },
-                        { "patch", 4 },
-                        { "delete", 5 }
-                    };
-
                     foreach (var path in sortedPaths)
                     {
                         doc.Paths.Add(path.Key, path.Value);
@@ -295,7 +313,6 @@ public static class InfrastructureExtensions
         catch (Exception ex)
         {
             Console.WriteLine($"[REDIS_WARN] Could not connect to Redis during startup: {ex.Message}");
-            // Create a disconnected multiplexer for design-time/offline support
             var dummyOptions = new StackExchange.Redis.ConfigurationOptions { AbortOnConnectFail = false };
             multiplexer = StackExchange.Redis.ConnectionMultiplexer.Connect(dummyOptions); 
         }
@@ -304,21 +321,18 @@ public static class InfrastructureExtensions
         services.AddStackExchangeRedisCache(o => o.Configuration = redisConn);
         services.AddOutputCache();
 
-        // 7. SignalR & Redis Backplane (Real-time haberleşme sistemi)
+        // 7. SignalR & Redis Backplane
         services.AddSignalR()
                 .AddStackExchangeRedis(redisConn, options => {
                     options.Configuration.AbortOnConnectFail = false;
                 });
 
-        // 6. Performans: Arka Plan İşlemleri (Background Audit Logging)
         services.AddSingleton<IBackgroundAuditQueue, BackgroundAuditQueue>();
         services.AddHostedService<BackgroundAuditWorker>();
         
-        // MediatR: Tüm modülleri tarar (Modüler Monolit İletişimi)
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
             
-            // LuckyPenny MediatR Lisans Yapılandırması
             var mediatrLicense = Environment.GetEnvironmentVariable("MEDIATR_LICENSE_KEY") ?? configuration["MEDIATR_LICENSE_KEY"];
             if (!string.IsNullOrEmpty(mediatrLicense))
             {
@@ -326,9 +340,10 @@ public static class InfrastructureExtensions
             }
         });
 
-        // 5. Görsel İşleme (Arka Plan WebP Dönüştürücü)
         services.AddSingleton<Background.IImageProcessingQueue, Background.ImageProcessingQueue>();
         services.AddHostedService<Background.ImageProcessingWorker>();
+
+        services.AddSingleton<Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService, Epiknovel.Shared.Infrastructure.Cache.ChapterCacheService>();
 
         return services;
     }
@@ -337,14 +352,37 @@ public static class InfrastructureExtensions
     {
         app.UseForwardedHeaders();
 
-        // 1. Kimlik Doğrulama (En Başta)
-        app.UseAuthentication();
+        // 1. Güvenlik: Security Headers (Harden Edilmiş CSP, HSTS, XSS)
+        app.UseSecurityHeaders(new HeaderPolicyCollection()
+            .AddDefaultSecurityHeaders() // X-Frame-Options: DENY, X-Content-Type-Options: nosniff dahildir
+            .AddContentSecurityPolicy(builder =>
+            {
+                builder.AddDefaultSrc().Self();
+                builder.AddImgSrc().Self().Data().From("https://epiknovel.com").From("*.s3.amazonaws.com").From("localhost:*").From("http://localhost:*");
+                builder.AddStyleSrc().Self().UnsafeInline().From("https://fonts.googleapis.com").From("https://cdn.jsdelivr.net");
+                builder.AddFontSrc().Self().Data().From("https://fonts.gstatic.com").From("https://cdn.jsdelivr.net");
+                builder.AddScriptSrc().Self().UnsafeInline().From("https://cdn.jsdelivr.net").From("https://api.scalar.com");
+                builder.AddConnectSrc().Self()
+                       .From("https://localhost:*").From("http://localhost:*")
+                       .From("wss://localhost:*").From("ws://localhost:*")
+                       .From("http://192.168.0.19:*").From("ws://192.168.0.19:*") // Yerel ağ desteği
+                       .From("https://api.scalar.com");
+                builder.AddFrameAncestors().None();
+            })
+            .AddReferrerPolicyStrictOriginWhenCrossOrigin()
+            .RemoveServerHeader());
 
-        // 1.1 JWT Revocation (Redis Blacklist Kontrolü)
-        // Her istekte JTI'nın Redis kara listesinde olup olmadığı taranır.
+        // 2. Performans: ETag Desteği (Bant genişliği tasarrufu)
+        // 🛡️ HARDENING: Swagger ve Scalar döküman sayfalarını önbellek başlıklarından muaf tut
+        // Aksi takdirde "Headers are read-only" hatası oluşur.
+        app.UseWhen(context => !context.Request.Path.StartsWithSegments("/swagger") 
+                            && !context.Request.Path.StartsWithSegments("/scalar"), 
+            builder => builder.UseHttpCacheHeaders());
+
+        app.UseAuthentication();
         app.UseMiddleware<Epiknovel.Shared.Infrastructure.Middleware.TokenRevocationMiddleware>();
 
-        // 2. Global Request Tracker (Ham istekleri izler) - Auth den sonra olmalı ki User'ı görelim
+        // 3. Global Request Tracker
         app.Use(async (context, next) => {
             if (context.Request.Path.Value?.StartsWith("/api") == true)
             {
@@ -355,42 +393,18 @@ public static class InfrastructureExtensions
             await next();
         });
 
-        // 1. Güvenlik: Security Headers (CSP, XSS, HSTS)
-        app.UseSecurityHeaders(new HeaderPolicyCollection()
-            .AddDefaultSecurityHeaders()
-            .AddContentSecurityPolicy(builder =>
-            {
-                builder.AddDefaultSrc().Self();
-                builder.AddImgSrc().Self().Data().From("https://epiknovel.com").From("*.s3.amazonaws.com").From("localhost:*").From("http://localhost:*");
-                builder.AddStyleSrc().Self().UnsafeInline().From("https://fonts.googleapis.com").From("https://cdn.jsdelivr.net");
-                builder.AddFontSrc().Self().Data().From("https://fonts.gstatic.com").From("https://cdn.jsdelivr.net");
-                builder.AddScriptSrc().Self().UnsafeInline().From("https://cdn.jsdelivr.net").From("https://api.scalar.com");
-                builder.AddConnectSrc().Self().From("https://localhost:*").From("http://localhost:*").From("wss://localhost:*").From("ws://localhost:*").From("https://api.scalar.com");
-                builder.AddFrameAncestors().None();
-            })
-            .AddCustomHeader("X-Content-Type-Options", "nosniff")
-            .RemoveServerHeader());
-
-        // 1.1 Güvenlik: Cloudflare Bypass Koruması (Doğrudan IP erişimini engeller)
         app.UseMiddleware<DirectOriginAccessMiddleware>();
-
-        // 2. Performans ve Güvenlik Middleware'leri
-        app.UseCors("AllowAll"); // Kimlik doğrulamadan önce CORS gelmelidir
+        app.UseCors("AllowAll");
         app.UseResponseCompression();
         app.UseExceptionHandler(); 
         app.UseStaticFiles();
 
         app.UseRouting();
-
-        // 2.2 Idempotency: Çift işlem koruması (Routing'den sonra olmalı ki endpoint'i bulabilelim)
         app.UseMiddleware<IdempotencyMiddleware>();
-
-        // 3. Yetkilendirme Katmanı (Routing'den hemen sonra)
         app.UseAuthorization();
         app.UseResponseCaching();
         app.UseRateLimiter();
         
-        // 4. Servisler ve Endpoints
         app.UseHealthChecks("/health");
         app.UseOutputCache();
         

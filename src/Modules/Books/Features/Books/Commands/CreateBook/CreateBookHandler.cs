@@ -6,6 +6,7 @@ using Epiknovel.Shared.Core.Interfaces;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Shared.Core.Common;
+using Epiknovel.Shared.Core.Events;
 
 namespace Epiknovel.Modules.Books.Features.Books.Commands.CreateBook;
 
@@ -16,11 +17,13 @@ public class CreateBookHandler(
 {
     public async Task<Result<CreateBookResponse>> Handle(CreateBookCommand request, CancellationToken ct)
     {
-        // 1. İş kuralları: onaylı yazar profili olmadan içerik üretilemez
-        if (!await userProvider.IsAuthorAsync(request.AuthorId, ct))
+        var profileResult = await userProvider.GetProfileAsync(request.AuthorId, null, ct);
+        if (!profileResult.IsSuccess || profileResult.Data == null || !profileResult.Data.IsAuthor)
         {
             return Result<CreateBookResponse>.Failure("Kitap oluşturmak için önce yazar olarak başvurup onay almalısınız.");
         }
+
+        var authorName = profileResult.Data.DisplayName;
 
         // 2. Benzersiz Slug Üret (Title üzerinden)
         var slug = await slugService.GenerateUniqueSlugAsync(request.Title, dbContext.Books, ct);
@@ -81,6 +84,21 @@ public class CreateBookHandler(
         }
 
         dbContext.Books.Add(book);
+        
+        // 🚀 OUTBOX ENQUEUE: Arama indeksi için olayı kuyruğa at
+        dbContext.EnqueueOutboxMessage(new BookUpdatedEvent(
+            book.Id,
+            book.Title,
+            book.Description,
+            book.Slug,
+            book.CoverImageUrl,
+            authorName,
+            book.Categories.Select(c => c.Name),
+            book.Tags.Select(t => t.Name),
+            book.IsHidden,
+            false // IsDeleted
+        ));
+
         await dbContext.SaveChangesAsync(ct);
 
         return Result<CreateBookResponse>.Success(new CreateBookResponse(book.Id, book.Slug, "Kitabınız başarıyla oluşturuldu."));

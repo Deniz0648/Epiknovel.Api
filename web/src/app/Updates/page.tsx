@@ -151,7 +151,7 @@ export default function UpdatesPage() {
                           <span className="whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black uppercase text-primary">YENI</span>
                        </div>
                        <Link href={`/Books/${update.bookSlug}`} className="line-clamp-1 block text-sm font-bold hover:text-primary transition-colors">{update.bookTitle}</Link>
-                       <Link href={`/Books/${update.bookSlug}/${update.chapterSlug}`} className="flex items-center gap-1.5 text-base-content/70 hover:text-primary transition-colors">
+                       <Link href={`/read/${update.bookSlug}/${update.chapterSlug}`} className="flex items-center gap-1.5 text-base-content/70 hover:text-primary transition-colors">
                           <BookText className="h-3.5 w-3.5 shrink-0" />
                           <p className="truncate text-xs font-semibold">Bolum {update.order}: {update.chapterTitle}</p>
                        </Link>

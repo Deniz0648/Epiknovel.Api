@@ -4,7 +4,7 @@ namespace Epiknovel.Modules.Books.Endpoints.GetChapters;
 
 public class Request
 {
-    public Guid BookId { get; set; }
+    public string BookId { get; set; } = string.Empty; // Guid string veya Slug destekler
     
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 50;
@@ -35,4 +35,5 @@ public class ChapterItem
     public ChapterStatus Status { get; set; }
     public bool IsTitleSpoiler { get; set; }
     public DateTime? PublishedAt { get; set; }
+    public long ViewCount { get; set; }
 }

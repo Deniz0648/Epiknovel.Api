@@ -7,7 +7,11 @@ using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetBookList;
 
-public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccountProvider, IUserProvider userProvider) : Endpoint<Request, Result<PagedResult<Response>>>
+public class Endpoint(
+    BooksDbContext dbContext, 
+    IUserAccountProvider userAccountProvider, 
+    IUserProvider userProvider,
+    StackExchange.Redis.IConnectionMultiplexer redis) : Endpoint<Request, Result<PagedResult<Response>>>
 {
     public override void Configure()
     {
@@ -113,6 +117,7 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
             .Take(req.PageSize)
             .Select(x => new 
             {
+                Id = x.Id,
                 AuthorId = x.AuthorId,
                 Res = new Response
                 {
@@ -131,6 +136,24 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
                 }
             })
             .ToListAsync(ct);
+
+        // 🚀 Redis üzerinden anlık hitleri bindir (Batch Query)
+        try 
+        {
+            var db = redis.GetDatabase();
+            var keys = itemsWithIds.Select(x => (StackExchange.Redis.RedisKey)$"book:hits:{x.Id}").ToArray();
+            if (keys.Length > 0)
+            {
+                var redisHits = await db.StringGetAsync(keys);
+                for (int i = 0; i < itemsWithIds.Count; i++)
+                {
+                    if (redisHits[i].HasValue)
+                    {
+                        itemsWithIds[i].Res.ViewCount += (long)redisHits[i];
+                    }
+                }
+            }
+        } catch { }
 
         // 6. N+1 Çözümü: Toplu Yazar İsimlerini Çek (Modüller Arası)
         var authorIds = itemsWithIds.Select(x => x.AuthorId).Distinct().ToList();
