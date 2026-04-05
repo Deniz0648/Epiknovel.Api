@@ -101,7 +101,7 @@ public class GetBookDetailHandler(
                 if (totalCount > 0)
                 {
                     response = response with { 
-                        AverageRating = Math.Round(totalSum / totalCount, 1), 
+                        AverageRating = Math.Min(5.0, Math.Round(totalSum / totalCount, 1)), 
                         VoteCount = totalCount 
                     };
                 }
