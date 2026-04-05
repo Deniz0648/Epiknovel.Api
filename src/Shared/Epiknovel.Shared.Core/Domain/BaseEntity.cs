@@ -2,7 +2,7 @@ using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Shared.Core.Domain;
 
-public abstract class BaseEntity : ISoftDelete
+public abstract class BaseEntity : ISoftDelete, IAuditable
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

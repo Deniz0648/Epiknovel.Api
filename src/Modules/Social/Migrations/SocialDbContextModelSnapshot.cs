@@ -23,6 +23,31 @@ namespace Epiknovel.Modules.Social.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Epiknovel.Modules.Social.Domain.BookSummary", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Books", "books", t =>
+                        {
+                            t.ExcludeFromMigrations();
+                        });
+                });
+
             modelBuilder.Entity("Epiknovel.Modules.Social.Domain.BookVote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -226,8 +251,21 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<Guid>("LastReadChapterId")
                         .HasColumnType("uuid");
 
+                    b.Property<int>("LastReadChapterOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LastReadChapterSlug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("LastReadParagraphId")
+                        .HasColumnType("uuid");
+
                     b.Property<double>("ScrollPercentage")
                         .HasColumnType("double precision");
+
+                    b.Property<int>("TotalChapters")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
@@ -306,6 +344,54 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ReviewLikes", "social");
+                });
+
+            modelBuilder.Entity("Epiknovel.Shared.Core.Domain.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedAtUtc");
+
+                    b.ToTable("OutboxMessages", "social");
                 });
 #pragma warning restore 612, 618
         }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Epiknovel.Modules.Identity.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Identity.Data;
 
@@ -10,6 +11,7 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
 {
     public DbSet<UserSession> UserSessions => Set<UserSession>();
     public new DbSet<UserToken> UserTokens => Set<UserToken>();
+    public DbSet<Epiknovel.Shared.Core.Domain.OutboxMessage> OutboxMessages => Set<Epiknovel.Shared.Core.Domain.OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,5 +32,10 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         modelBuilder.Entity<IdentityUserLogin<Guid>>(b => b.ToTable("UserLogins"));
         modelBuilder.Entity<IdentityRoleClaim<Guid>>(b => b.ToTable("RoleClaims"));
         modelBuilder.Entity<IdentityUserToken<Guid>>(b => b.ToTable("UserTokensInternal"));
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
     }
 }

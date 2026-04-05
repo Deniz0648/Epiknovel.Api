@@ -9,6 +9,7 @@ using System.Threading.Channels;
 using Npgsql;
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Modules.Books.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Books.Workers;
 
@@ -82,12 +83,12 @@ public class OutboxProcessorWorker : BackgroundService
                 await conn.OpenAsync(ct);
 
                 // NOTIFY kanalına abone ol
-                using (var cmd = new NpgsqlCommand("LISTEN outbox_inserted;", conn))
+                using (var cmd = new NpgsqlCommand("LISTEN books_outbox_inserted;", conn))
                 {
                     await cmd.ExecuteNonQueryAsync(ct);
                 }
 
-                _logger.LogInformation("PostgreSQL LISTEN 'outbox_inserted' aktif.");
+                _logger.LogInformation("PostgreSQL LISTEN 'books_outbox_inserted' aktif.");
 
                 // İlk başlatıldığında bir kez tara (önceden kalanlar için)
                 _signal.Writer.TryWrite(true);
@@ -127,7 +128,7 @@ public class OutboxProcessorWorker : BackgroundService
 
             // 1. İşlenmemiş mesajları al (Toplu işleme - en fazla 50 adet)
             var messages = await dbContext.OutboxMessages
-                .Where(m => m.ProcessedOnUtc == null && m.RetryCount < 5)
+                .Where(m => m.ProcessedAtUtc == null && m.RetryCount < 5)
                 .OrderBy(m => m.CreatedAt)
                 .Take(50)
                 .ToListAsync(ct);
@@ -145,7 +146,7 @@ public class OutboxProcessorWorker : BackgroundService
                     {
                         _logger.LogError("Outbox mesaj tipi bulunamadı: {Type}", message.Type);
                         message.Error = "Type not found";
-                        message.ProcessedOnUtc = DateTime.UtcNow;
+                        message.ProcessedAtUtc = DateTime.UtcNow;
                         continue;
                     }
 
@@ -153,7 +154,7 @@ public class OutboxProcessorWorker : BackgroundService
                     if (@event is INotification notification)
                     {
                         await mediator.Publish(notification, ct);
-                        message.ProcessedOnUtc = DateTime.UtcNow;
+                        message.ProcessedAtUtc = DateTime.UtcNow;
                         message.Error = null;
                     }
                 }

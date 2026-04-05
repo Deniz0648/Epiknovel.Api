@@ -1,6 +1,6 @@
 using MediatR;
 using Epiknovel.Modules.Management.Data;
-using Epiknovel.Modules.Management.Domain;
+using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Events;
 
 namespace Epiknovel.Modules.Management.Events;
@@ -15,13 +15,16 @@ public class AuditEventHandler(ManagementDbContext dbContext) : INotificationHan
             Module = notification.Module,
             Action = notification.Action,
             EntityName = notification.EntityName,
-            EntityId = notification.EntityId,
+            PrimaryKeys = notification.PrimaryKeys,
+            State = notification.State,
             OldValues = notification.OldValues,
             NewValues = notification.NewValues,
+            ChangedColumns = notification.ChangedColumns,
             IpAddress = notification.IpAddress,
             UserAgent = notification.UserAgent,
             Endpoint = notification.Endpoint,
             Method = notification.Method,
+            TraceId = notification.TraceId,
             CreatedAt = DateTime.UtcNow
         };
 

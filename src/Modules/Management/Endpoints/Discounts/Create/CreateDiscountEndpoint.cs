@@ -1,5 +1,6 @@
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Modules.Management.Domain;
+using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Commands.Books;
 using Epiknovel.Shared.Core.Constants;
@@ -21,7 +22,7 @@ public record CreateDiscountRequest
     public DateTime EndsAt { get; init; }
 }
 
-[AuditLog("Create Marketing Discount")]
+[Epiknovel.Shared.Core.Attributes.AuditLog("Create Marketing Discount")]
 public class CreateDiscountEndpoint(ManagementDbContext dbContext) : Endpoint<CreateDiscountRequest, Result<Guid>>
 {
     public override void Configure()

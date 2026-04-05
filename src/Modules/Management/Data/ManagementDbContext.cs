@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Management.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Management.Data;
 
@@ -46,9 +47,15 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
         modelBuilder.Entity<AuditLog>(b => {
              b.ToTable("AuditLogs");
              b.HasIndex(x => x.CreatedAt);
+             b.HasIndex(x => x.UserId);
+             b.HasIndex(x => x.Module);
+             b.HasIndex(x => x.TraceId);
         });
         modelBuilder.Entity<DailyQuote>(b => b.ToTable("DailyQuotes"));
         modelBuilder.Entity<FAQ>(b => b.ToTable("FAQs"));
-        modelBuilder.Entity<OutboxMessage>(b => b.ToTable("Outbox"));
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
     }
 }

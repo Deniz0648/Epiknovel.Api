@@ -246,6 +246,54 @@ namespace Epiknovel.Modules.Users.Migrations
                     b.ToTable("UserSlugHistories", "users");
                 });
 
+            modelBuilder.Entity("Epiknovel.Shared.Core.Domain.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedAtUtc");
+
+                    b.ToTable("OutboxMessages", "users");
+                });
+
             modelBuilder.Entity("Epiknovel.Modules.Users.Domain.Follow", b =>
                 {
                     b.HasOne("Epiknovel.Modules.Users.Domain.UserProfile", "Follower")

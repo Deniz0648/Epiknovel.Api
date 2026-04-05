@@ -16,8 +16,10 @@ using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Interfaces.SignalR;
 using Epiknovel.Shared.Infrastructure.Services;
 using Epiknovel.Shared.Infrastructure.Logging;
-using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Infrastructure.Security;
+using Epiknovel.Shared.Infrastructure.Data.Interceptors;
+using Epiknovel.Shared.Core.Constants;
+using Epiknovel.Shared.Core.Events;
 using MediatR;
 using FastEndpoints.Swagger;
 using Epiknovel.Shared.Infrastructure.Monitoring;
@@ -329,6 +331,7 @@ public static class InfrastructureExtensions
 
         services.AddSingleton<IBackgroundAuditQueue, BackgroundAuditQueue>();
         services.AddHostedService<BackgroundAuditWorker>();
+        services.AddScoped<AuditInterceptor>();
         
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
@@ -373,11 +376,15 @@ public static class InfrastructureExtensions
             .RemoveServerHeader());
 
         // 2. Performans: ETag Desteği (Bant genişliği tasarrufu)
-        // 🛡️ HARDENING: Swagger ve Scalar döküman sayfalarını önbellek başlıklarından muaf tut
-        // Aksi takdirde "Headers are read-only" hatası oluşur.
-        app.UseWhen(context => !context.Request.Path.StartsWithSegments("/swagger") 
-                            && !context.Request.Path.StartsWithSegments("/scalar"), 
-            builder => builder.UseHttpCacheHeaders());
+        // 🛡️ HARDENING: Swagger, Scalar ve anlık Social (Library/Follow) işlemlerini önbellek başlıklarından muaf tut
+        // Aksi takdirde "Headers are read-only" hatası oluşur veya state senkronizasyon sorunları yaşanabilir.
+        app.UseWhen(context => {
+            var path = context.Request.Path.Value ?? "";
+            return !path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) && 
+                   !path.StartsWith("/scalar", StringComparison.OrdinalIgnoreCase) && 
+                   !path.StartsWith("/hubs", StringComparison.OrdinalIgnoreCase) && 
+                   (!path.Contains("/social/", StringComparison.OrdinalIgnoreCase) && !path.EndsWith("/social", StringComparison.OrdinalIgnoreCase));
+        }, builder => builder.UseHttpCacheHeaders());
 
         app.UseAuthentication();
         app.UseMiddleware<Epiknovel.Shared.Infrastructure.Middleware.TokenRevocationMiddleware>();

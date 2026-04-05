@@ -5,6 +5,7 @@ using Epiknovel.Modules.Infrastructure.Workers;
 using Epiknovel.Modules.Infrastructure.Services;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Services;
+using Epiknovel.Shared.Infrastructure.Data.Interceptors;
 
 namespace Epiknovel.Modules.Infrastructure;
 
@@ -12,11 +13,12 @@ public static class InfrastructureModuleExtensions
 {
     public static IServiceCollection AddInfrastructureModule(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<InfrastructureDbContext>(options =>
+        services.AddDbContext<InfrastructureDbContext>((sp, options) =>
             options.UseNpgsql(connectionString, x => 
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "infrastructure")
                  .EnableRetryOnFailure())
-                 .ConfigureWarnings(w => w.Ignore(20100, 20605)));
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605))
+                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         // 1. Bildirim Servisi
         services.AddScoped<IEmailService, SmtpEmailService>();

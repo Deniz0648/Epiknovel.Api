@@ -156,7 +156,10 @@ using (var scope = app.Services.CreateScope())
 }
 Console.WriteLine("[DB INIT] COMPLETED.");
 
-// 5. Pipeline & Scalar UI
+// 5. Global Middleware & Altyapı Pipeline (En Başta Olmalı)
+app.UseSharedPipeline();
+
+// 6. API Documentation (Swagger & Scalar)
 if (app.Environment.IsDevelopment() || true) 
 {
     app.UseSwaggerGen(); 
@@ -171,8 +174,6 @@ if (app.Environment.IsDevelopment() || true)
                .WithOpenApiRoutePattern("/swagger/v1/swagger.json");
     });
 }
-
-app.UseSharedPipeline();
 
 // Real-time Support Module Map
 app.MapHub<SupportTicketHub>("/hubs/support");

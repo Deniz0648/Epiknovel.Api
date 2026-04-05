@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Social.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Social.Data;
 
@@ -14,6 +15,8 @@ public class SocialDbContext(DbContextOptions<SocialDbContext> options) : DbCont
     public DbSet<LibraryEntry> LibraryEntries => Set<LibraryEntry>();
     public DbSet<ReadingProgress> ReadingProgresses => Set<ReadingProgress>();
     public DbSet<InlineCommentLike> InlineCommentLikes => Set<InlineCommentLike>();
+    public DbSet<BookSummary> BookSummaries => Set<BookSummary>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,5 +35,13 @@ public class SocialDbContext(DbContextOptions<SocialDbContext> options) : DbCont
         modelBuilder.Entity<LibraryEntry>(b => b.ToTable("LibraryEntries"));
         modelBuilder.Entity<ReadingProgress>(b => b.ToTable("ReadingProgresses"));
         modelBuilder.Entity<InlineCommentLike>(b => b.ToTable("InlineCommentLikes"));
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
+
+        // Modüller arası okuma: Books tablosu 'Books' modülüne aittir, burada sadece okuyoruz.
+        modelBuilder.Entity<BookSummary>(b => b.ToTable("Books", "books", t => t.ExcludeFromMigrations()));
     }
 }

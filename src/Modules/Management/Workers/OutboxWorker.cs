@@ -65,9 +65,9 @@ public class OutboxWorker(
             var messages = await dbContext.OutboxMessages
                 .FromSqlInterpolated($@"
                     SELECT *
-                    FROM management.""Outbox""
-                    WHERE ""ProcessedAt"" IS NULL
-                      AND ""AttemptCount"" < 5
+                    FROM management.""OutboxMessages""
+                    WHERE ""ProcessedAtUtc"" IS NULL
+                      AND ""RetryCount"" < 5
                     ORDER BY ""CreatedAt""
                     LIMIT {_batchSize}
                     FOR UPDATE SKIP LOCKED")
@@ -112,12 +112,12 @@ public class OutboxWorker(
                         }
                     }
 
-                    message.ProcessedAt = DateTime.UtcNow;
+                    message.ProcessedAtUtc = DateTime.UtcNow;
                 }
                 catch (Exception ex)
                 {
                     logger.LogWarning("Outbox message {Id} failed: {Message}", message.Id, ex.Message);
-                    message.AttemptCount++;
+                    message.RetryCount++;
                     message.Error = ex.Message;
 
                     if (message.Type == nameof(DeductBalanceForPayoutCommand))

@@ -5,6 +5,7 @@ using Epiknovel.Modules.Identity.Data;
 using Epiknovel.Modules.Identity.Domain;
 using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Infrastructure.Data.Interceptors;
 
 namespace Epiknovel.Modules.Identity;
 
@@ -13,11 +14,12 @@ public static class IdentityModuleExtensions
     public static IServiceCollection AddIdentityModule(this IServiceCollection services, string connectionString)
     {
         // 1. DbContext Kaydı
-        services.AddDbContext<IdentityDbContext>(options =>
+        services.AddDbContext<IdentityDbContext>((sp, options) =>
             options.UseNpgsql(connectionString, x => 
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "identity")
                  .EnableRetryOnFailure())
-                 .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
+                 .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
+                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         // 2. Identity Yapılandırması (Kullanıcının Özel Şifre Kuralları)
         services.AddIdentityCore<User>(options =>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Wallet.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Wallet.Data;
 
@@ -11,6 +12,7 @@ public class WalletDbContext(DbContextOptions<WalletDbContext> options) : DbCont
     public DbSet<CoinPurchaseOrder> CoinPurchaseOrders => Set<CoinPurchaseOrder>();
     public DbSet<UserUnlockedChapter> UserUnlockedChapters => Set<UserUnlockedChapter>();
     public DbSet<MonthlyRoyaltyReport> MonthlyRoyaltyReports => Set<MonthlyRoyaltyReport>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,5 +36,10 @@ public class WalletDbContext(DbContextOptions<WalletDbContext> options) : DbCont
         modelBuilder.Entity<CoinPurchaseOrder>(b => b.ToTable("CoinPurchaseOrders"));
         modelBuilder.Entity<UserUnlockedChapter>(b => b.ToTable("UserUnlockedChapters"));
         modelBuilder.Entity<MonthlyRoyaltyReport>(b => b.ToTable("MonthlyRoyaltyReports"));
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Infrastructure.Data.Interceptors;
 
 namespace Epiknovel.Modules.Management;
 
@@ -9,11 +10,12 @@ public static class ManagementModuleExtensions
 {
     public static IServiceCollection AddManagementModule(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<ManagementDbContext>(options =>
+        services.AddDbContext<ManagementDbContext>((sp, options) =>
             options.UseNpgsql(connectionString, x => 
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "management")
                  .EnableRetryOnFailure())
-                 .ConfigureWarnings(w => w.Ignore(20100, 20605)));
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605))
+                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider, Services.SystemSettingProvider>();
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService, Services.EmailTemplateService>();

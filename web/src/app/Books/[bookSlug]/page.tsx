@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Eye, Home, Play, Plus, Star, Tag } from "lucide-react";
+import { BookOpen, Check, Eye, Home, Loader2, Minus, Play, Plus, Star, Tag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { fromBookSlug } from "@/lib/books";
 import { RatingStars } from "@/components/book/rating-stars";
+import { showToast } from "@/lib/toast";
 
 const DEFAULT_COVER = {
   image: "/covers/cover-golge.svg",
@@ -330,7 +331,41 @@ export default function BookDetailPage() {
   const [chapters, setChapters] = useState<BookChapterItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [libraryEntryId, setLibraryEntryId] = useState<string | null>(null);
+  const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
+  const [isLibraryActionLoading, setIsLibraryActionLoading] = useState(false);
+  const [isLibraryStatusLoading, setIsLibraryStatusLoading] = useState(true);
+  const [isLibraryHover, setIsLibraryHover] = useState(false);
   const comments = useMemo(() => buildComments(title), [title]);
+
+  const getStatusText = (status: any) => {
+    if (status === 0 || status === "Reading") return "Okuyorum";
+    if (status === 1 || status === "Completed") return "Tamamlandı";
+    if (status === 2 || status === "Dropped") return "Bırakıldı";
+    if (status === 3 || status === "PlanToRead") return "Okuyacağım";
+    if (status === 4 || status === "OnHold") return "Beklemede";
+    if (status === 5 || status === "Archived") return "Arşiv";
+    return status?.toString() || "Kütüphanede";
+  };
+
+  const checkLibraryStatus = async (bookId: string) => {
+    try {
+      setIsLibraryStatusLoading(true);
+      const libStatus = await apiRequest<{ id?: string; Id?: string; status?: any; Status?: any } | null>(`/social/library/check/${bookId}`);
+      if (libStatus) {
+        setLibraryEntryId(libStatus.id || libStatus.Id || null);
+        const statusVal = libStatus.status !== undefined ? libStatus.status : libStatus.Status;
+        setLibraryStatus(getStatusText(statusVal));
+      } else {
+        setLibraryEntryId(null);
+        setLibraryStatus(null);
+      }
+    } catch (err) {
+      console.error("Kutuphane durumu alinamadı:", err);
+    } finally {
+      setIsLibraryStatusLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!bookSlug) return;
@@ -352,8 +387,11 @@ export default function BookDetailPage() {
            `/books/${bookSlug}/chapters?pageNumber=1&pageSize=500&sortBy=Order&sortDescending=false`
         );
 
+        // Backend bazen 'Id' bazen 'id' gönderebiliyor (Serializer farkı)
+        const bookId = (bookData as any).id || (bookData as any).Id;
+
         setDetail({
-          id: bookData.id,
+          id: bookId,
           title: bookData.title,
           author: bookData.authorName || "Yazar",
           status: bookData.status || "Bilinmiyor",
@@ -362,7 +400,7 @@ export default function BookDetailPage() {
           categories: (bookData.categories ?? []).map((x) => x.name),
           tags: bookData.tags ?? [],
           rating: bookData.averageRating > 0 ? Number(bookData.averageRating.toFixed(1)) : 0,
-          voteCount: 0, // Bu alan API response'da yoksa VoteCount eklenebilir
+          voteCount: 0, 
           reads: bookData.viewCount > 0 ? bookData.viewCount : 0,
           chapters: chapterData.totalCount > 0 ? chapterData.totalCount : 0,
           synopsis: bookData.description || "Aciklama bulunamadi.",
@@ -374,7 +412,12 @@ export default function BookDetailPage() {
         });
 
         setChapters(chapterData.chapters.length > 0 ? mapChaptersFromApi(chapterData.chapters) : []);
-      } catch {
+        
+        // 3. Kütüphane durumunu kontrol et
+        if (bookId) {
+          await checkLibraryStatus(bookId);
+        }
+      } catch (err) {
         if (!isMounted) return;
         setDetail(null);
         setChapters([]);
@@ -391,6 +434,91 @@ export default function BookDetailPage() {
       isMounted = false;
     };
   }, [bookSlug]);
+
+  const handleToggleLibrary = async () => {
+    if (!detail) return;
+
+    try {
+      setIsLibraryActionLoading(true);
+      if (libraryEntryId) {
+        // Kütüphaneden çıkar
+        await apiRequest(`/social/library/${libraryEntryId}`, { method: "DELETE" });
+        setLibraryEntryId(null);
+        setLibraryStatus(null);
+        showToast({
+          title: "Kütüphaneden Çıkarıldı",
+          description: "Kitap okuma listenizden kaldırıldı.",
+          tone: "success",
+        });
+      } else {
+        // Kütüphaneye ekle
+        const response = await apiRequest<{ id?: string; Id?: string; status?: any; Status?: any }>("/social/library", {
+          method: "POST",
+          body: JSON.stringify({ bookId: detail.id }),
+        });
+        const newId = response.id || response.Id;
+        const statusVal = response.status !== undefined ? response.status : response.Status;
+        setLibraryEntryId(newId || null);
+        setLibraryStatus(getStatusText(statusVal));
+        showToast({
+          title: "Kütüphaneye Eklendi",
+          description: `Kitap "${getStatusText(statusVal)}" listesine eklendi.`,
+          tone: "success",
+        });
+      }
+    } catch (err: any) {
+      if (err.message?.includes("zaten kütüphanenizde")) {
+        console.warn("[SYNC] Kitap zaten ekli görünüyor, durum tazeleniyor...");
+        await checkLibraryStatus(detail.id);
+      } else {
+        showToast({
+          title: "Hata",
+          description: err.message || "İşlem gerçekleştirilemedi.",
+          tone: "error",
+        });
+      }
+    } finally {
+      setIsLibraryActionLoading(false);
+    }
+  };
+
+  const handleUpdateLibraryStatus = async (newStatus: number) => {
+    if (!libraryEntryId || !detail) return;
+
+    // Akıllı Kontrol: Devam eden eser tamamlandı işaretlenemez.
+    const isBookOngoing = detail.status === "Ongoing" || detail.status === "Devam Ediyor";
+    if (newStatus === 1 && isBookOngoing) {
+      showToast({
+        title: "Geçersiz İşlem",
+        description: "Devam eden bir eseri 'Tamamlandı' olarak işaretleyemezsiniz.",
+        tone: "error",
+      });
+      return;
+    }
+
+    try {
+      setIsLibraryActionLoading(true);
+      await apiRequest(`/social/library/${libraryEntryId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: newStatus }),
+      });
+      setLibraryStatus(getStatusText(newStatus));
+      showToast({
+        title: "Durum Güncellendi",
+        description: `Okuma durumunuz "${getStatusText(newStatus)}" olarak güncellendi.`,
+        tone: "success",
+      });
+    } catch (err: any) {
+      console.error("Durum guncelleme hatasi:", err);
+      showToast({
+        title: "Hata",
+        description: err.message || "Durum güncellenirken bir hata oluştu.",
+        tone: "error",
+      });
+    } finally {
+      setIsLibraryActionLoading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -543,10 +671,66 @@ export default function BookDetailPage() {
                     Oku
                   </button>
                 )}
-                <button className="btn rounded-full border border-base-content/20 bg-base-100/28 px-7">
-                  <Plus className="h-4 w-4" />
-                  Kutuphaneye Ekle
+                <button 
+                  onClick={handleToggleLibrary}
+                  onMouseEnter={() => setIsLibraryHover(true)}
+                  onMouseLeave={() => setIsLibraryHover(false)}
+                  disabled={isLibraryActionLoading || isLibraryStatusLoading}
+                  className={`btn flex-1 rounded-full border px-7 transition-all duration-300 ${
+                    libraryEntryId 
+                      ? "border-primary/30 bg-primary/10 text-primary hover:border-error/30 hover:bg-error/10 hover:text-error" 
+                      : "border-base-content/20 bg-base-100/28 hover:bg-base-100/40"
+                  } disabled:opacity-50`}
+                >
+                  {isLibraryActionLoading || isLibraryStatusLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : libraryEntryId ? (
+                    isLibraryHover ? <Minus className="h-4 w-4" /> : <Check className="h-4 w-4" />
+                  ) : (
+                    <Plus className="h-4 w-4" />
+                  )}
+                  {libraryEntryId 
+                    ? (isLibraryHover ? "Kütüphaneden Çıkar" : libraryStatus) 
+                    : "Kütüphaneye Ekle"}
                 </button>
+
+                {libraryEntryId && (
+                  <div className="group relative">
+                    <button
+                      className="btn h-full aspect-square rounded-full border border-primary/30 bg-primary/10 px-0 text-primary hover:bg-primary/20 transition-colors"
+                      title="Okuma Durumunu Değiştir"
+                    >
+                      <Star className="h-4 w-4 fill-current" />
+                    </button>
+                    
+                    <div className="absolute right-0 top-full z-50 mt-2 hidden w-56 flex-col overflow-hidden rounded-2xl border border-base-content/10 bg-base-100/95 backdrop-blur-md shadow-2xl group-hover:flex">
+                      <div className="bg-base-200/50 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-base-content/40">
+                        OKUMA DURUMU
+                      </div>
+                      {[
+                        { id: 0, label: "Okuyorum", icon: BookOpen },
+                        { id: 3, label: "Okuyacağım", icon: Eye },
+                        { id: 1, label: "Tamamlandı", icon: Check, disabled: detail.status === "Ongoing" || detail.status === "Devam Ediyor" },
+                        { id: 4, label: "Beklemede", icon: Loader2 },
+                        { id: 5, label: "Arşiv", icon: Tag },
+                        { id: 2, label: "Bırakıldı", icon: Minus },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          disabled={item.disabled}
+                          onClick={() => handleUpdateLibraryStatus(item.id)}
+                          className={`flex items-center gap-3 px-4 py-3 text-sm transition-all hover:bg-primary/10 hover:text-primary ${
+                            item.disabled ? "opacity-40 grayscale cursor-not-allowed" : ""
+                          } ${libraryStatus === item.label ? "bg-primary/5 text-primary font-bold" : "text-base-content/70"}`}
+                        >
+                          <item.icon className={`h-4 w-4 ${libraryStatus === item.label ? "fill-primary/20" : ""}`} />
+                          {item.label}
+                          {item.disabled && <span className="ml-auto text-[9px] font-bold opacity-60">YAYINDA</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

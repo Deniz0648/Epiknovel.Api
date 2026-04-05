@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Infrastructure.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Infrastructure.Data;
 
@@ -10,6 +11,7 @@ public class InfrastructureDbContext(DbContextOptions<InfrastructureDbContext> o
     public DbSet<Quote> Quotes => Set<Quote>();
     public DbSet<Faq> Faqs => Set<Faq>();
     public DbSet<SystemDocument> SystemDocuments => Set<SystemDocument>();
+    public DbSet<Epiknovel.Shared.Core.Domain.OutboxMessage> OutboxMessages => Set<Epiknovel.Shared.Core.Domain.OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,5 +26,10 @@ public class InfrastructureDbContext(DbContextOptions<InfrastructureDbContext> o
         modelBuilder.Entity<Quote>(b => b.ToTable("Quotes"));
         modelBuilder.Entity<Faq>(b => b.ToTable("Faqs"));
         modelBuilder.Entity<SystemDocument>(b => b.ToTable("SystemDocuments"));
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   ChevronLeft, ChevronRight, Settings, MessageSquare, 
   Minus, Plus, Pin, Maximize, Share2, 
@@ -16,10 +16,10 @@ import { useAuth } from "@/components/providers/auth-provider";
 // --- TİPLER ---
 interface Paragraph { id: string; content: string; }
 interface ChapterDetail {
-  id: string; title: string; paragraphs: Paragraph[];
+  id: string; title: string; slug: string; paragraphs: Paragraph[];
   nextChapterSlug?: string; previousChapterSlug?: string;
   bookTitle: string; bookSlug: string; order: number; totalChapters: number;
-  viewCount: number;
+  viewCount: number; bookId: string;
 }
 interface ReaderSettings {
   fontSize: number; fontFamily: 'serif' | 'sans' | 'mono'; theme: string;
@@ -29,6 +29,8 @@ interface ReaderSettings {
 
 export default function ReaderPage() {
   const params = useParams<{ bookSlug: string; chapterSlug: string }>();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { profile, isLoading: isAuthLoading } = useAuth();
   
   const [chapters, setChapters] = useState<ChapterDetail[]>([]);
@@ -37,8 +39,14 @@ export default function ReaderPage() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [isSpoiler, setIsSpoiler] = useState(false);
+  
   const lastScrollY = useRef(0);
   const loadingRef = useRef(false);
+  const progressRef = useRef<{ paragraphId: string | null; chapterId: string | null }>({ 
+    paragraphId: null, 
+    chapterId: null 
+  });
+  const lastSaveTime = useRef(0);
 
   const [settings, setSettings] = useState<ReaderSettings>({
     fontSize: 16, fontFamily: 'serif', theme: 'light', lineHeight: 1.8,
@@ -54,6 +62,36 @@ export default function ReaderPage() {
     localStorage.setItem("reader-settings", JSON.stringify(settings));
   }, [settings]);
 
+  // İlerleme Kaydetme Fonksiyonu
+  const saveProgress = useCallback(async (isImmediate = false) => {
+    const { paragraphId, chapterId } = progressRef.current;
+    if (!profile || !chapterId) return;
+
+    const now = Date.now();
+    if (!isImmediate && now - lastSaveTime.current < 15000) return; // 15 saniyede bir
+
+    const currentChapter = chapters.find(c => c.id === chapterId);
+    if (!currentChapter) return;
+
+    try {
+      lastSaveTime.current = now;
+      await apiRequest("/social/library/progress", {
+        method: "POST",
+        body: JSON.stringify({
+          bookId: currentChapter.bookId,
+          chapterId: currentChapter.id,
+          chapterSlug: params?.chapterSlug || currentChapter.slug,
+          chapterOrder: currentChapter.order,
+          paragraphId: paragraphId,
+          totalChapters: currentChapter.totalChapters
+        })
+      });
+      console.log("[PROGRESS] Kaydedildi:", currentChapter.title, paragraphId);
+    } catch (err) {
+      console.error("[PROGRESS] Kayıt hatası:", err);
+    }
+  }, [profile, chapters, params?.chapterSlug]);
+
   useEffect(() => {
     async function loadFirstChapter() {
       if (isAuthLoading) return;
@@ -61,17 +99,25 @@ export default function ReaderPage() {
         setIsLoading(true);
         const data = await apiRequest<ChapterDetail>(`/books/chapters/${params?.chapterSlug}`);
         setChapters([data]);
+        
+        // Initial Scroll to Paragraph or Saved Progress
         setTimeout(() => {
-          const savedProgress = localStorage.getItem(`read-progress-${params?.chapterSlug}`);
-          if (savedProgress) {
-            const y = parseFloat(savedProgress) * document.documentElement.scrollHeight;
-            window.scrollTo({ top: y, behavior: 'instant' });
+          const targetPId = searchParams.get('p');
+          if (targetPId) {
+            const el = document.getElementById(targetPId);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            const savedProgress = localStorage.getItem(`read-progress-${params?.chapterSlug}`);
+            if (savedProgress) {
+              const y = parseFloat(savedProgress) * document.documentElement.scrollHeight;
+              window.scrollTo({ top: y, behavior: 'instant' });
+            }
           }
-        }, 200);
+        }, 500);
       } catch (err) { console.error(err); } finally { setIsLoading(false); }
     }
     if (params?.chapterSlug) loadFirstChapter();
-  }, [params?.chapterSlug, isAuthLoading]);
+  }, [params?.chapterSlug, isAuthLoading, searchParams]);
 
   const loadNextChapter = useCallback(async () => {
     const lastChapter = chapters[chapters.length - 1];
@@ -82,11 +128,39 @@ export default function ReaderPage() {
       const data = await apiRequest<ChapterDetail>(`/books/chapters/${lastChapter.nextChapterSlug}`);
       setChapters(prev => [...prev, data]);
       window.history.replaceState(null, "", `/read/${data.bookSlug}/${lastChapter.nextChapterSlug}`);
+      // Bölüm değişince anlık kaydet
+      void saveProgress(true);
     } catch (err) { console.error(err); } finally {
       loadingRef.current = false;
       setIsNextLoading(false);
     }
-  }, [chapters]);
+  }, [chapters, saveProgress]);
+
+  // IntersectionObserver ile Paragraf Takibi
+  useEffect(() => {
+    if (isLoading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pId = entry.target.id;
+            const cId = entry.target.getAttribute('data-chapter-id');
+            if (pId && cId) {
+              progressRef.current = { paragraphId: pId, chapterId: cId };
+              void saveProgress();
+            }
+          }
+        });
+      },
+      { threshold: 0.5, rootMargin: '0px 0px -20% 0px' }
+    );
+
+    const paragraphs = document.querySelectorAll('.reader-paragraph');
+    paragraphs.forEach(p => observer.observe(p));
+
+    return () => observer.disconnect();
+  }, [isLoading, saveProgress]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -199,8 +273,14 @@ export default function ReaderPage() {
                 }`} 
                 style={{ fontSize: `${settings.fontSize}px`, lineHeight: settings.lineHeight }}
               >
-                 {chapter.paragraphs.map((p, idx) => (
-                   <div key={idx} dangerouslySetInnerHTML={{ __html: p.content }} className="text-base-content mb-10" />
+                 {chapter.paragraphs.map((p) => (
+                   <div 
+                    key={p.id} 
+                    id={p.id} 
+                    data-chapter-id={chapter.id}
+                    dangerouslySetInnerHTML={{ __html: p.content }} 
+                    className="text-base-content mb-10 reader-paragraph scroll-mt-32" 
+                   />
                  ))}
               </article>
 

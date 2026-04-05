@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Compliance.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Compliance.Data;
 
@@ -11,6 +12,7 @@ public class ComplianceDbContext(DbContextOptions<ComplianceDbContext> options) 
     public DbSet<SecureDocument> SecureDocuments => Set<SecureDocument>();
     public DbSet<ModerationTicket> ModerationTickets => Set<ModerationTicket>();
     public DbSet<UserStrike> UserStrikes => Set<UserStrike>();
+    public DbSet<Epiknovel.Shared.Core.Domain.OutboxMessage> OutboxMessages => Set<Epiknovel.Shared.Core.Domain.OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -26,5 +28,10 @@ public class ComplianceDbContext(DbContextOptions<ComplianceDbContext> options) 
         modelBuilder.Entity<SecureDocument>(b => b.ToTable("SecureDocuments"));
         modelBuilder.Entity<ModerationTicket>(b => b.ToTable("ModerationTickets"));
         modelBuilder.Entity<UserStrike>(b => b.ToTable("UserStrikes"));
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
     }
 }

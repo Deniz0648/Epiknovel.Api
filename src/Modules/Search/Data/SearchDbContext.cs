@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Search.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Search.Data;
 
@@ -7,6 +8,7 @@ public class SearchDbContext(DbContextOptions<SearchDbContext> options) : DbCont
 {
     public DbSet<SearchHistory> SearchHistories => Set<SearchHistory>();
     public DbSet<SearchDocument> SearchDocuments => Set<SearchDocument>();
+    public DbSet<Epiknovel.Shared.Core.Domain.OutboxMessage> OutboxMessages => Set<Epiknovel.Shared.Core.Domain.OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,6 +41,11 @@ public class SearchDbContext(DbContextOptions<SearchDbContext> options) : DbCont
 
             // Performans için ReferenceId'ye de normal index atalım
             entity.HasIndex(p => p.ReferenceId);
+        });
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
         });
     }
 }

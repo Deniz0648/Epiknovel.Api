@@ -1,6 +1,6 @@
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Modules.Management.Domain;
-using Epiknovel.Shared.Core.Attributes;
+using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Commands.Wallet;
 using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Models;
@@ -17,7 +17,7 @@ public record ApprovePayoutRequest
     public string? Note { get; init; }
 }
 
-[AuditLog("Approve Payout")]
+[Epiknovel.Shared.Core.Attributes.AuditLog("Approve Payout")]
 public class ApprovePayoutEndpoint(ManagementDbContext dbContext) : Endpoint<ApprovePayoutRequest, Result<string>>
 {
     public override void Configure()

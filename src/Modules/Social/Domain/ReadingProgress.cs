@@ -11,6 +11,10 @@ public class ReadingProgress : IOwnable
 
     // Books modülündeki ChapterId ile eşleşir
     public Guid LastReadChapterId { get; set; }
+    public string LastReadChapterSlug { get; set; } = string.Empty;
+    public int LastReadChapterOrder { get; set; }
+    public Guid? LastReadParagraphId { get; set; }
+    public int TotalChapters { get; set; }
 
     // UserId ile eşleşir
     public Guid UserId { get; set; }

@@ -7,7 +7,9 @@ public enum ReadingStatus
     Reading,
     Completed,
     Dropped,
-    PlanToRead
+    PlanToRead,
+    OnHold,
+    Archived
 }
 
 public class LibraryEntry : IOwnable

@@ -23,66 +23,6 @@ namespace Epiknovel.Modules.Management.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Epiknovel.Modules.Management.Domain.AuditLog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Country")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Endpoint")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("EntityId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("EntityName")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Method")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Module")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("NewValues")
-                        .HasColumnType("text");
-
-                    b.Property<string>("OldValues")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CreatedAt");
-
-                    b.ToTable("AuditLogs", "management");
-                });
-
             modelBuilder.Entity("Epiknovel.Modules.Management.Domain.AuthorApplication", b =>
                 {
                     b.Property<Guid>("Id")
@@ -342,52 +282,6 @@ namespace Epiknovel.Modules.Management.Migrations
                     b.ToTable("FAQs", "management");
                 });
 
-            modelBuilder.Entity("Epiknovel.Modules.Management.Domain.OutboxMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AttemptCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<Guid?>("DeletedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("ModerationNote")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Outbox", "management");
-                });
-
             modelBuilder.Entity("Epiknovel.Modules.Management.Domain.PaidAuthorApplication", b =>
                 {
                     b.Property<Guid>("Id")
@@ -609,6 +503,136 @@ namespace Epiknovel.Modules.Management.Migrations
                     b.HasKey("Key");
 
                     b.ToTable("SystemSettings", "management");
+                });
+
+            modelBuilder.Entity("Epiknovel.Shared.Core.Domain.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ChangedColumns")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Endpoint")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Method")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryKeys")
+                        .HasColumnType("text");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TraceId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Module");
+
+                    b.HasIndex("TraceId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AuditLogs", "management");
+                });
+
+            modelBuilder.Entity("Epiknovel.Shared.Core.Domain.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedAtUtc");
+
+                    b.ToTable("OutboxMessages", "management");
                 });
 
             modelBuilder.Entity("Epiknovel.Modules.Management.Domain.SupportTicketMessage", b =>

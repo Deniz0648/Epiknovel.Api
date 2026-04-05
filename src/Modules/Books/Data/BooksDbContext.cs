@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Books.Domain;
+using Epiknovel.Shared.Core.Domain;
 using MediatR;
 using System.Text.Json;
 
@@ -73,9 +74,9 @@ public class BooksDbContext(DbContextOptions<BooksDbContext> options) : DbContex
            b.HasIndex(x => x.EntityType);
         });
 
-        modelBuilder.Entity<OutboxMessage>(b => {
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
            b.ToTable("OutboxMessages");
-           b.HasIndex(x => x.ProcessedOnUtc);
+           b.HasIndex(x => x.ProcessedAtUtc);
         });
 
         modelBuilder.Entity<BookRating>(b => {

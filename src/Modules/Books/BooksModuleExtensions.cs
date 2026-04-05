@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Modules.Books.Services;
 using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Infrastructure.Data.Interceptors;
 
 namespace Epiknovel.Modules.Books;
 
@@ -11,11 +12,12 @@ public static class BooksModuleExtensions
     public static IServiceCollection AddBooksModule(this IServiceCollection services, string connectionString)
     {
         // 1. DbContext Kaydı
-        services.AddDbContext<BooksDbContext>(options =>
+        services.AddDbContext<BooksDbContext>((sp, options) =>
             options.UseNpgsql(connectionString, x => 
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "books")
                  .EnableRetryOnFailure())
-                 .ConfigureWarnings(w => w.Ignore(20100, 20605)));
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605))
+                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         // 2. Background Workers (İstatistik Senkronizasyonu + Zamanlanmış Yayın + Outbox)
         services.AddHostedService<Epiknovel.Modules.Books.Workers.ChapterStatsSyncWorker>();

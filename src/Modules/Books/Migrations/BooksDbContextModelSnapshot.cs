@@ -380,54 +380,6 @@ namespace Epiknovel.Modules.Books.Migrations
                     b.ToTable("Chapters", "books");
                 });
 
-            modelBuilder.Entity("Epiknovel.Modules.Books.Domain.OutboxMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<Guid?>("DeletedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Error")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("ModerationNote")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ProcessedOnUtc")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.Property<int>("RetryCount")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp without time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProcessedOnUtc");
-
-                    b.ToTable("OutboxMessages", "books");
-                });
-
             modelBuilder.Entity("Epiknovel.Modules.Books.Domain.Paragraph", b =>
                 {
                     b.Property<Guid>("Id")
@@ -492,6 +444,54 @@ namespace Epiknovel.Modules.Books.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Tags", "books");
+                });
+
+            modelBuilder.Entity("Epiknovel.Shared.Core.Domain.OutboxMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProcessedAtUtc")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcessedAtUtc");
+
+                    b.ToTable("OutboxMessages", "books");
                 });
 
             modelBuilder.Entity("BookCategory", b =>

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Users.Domain;
+using Epiknovel.Shared.Core.Domain;
 
 namespace Epiknovel.Modules.Users.Data;
 
@@ -9,6 +10,7 @@ public class UsersDbContext(DbContextOptions<UsersDbContext> options) : DbContex
     public DbSet<UserSlugHistory> UserSlugHistories => Set<UserSlugHistory>();
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<Follow> Follows => Set<Follow>();
+    public DbSet<Epiknovel.Shared.Core.Domain.OutboxMessage> OutboxMessages => Set<Epiknovel.Shared.Core.Domain.OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,5 +56,10 @@ public class UsersDbContext(DbContextOptions<UsersDbContext> options) : DbContex
         });
 
         modelBuilder.Entity<UserAddress>(b => b.ToTable("UserAddresses"));
+
+        modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
+             b.ToTable("OutboxMessages");
+             b.HasIndex(x => x.ProcessedAtUtc);
+        });
     }
 }

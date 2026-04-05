@@ -3,32 +3,38 @@ using Epiknovel.Shared.Core.Models;
 using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Shared.Core.Constants;
+using AuditEntityState = Epiknovel.Shared.Core.Domain.EntityState;
 
 namespace Epiknovel.Modules.Management.Endpoints.Audit;
 
 public class GetAuditLogsRequest
 {
-    // Keyset/Cursor Pagination parameters
-    public DateTime? Cursor { get; set; } // The CreatedAt of the last item in the previous page
+    public DateTime? Cursor { get; set; }
     public int Take { get; set; } = 50;
     
-    // Optional filters
     public Guid? UserId { get; set; }
     public string? Module { get; set; }
     public string? Action { get; set; }
+    public string? TraceId { get; set; }
+    public AuditEntityState? State { get; set; }
 }
 
 public class AuditLogDto
 {
     public Guid Id { get; set; }
-    public Guid UserId { get; set; }
+    public Guid? UserId { get; set; }
     public string Module { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public string EntityName { get; set; } = string.Empty;
-    public string EntityId { get; set; } = string.Empty;
+    public string? PrimaryKeys { get; set; }
+    public AuditEntityState State { get; set; }
     public string? OldValues { get; set; }
     public string? NewValues { get; set; }
-    public string IpAddress { get; set; } = string.Empty;
+    public string? ChangedColumns { get; set; }
+    public string? IpAddress { get; set; }
+    public string? Endpoint { get; set; }
+    public string? Method { get; set; }
+    public string? TraceId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -37,7 +43,7 @@ public class GetAuditLogsEndpoint(ManagementDbContext dbContext) : Endpoint<GetA
     public override void Configure()
     {
         Get("/management/audit-logs");
-        Policies(PolicyNames.AdminAccess); // Viewing system logs requires high admin clearance
+        Policies(PolicyNames.AdminAccess);
         Summary(s =>
         {
             s.Summary = "Get Audit Logs (Cursor Paginated)";
@@ -48,18 +54,13 @@ public class GetAuditLogsEndpoint(ManagementDbContext dbContext) : Endpoint<GetA
 
     public override async Task HandleAsync(GetAuditLogsRequest req, CancellationToken ct)
     {
-        // Enforce maximum take to prevent memory exhaustion
         if (req.Take > 200) req.Take = 200;
 
         var query = dbContext.AuditLogs.AsNoTracking().AsQueryable();
 
-        // Cursor Pagination Logic: Seeking strictly older logs
         if (req.Cursor.HasValue)
-        {
             query = query.Where(a => a.CreatedAt < req.Cursor.Value);
-        }
 
-        // Apply dynamic filters
         if (req.UserId.HasValue)
             query = query.Where(a => a.UserId == req.UserId.Value);
             
@@ -68,6 +69,12 @@ public class GetAuditLogsEndpoint(ManagementDbContext dbContext) : Endpoint<GetA
             
         if (!string.IsNullOrWhiteSpace(req.Action))
             query = query.Where(a => a.Action == req.Action);
+
+        if (!string.IsNullOrWhiteSpace(req.TraceId))
+            query = query.Where(a => a.TraceId == req.TraceId);
+
+        if (req.State.HasValue)
+            query = query.Where(a => a.State == req.State.Value);
 
         var logs = await query
             .OrderByDescending(a => a.CreatedAt)
@@ -79,10 +86,15 @@ public class GetAuditLogsEndpoint(ManagementDbContext dbContext) : Endpoint<GetA
                 Module = a.Module,
                 Action = a.Action,
                 EntityName = a.EntityName,
-                EntityId = a.EntityId,
+                PrimaryKeys = a.PrimaryKeys,
+                State = a.State,
                 OldValues = a.OldValues,
                 NewValues = a.NewValues,
+                ChangedColumns = a.ChangedColumns,
                 IpAddress = a.IpAddress,
+                Endpoint = a.Endpoint,
+                Method = a.Method,
+                TraceId = a.TraceId,
                 CreatedAt = a.CreatedAt
             })
             .ToListAsync(ct);

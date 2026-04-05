@@ -4,6 +4,8 @@ using Epiknovel.Shared.Core.Models;
 using MediatR;
 using System.Security.Claims;
 
+using Epiknovel.Modules.Social.Features.Library.Queries.GetLibraryList;
+
 namespace Epiknovel.Modules.Social.Endpoints.Library.Add;
 
 public record Request
@@ -11,7 +13,7 @@ public record Request
     public Guid BookId { get; init; }
 }
 
-public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
+public class Endpoint(IMediator mediator) : Endpoint<Request, Result<LibraryItemResponse>>
 {
     public override void Configure()
     {
@@ -27,7 +29,7 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
         var userIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
-            await Send.ResponseAsync(Result<string>.Failure("Unauthorized"), 401, ct);
+            await Send.ResponseAsync(Result<LibraryItemResponse>.Failure("Unauthorized"), 401, ct);
             return;
         }
 
@@ -35,10 +37,10 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 
         if (!result.IsSuccess)
         {
-            await Send.ResponseAsync(Result<string>.Failure(result.Message), 400, ct);
+            await Send.ResponseAsync(result, 400, ct);
             return;
         }
 
-        await Send.ResponseAsync(Result<string>.Success(result.Message), 200, ct);
+        await Send.ResponseAsync(result, 201, ct);
     }
 }
