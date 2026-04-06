@@ -8,6 +8,7 @@ namespace Epiknovel.Shared.Core.Events;
 public record ChapterPublishedEvent(
     Guid BookId, 
     string BookTitle,
+    string BookSlug, // 🌲 Added for Frontend Links
     Guid ChapterId, 
     string ChapterTitle, 
     string ChapterSlug, 

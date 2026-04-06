@@ -102,7 +102,7 @@ export async function getSessionTokens(): Promise<SessionTokens> {
   return await getCookieTokens();
 }
 
-export async function getAuthenticatedTokens(): Promise<SessionTokens | null> {
+export async function getAuthenticatedTokens(requestHeaders?: Headers): Promise<SessionTokens | null> {
   const tokens = await getCookieTokens();
 
   // Access token varsa dogrudan dondur (Backend 401 verirse performAuthenticatedIdentityRequest icinde yenileme denenecek)
@@ -114,7 +114,7 @@ export async function getAuthenticatedTokens(): Promise<SessionTokens | null> {
   if (tokens.refreshToken) {
     try {
       console.log("[AUTH_SERVER] Access token eksik, yenileme (refresh) basliyor...");
-      const refreshedTokens = await refreshSessionTokens(tokens.refreshToken);
+      const refreshedTokens = await refreshSessionTokens(tokens.refreshToken, requestHeaders);
       return {
         accessToken: refreshedTokens.accessToken,
         refreshToken: refreshedTokens.refreshToken,
@@ -134,7 +134,7 @@ export async function performAuthenticatedIdentityRequest<T>(
   options: RequestInit = {},
   requestHeaders?: Headers,
 ): Promise<{ data: T; refreshedTokens?: LoginResponse }> {
-  const tokens = await getAuthenticatedTokens();
+  const tokens = await getAuthenticatedTokens(requestHeaders);
 
   if (!tokens?.accessToken) {
     if (typeof window === "undefined") {
@@ -200,10 +200,11 @@ export async function performAuthenticatedIdentityRequest<T>(
   }
 }
 
-export async function refreshSessionTokens(refreshToken: string) {
+export async function refreshSessionTokens(refreshToken: string, requestHeaders?: Headers) {
   return backendApiRequest<LoginResponse>("/auth/refresh-token", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
+    headers: requestHeaders ? buildProxyHeaders(requestHeaders) : undefined,
   });
 }
 
@@ -227,7 +228,7 @@ export async function fetchProfileWithAccessToken(accessToken: string) {
   };
 }
 
-export async function fetchProfileWithSession(): Promise<
+export async function fetchProfileWithSession(requestHeaders?: Headers): Promise<
   | { profile: MyProfile; refreshedTokens?: LoginResponse }
   | null
 > {
@@ -250,7 +251,7 @@ export async function fetchProfileWithSession(): Promise<
 
   if (refreshToken) {
     try {
-      const refreshedTokens = await refreshSessionTokens(refreshToken);
+      const refreshedTokens = await refreshSessionTokens(refreshToken, requestHeaders);
       const profile = await fetchProfileWithAccessToken(refreshedTokens.accessToken);
       return { profile, refreshedTokens };
     } catch (error) {

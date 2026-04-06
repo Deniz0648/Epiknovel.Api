@@ -48,8 +48,9 @@ public class Endpoint(IMediator mediator, IOutputCacheStore cacheStore) : Endpoi
             return;
         }
 
-        // Cache eviction for book detail page
-        await cacheStore.EvictByTagAsync("BookCache", ct);
+        // Cache eviction for book detail page and list
+        await cacheStore.EvictByTagAsync(CacheTags.Book(req.Id), ct);
+        await cacheStore.EvictByTagAsync(CacheTags.AllBooks, ct);
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

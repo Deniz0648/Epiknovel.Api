@@ -8,6 +8,7 @@ import {
   Eye,
   Flag,
   Heart,
+  Loader2,
   Lock,
   LockOpen,
   MessageSquareMore,
@@ -59,6 +60,15 @@ export type BookCommentReplyItem = {
 type BookDetailPanelsProps = {
   chapters: BookChapterItem[];
   comments: BookCommentItem[];
+  totalChaptersCount: number;
+  activeFilters: {
+    query: string;
+    sort: ChapterSort;
+    pageSize: PageSize;
+    page: number;
+  };
+  onFiltersChange: (filters: { query: string; sort: ChapterSort; pageSize: PageSize; page: number }) => void;
+  isLoadingChapters?: boolean;
 };
 
 function getVisiblePages(currentPage: number, totalPages: number) {
@@ -77,11 +87,14 @@ function getVisiblePages(currentPage: number, totalPages: number) {
   return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
 }
 
-export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) {
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<ChapterSort>("newest");
-  const [pageSize, setPageSize] = useState<PageSize>(20);
-  const [page, setPage] = useState(1);
+export function BookDetailPanels({ 
+  chapters, 
+  comments, 
+  totalChaptersCount, 
+  activeFilters, 
+  onFiltersChange,
+  isLoadingChapters 
+}: BookDetailPanelsProps) {
   const [commentDraft, setCommentDraft] = useState("");
   const [likedCommentMap, setLikedCommentMap] = useState<Record<string, boolean>>({});
   const [openReportId, setOpenReportId] = useState<string | null>(null);
@@ -89,38 +102,19 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
   const [commentPage, setCommentPage] = useState(1);
   const commentsPageSize = 4;
 
-  const filteredSortedChapters = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("tr-TR");
-    const base = chapters.filter((chapter) => {
-      if (!normalizedQuery) {
-        return true;
-      }
-      return (
-        chapter.title.toLocaleLowerCase("tr-TR").includes(normalizedQuery) ||
-        String(chapter.number).includes(normalizedQuery)
-      );
-    });
-
-    const sorted = [...base].sort((a, b) => {
-      if (sort === "newest") {
-        return b.number - a.number;
-      }
-      return a.number - b.number;
-    });
-
-    return sorted;
-  }, [chapters, query, sort]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredSortedChapters.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const pageStart = (currentPage - 1) * pageSize;
-  const visibleChapters = filteredSortedChapters.slice(pageStart, pageStart + pageSize);
+  const totalPages = Math.max(1, Math.ceil(totalChaptersCount / activeFilters.pageSize));
+  const currentPage = activeFilters.page;
   const pageNumbers = getVisiblePages(currentPage, totalPages);
+  
   const totalCommentPages = Math.max(1, Math.ceil(comments.length / commentsPageSize));
   const currentCommentPage = Math.min(commentPage, totalCommentPages);
   const commentStart = (currentCommentPage - 1) * commentsPageSize;
   const visibleComments = comments.slice(commentStart, commentStart + commentsPageSize);
   const commentPageNumbers = getVisiblePages(currentCommentPage, totalCommentPages);
+
+  const updateFilters = (updates: Partial<typeof activeFilters>) => {
+    onFiltersChange({ ...activeFilters, ...updates });
+  };
 
   const renderReplies = (replies: BookCommentReplyItem[], depth = 1) => {
     return (
@@ -185,10 +179,9 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
                 <input
                   type="text"
                   placeholder="Bolum ara..."
-                  value={query}
+                  value={activeFilters.query}
                   onChange={(event) => {
-                    setQuery(event.target.value);
-                    setPage(1);
+                    updateFilters({ query: event.target.value, page: 1 });
                   }}
                   className="w-full bg-transparent text-sm"
                 />
@@ -203,10 +196,9 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
               </div>
               <select
                 className="select select-bordered h-11 rounded-xl border-base-content/18 bg-base-100/30 text-sm"
-                value={sort}
+                value={activeFilters.sort}
                 onChange={(event) => {
-                  setSort(event.target.value as ChapterSort);
-                  setPage(1);
+                  updateFilters({ sort: event.target.value as ChapterSort, page: 1 });
                 }}
               >
                 <option value="newest">En yeni</option>
@@ -222,10 +214,9 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
               </div>
               <select
                 className="select select-bordered h-11 rounded-xl border-base-content/18 bg-base-100/30 text-sm"
-                value={pageSize}
+                value={activeFilters.pageSize}
                 onChange={(event) => {
-                  setPageSize(Number(event.target.value) as PageSize);
-                  setPage(1);
+                  updateFilters({ pageSize: Number(event.target.value) as PageSize, page: 1 });
                 }}
               >
                 <option value={20}>20</option>
@@ -238,23 +229,29 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
             <div className="form-control w-full">
               <div className="label pb-1">
                 <span className="label-text text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/55">
-                  Filtre Sonucu
+                  Toplam Sonuc
                 </span>
               </div>
               <div className="flex h-11 items-center rounded-xl border border-base-content/14 bg-base-100/22 px-3 text-sm font-semibold text-base-content/80">
-                {filteredSortedChapters.length.toLocaleString("tr-TR")} bolum
+                {totalChaptersCount.toLocaleString("tr-TR")} bolum
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 space-y-2.5">
-          {visibleChapters.length === 0 ? (
+        <div className="flex-1 space-y-2.5 relative">
+          {isLoadingChapters && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-base-100/30 backdrop-blur-[1px] rounded-2xl">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {chapters.length === 0 ? (
             <div className="rounded-xl border border-dashed border-base-content/20 bg-base-100/12 p-6 text-center text-sm text-base-content/60">
               Aramana uygun bolum bulunamadi.
             </div>
           ) : (
-            visibleChapters.map((chapter) => (
+            chapters.map((chapter) => (
               <Link
                 key={chapter.id}
                 href={`/read/${bookSlug}/${chapter.slug}`}
@@ -318,15 +315,15 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
 
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-base-content/12 pt-3">
           <p className="text-xs font-semibold text-base-content/60">
-            {filteredSortedChapters.length === 0
+            {totalChaptersCount === 0
               ? "Sonuc yok"
-              : `${pageStart + 1}-${Math.min(pageStart + pageSize, filteredSortedChapters.length)} / ${filteredSortedChapters.length}`}
+              : `${(currentPage - 1) * activeFilters.pageSize + 1}-${Math.min(currentPage * activeFilters.pageSize, totalChaptersCount)} / ${totalChaptersCount}`}
           </p>
           <div className="join">
             <button
               type="button"
               className="btn btn-sm join-item rounded-l-full border-base-content/20 bg-base-100/28"
-              onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+              onClick={() => updateFilters({ page: Math.max(1, currentPage - 1) })}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -340,7 +337,7 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
                     ? "btn-primary"
                     : "bg-base-100/28 text-base-content/80 hover:bg-base-100/40"
                 }`}
-                onClick={() => setPage(pageNumber)}
+                onClick={() => updateFilters({ page: pageNumber })}
               >
                 {pageNumber}
               </button>
@@ -348,7 +345,7 @@ export function BookDetailPanels({ chapters, comments }: BookDetailPanelsProps) 
             <button
               type="button"
               className="btn btn-sm join-item rounded-r-full border-base-content/20 bg-base-100/28"
-              onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+              onClick={() => updateFilters({ page: Math.min(totalPages, currentPage + 1) })}
               disabled={currentPage === totalPages}
             >
               <ChevronRight className="h-4 w-4" />

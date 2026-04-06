@@ -1,7 +1,7 @@
 services:
   # 🐘 Veritabanı (PostgreSQL)
   postgres_db:
-    image: postgres:17-alpine
+    image: postgres:18.3-alpine3.23
     restart: always
     ports:
       - "5432:5432"
@@ -73,4 +73,5 @@ volumes:
   postgres_data:
   redis_data:
   epiknovel_keys:
+
 

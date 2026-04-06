@@ -7,4 +7,10 @@ namespace Epiknovel.Modules.Social.Features.Library.Queries.GetBookLibraryStatus
 public record GetBookLibraryStatusQuery(
     Guid UserId,
     Guid BookId
-) : IRequest<Result<LibraryItemResponse?>>;
+) : IRequest<Result<BookLibraryStatusResponse>>;
+
+public class BookLibraryStatusResponse
+{
+    public bool IsAdded { get; set; }
+    public LibraryItemResponse? LibraryItem { get; set; }
+}

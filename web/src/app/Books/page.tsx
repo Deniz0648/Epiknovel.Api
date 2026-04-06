@@ -110,7 +110,7 @@ function hydrateBookFromApi(item: BooksApiItem): Book {
 function BookCard({ book }: { book: Book }) {
   return (
     <Link href={`/Books/${book.slug}`} className="glass-frame group block h-full p-3 transition-all duration-300 hover:translate-y-[-4px]">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-base-content/12">
+      <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl border border-base-content/12">
         <Image src={book.cover} alt={book.title} fill unoptimized className="object-cover transition duration-300 group-hover:scale-[1.05]" />
         <div className="absolute inset-x-2 top-2 flex flex-col gap-1 pointer-events-none">
           <span className="w-fit rounded-lg bg-base-100/78 px-1.5 py-0.5 text-[9px] font-black uppercase">{book.workType}</span>
@@ -219,7 +219,7 @@ export default function BooksPage() {
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex flex-wrap gap-2">
               {QUICK_FILTERS.map((f) => (
                 <button key={f.key} onClick={() => { setActiveQuickFilter(f.key); setCurrentPage(1); }}
@@ -228,11 +228,19 @@ export default function BooksPage() {
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-3">
-              <select className="select select-bordered select-xs rounded-lg font-bold bg-base-100/32" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
-                {[8, 16, 24, 32, 48, 100].map(v => <option key={v} value={v}>{v} Adet</option>)}
-              </select>
-              <span className="text-sm font-bold text-base-content/65">{apiResponse?.totalCount || 0} Eser</span>
+            
+            <div className="flex items-center justify-between sm:justify-end gap-6 pt-4 sm:pt-0 border-t border-base-content/5 sm:border-0">
+              <div className="flex items-center gap-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 italic sm:hidden">Gosterim</p>
+                <select className="select select-bordered select-sm sm:select-xs rounded-lg font-bold bg-base-100/32 min-h-0 h-9 sm:h-7" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
+                  {[8, 16, 24, 32, 48, 100].map(v => <option key={v} value={v}>{v} Adet</option>)}
+                </select>
+              </div>
+              
+              <div className="flex flex-col items-end sm:items-start leading-none">
+                 <span className="text-lg sm:text-sm font-black text-primary italic">{apiResponse?.totalCount || 0}</span>
+                 <span className="text-[9px] font-black uppercase tracking-tighter text-base-content/40">Toplam Eser</span>
+              </div>
             </div>
           </div>
 

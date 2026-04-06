@@ -7,7 +7,7 @@ using System.Security.Claims;
 
 namespace Epiknovel.Modules.Social.Endpoints.Library.GetStatus;
 
-public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<LibraryItemResponse?>>
+public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<BookLibraryStatusResponse>>
 {
     public override void Configure()
     {
@@ -23,14 +23,14 @@ public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<Librar
         var bookIdString = Route<string>("bookId");
         if (!Guid.TryParse(bookIdString, out var bookId))
         {
-            await Send.ResponseAsync(Result<LibraryItemResponse?>.Failure("Geçersiz kitap ID."), 400, ct);
+            await Send.ResponseAsync(Result<BookLibraryStatusResponse>.Failure("Geçersiz kitap ID."), 400, ct);
             return;
         }
 
         var userIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
-            await Send.ResponseAsync(Result<LibraryItemResponse?>.Failure("Unauthorized"), 401, ct);
+            await Send.ResponseAsync(Result<BookLibraryStatusResponse>.Failure("Unauthorized"), 401, ct);
             return;
         }
 

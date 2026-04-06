@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Social.Features.Library.Queries.GetBookLibraryStatus;
 
-public class GetBookLibraryStatusHandler(SocialDbContext dbContext) : IRequestHandler<GetBookLibraryStatusQuery, Result<LibraryItemResponse?>>
+public class GetBookLibraryStatusHandler(SocialDbContext dbContext) : IRequestHandler<GetBookLibraryStatusQuery, Result<BookLibraryStatusResponse>>
 {
-    public async Task<Result<LibraryItemResponse?>> Handle(GetBookLibraryStatusQuery request, CancellationToken ct)
+    public async Task<Result<BookLibraryStatusResponse>> Handle(GetBookLibraryStatusQuery request, CancellationToken ct)
     {
         var entry = await dbContext.LibraryEntries
             .AsNoTracking()
@@ -23,6 +23,10 @@ public class GetBookLibraryStatusHandler(SocialDbContext dbContext) : IRequestHa
             })
             .FirstOrDefaultAsync(ct);
 
-        return Result<LibraryItemResponse?>.Success(entry);
+        return Result<BookLibraryStatusResponse>.Success(new BookLibraryStatusResponse
+        {
+            IsAdded = entry != null,
+            LibraryItem = entry
+        });
     }
 }

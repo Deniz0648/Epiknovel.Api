@@ -68,12 +68,21 @@ public class Endpoint(
         }
 
         // 2. Yetki ve Taslak Gizliliği Kontrolü (Personalized)
-        bool isOwner = isAuthenticated && response.AuthorUserId == currentUserId;
         bool canModerate = await permissionService.HasPermissionAsync(User, PermissionNames.ModerateContent, ct);
+        bool isBookOwnerOrCollaborator = false;
 
+        if (isAuthenticated)
+        {
+            // Kitabın ana sahibi veya yetki verilmiş ortak yazarlarından biri mi?
+            isBookOwnerOrCollaborator = await dbContext.BookAuthors
+                .AnyAsync(x => x.BookId == response.BookId && x.UserId == currentUserId, ct);
+        }
+
+        // Taslak (Draft/Scheduled) Kontrolü
         if (response.Status != ChapterStatus.Published)
         {
-            if (!isOwner && !canModerate)
+            // Sadece yönetici veya kitabın ekibi taslakları görebilir
+            if (!isBookOwnerOrCollaborator && !canModerate)
             {
                 await Send.ResponseAsync(Result<Response>.Failure("Bu bölüm henüz yayınlanmamış."), 403, ct);
                 return;
@@ -81,15 +90,15 @@ public class Endpoint(
         }
 
         // 3. Kullanıcıya Özel Overlays (Personalized - Bu kısımlar cache'lenmez)
-        // İçerik erişim yetkisi var mı? (Ücretsiz mi, Sahibi mi, Moderatör mü?)
-        bool hasFullAccess = response.IsFree || isOwner || canModerate;
+        // İçerik erişim yetkisi var mı? (Ücretsiz mi, Ekip mi, Yönetici mi?)
+        bool hasFullAccess = response.IsFree || isBookOwnerOrCollaborator || canModerate;
 
         if (isAuthenticated)
         {
             // Okuma ilerlemesi
             response.LastReadScrollPercentage = await progressProvider.GetProgressPercentageAsync(currentUserId, response.BookId, response.Id, ct);
             
-            // Eğer hala yetki yoksa cüzdan kontrolü yap (Satın alınmış mı?)
+            // Eğer hala yetki yoksa (Ücretli bölüm ise) cüzdan kontrolü yap (Satın alınmış mı?)
             if (!hasFullAccess)
             {
                 hasFullAccess = await walletProvider.HasUserUnlockedChapterAsync(currentUserId, response.Id, ct);
@@ -110,14 +119,17 @@ public class Endpoint(
                     : "Bu bölümün sadece %15'lik kısmını görmektesiniz. Tamamını okumak için lütfen hesabınızı onaylayın.";
             }
         }
-        else if (!response.IsFree)
+        else
         {
-            // Giriş yapmamış kullanıcı ücretli bölümü sadece preview olarak görebilir
+            // Giriş yapmamış kullanıcı tüm bölümleri (ücretsiz olsa dahi) sadece preview olarak görebilir
             int takeCount = (int)Math.Ceiling(response.Paragraphs.Count * 0.15);
             if (takeCount < 1 && response.Paragraphs.Count > 0) takeCount = 1;
             response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
             response.IsPreview = true;
-            response.PreviewMessage = "Bu bölüm ücretlidir. Okumak için lütfen giriş yapın ve satın alın.";
+            
+            response.PreviewMessage = response.IsFree 
+                ? "Bu bölüm ücretsizdir ancak okumak için lütfen giriş yapın."
+                : "Bu bölüm ücretlidir. Okumak için lütfen giriş yapın ve satın alın.";
         }
 
         // 4. Arka Plan İşlemleri (Hit sayacı vb.)

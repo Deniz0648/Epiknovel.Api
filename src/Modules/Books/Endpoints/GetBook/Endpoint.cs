@@ -2,6 +2,8 @@ using FastEndpoints;
 using Epiknovel.Modules.Books.Features.Books.Queries.GetBookDetail;
 using Epiknovel.Shared.Core.Models;
 using MediatR;
+using Epiknovel.Shared.Core.Constants;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetBook;
 
@@ -33,6 +35,16 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Response>>
         }
 
         var detail = result.Data!;
+
+        // 🚀 SMART CACHE: Double Tagging (ID & Slug)
+        // Sadece ID ile silindiğinde Slug bazlı cache'i de uçurabilmek için her iki etiketle mühürlüyoruz.
+        var cacheFeature = HttpContext.Features.Get<IOutputCacheFeature>();
+        if (cacheFeature != null)
+        {
+            cacheFeature.Context.Tags.Add(CacheTags.Book(detail.Id));
+            cacheFeature.Context.Tags.Add(CacheTags.Book(req.Slug));
+        }
+
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {
             Id = detail.Id,

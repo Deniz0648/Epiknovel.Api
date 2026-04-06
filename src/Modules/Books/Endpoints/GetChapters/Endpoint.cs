@@ -8,7 +8,7 @@ namespace Epiknovel.Modules.Books.Endpoints.GetChapters;
 
 public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Response>>
 {
-    private const int MaxPageSize = 100;
+    private const int MaxPageSize = 250;
 
     public override void Configure()
     {
@@ -49,6 +49,13 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
         
         var query = dbContext.Chapters
             .Where(x => x.BookId == bookId && !x.IsDeleted);
+
+        // 🟢 Arama Filtresi (Eklendi)
+        if (!string.IsNullOrWhiteSpace(req.SearchTerm))
+        {
+            var term = req.SearchTerm.ToLower();
+            query = query.Where(x => x.Title.ToLower().Contains(term));
+        }
 
         // Draft görme yetkisi: Sadece kitabın sahibi olan kullanıcı görebilir
         var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

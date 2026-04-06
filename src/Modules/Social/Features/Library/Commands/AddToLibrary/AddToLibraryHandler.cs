@@ -23,7 +23,7 @@ public class AddToLibraryHandler(SocialDbContext dbContext) : IRequestHandler<Ad
         {
             BookId = request.BookId,
             UserId = request.UserId,
-            Status = ReadingStatus.Reading,
+            Status = request.Status.HasValue ? (ReadingStatus)request.Status.Value : ReadingStatus.Reading,
             AddedAt = DateTime.UtcNow
         };
 

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.OutputCaching;
 using Ganss.Xss;
 using Epiknovel.Shared.Infrastructure.Security;
 using System.Threading;
+using Epiknovel.Shared.Core.Constants;
 
 namespace Epiknovel.Modules.Books.Features.Chapters.Commands.AddChapter;
 
@@ -111,6 +112,7 @@ public class AddChapterHandler(
                     dbContext.EnqueueOutboxMessage(new ChapterPublishedEvent(
                         book.Id,
                         book.Title,
+                        book.Slug,
                         chapter.Id,
                         chapter.Title,
                         chapter.Slug,
@@ -119,7 +121,9 @@ public class AddChapterHandler(
                 }
                 
                 // 7. Cache Invalidation
-                await cacheStore.EvictByTagAsync("ChapterCache", ct);
+                await cacheStore.EvictByTagAsync(CacheTags.Book(request.BookId), ct);
+                await cacheStore.EvictByTagAsync(CacheTags.Chapters(request.BookId), ct);
+                await cacheStore.EvictByTagAsync(CacheTags.AllBooks, ct);
                 
                 await transaction.CommitAsync(ct);
                 return Result<AddChapterResponse>.Success(new AddChapterResponse(chapter.Id, chapter.Slug, "Bölüm satır bazlı olarak başarıyla yayınlandı."));

@@ -81,6 +81,7 @@ public class ScheduledPublishWorker(
                 dbContext.EnqueueOutboxMessage(new ChapterPublishedEvent(
                     chapter.BookId,
                     chapter.Book.Title,
+                    chapter.Book.Slug,
                     chapter.Id,
                     chapter.Title,
                     chapter.Slug,

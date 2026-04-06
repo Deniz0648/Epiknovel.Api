@@ -142,7 +142,7 @@ public class NotificationHandlers(
 
         var title = "Yeni Bölüm!";
         var message = $"`{notification.BookTitle}` kitabına yeni bir bölüm eklendi: `{notification.ChapterTitle}`";
-        var url = $"/books/chapters/{notification.ChapterSlug}";
+        var url = $"/read/{notification.BookSlug}/{notification.ChapterSlug}";
 
         // 2. Veritabanına Toplu Bildirim Kaydet (PERFORMANS: Tek seferde DB'ye yazar)
         await notificationService.SendSystemNotificationBatchAsync(subscribers, title, message, url, ct);

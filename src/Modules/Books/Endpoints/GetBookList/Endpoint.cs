@@ -2,8 +2,9 @@ using FastEndpoints;
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Shared.Core.Models;
-
 using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Core.Constants;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetBookList;
 
@@ -177,6 +178,13 @@ public class Endpoint(
         // 5. PagedResult Oluştur ve Gönder
         var pagedResult = PagedResult<Response>.Create(items, totalCount, req.PageNumber, req.PageSize);
         
+        // 🚀 SMART CACHE: Listeyi Etiketle
+        var cacheFeature = HttpContext.Features.Get<IOutputCacheFeature>();
+        if (cacheFeature != null)
+        {
+            cacheFeature.Context.Tags.Add(CacheTags.AllBooks);
+        }
+
         await Send.ResponseAsync(Result<PagedResult<Response>>.Success(pagedResult), 200, ct);
     }
 }

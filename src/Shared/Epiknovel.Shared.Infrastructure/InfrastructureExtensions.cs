@@ -24,6 +24,7 @@ using MediatR;
 using FastEndpoints.Swagger;
 using Epiknovel.Shared.Infrastructure.Monitoring;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.OutputCaching;
 using AutoMapper;
 using Epiknovel.Shared.Infrastructure.Mapping;
 using System.Security.Claims;
@@ -321,7 +322,18 @@ public static class InfrastructureExtensions
 
         services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(multiplexer);
         services.AddStackExchangeRedisCache(o => o.Configuration = redisConn);
-        services.AddOutputCache();
+
+        // 🚀 Redis Tabanlı Output Cache ve Akıllı Önbellek Politikası
+        services.AddOutputCache(options =>
+        {
+            options.AddBasePolicy(builder => 
+            {
+                // 🛡️ Sadece anonim istekleri Redis'te tut (Cache Explosion Koruması)
+                builder.With(c => !c.HttpContext.Request.Headers.ContainsKey("Authorization"))
+                       .Tag(CacheTags.AllBooks)
+                       .Expire(TimeSpan.FromSeconds(300));
+            });
+        });
 
         // 7. SignalR & Redis Backplane
         services.AddSignalR()
@@ -413,13 +425,33 @@ public static class InfrastructureExtensions
         app.UseRateLimiter();
         
         app.UseHealthChecks("/health");
+        
+        // 🚀 X-Cache Header Middleware (Professional Monitoring)
+        app.Use(async (context, next) =>
+        {
+            context.Items["HandlerReached"] = false;
+            
+            await next();
+            
+            // Eğer istek Handler'a kadar ulaştıysa Items içinde işaretlenmiş olacaktır.
+            // Eğer ulaşmadıysa (OutputCache kestiği için), bu bir HIT'tir.
+            bool reached = context.Items.TryGetValue("HandlerReached", out var obj) && obj is true;
+            
+            // Sadece başarılı GET isteklerinde ve yanıt henüz gönderilmeye başlanmadıysa X-Cache başlığı gösterilir
+            if (context.Request.Method == HttpMethods.Get && context.Response.StatusCode == 200 && !context.Response.HasStarted)
+            {
+                context.Response.Headers["X-Cache"] = reached ? "Miss" : "Hit";
+            }
+        });
+
         app.UseOutputCache();
         
         app.UseFastEndpoints(c => {
             c.Endpoints.RoutePrefix = "api";
             c.Serializer.Options.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
             c.Endpoints.Configurator = ep => {
-                ep.PreProcessors(Order.Before, new JwtBlacklistPreProcessor(app.ApplicationServices.GetRequiredService<StackExchange.Redis.IConnectionMultiplexer>()));
+                // X-Cache için Handler'ın ulaşıldığını işaretle
+                ep.PreProcessors(Order.Before, new ActionPreProcessor());
                 ep.PreProcessors(Order.Before, new BOLAValidationPreProcessor());
                 ep.PostProcessors(Order.After, new GlobalAuditPostProcessor(app.ApplicationServices.GetRequiredService<IBackgroundAuditQueue>()));
             };

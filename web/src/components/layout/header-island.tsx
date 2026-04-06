@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Library, LogIn, LogOut, Menu, Shield, UserRound, X } from "lucide-react";
+import { Bell, CheckCheck, Library, LogIn, LogOut, Menu, Shield, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -25,7 +25,7 @@ export function HeaderIsland() {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const headerRef = useRef<HTMLDivElement | null>(null);
   const { profile, isLoading, logout } = useAuth();
-  const { items: notifications, unreadCount, isLoading: notificationsLoading, markAsRead } = useNotifications();
+  const { items: notifications, unreadCount, isLoading: notificationsLoading, markAsRead, markAllAsRead } = useNotifications();
   const canAccessAuthor = canAccessAuthorPanel(profile);
 
   useEffect(() => {
@@ -202,16 +202,20 @@ export function HeaderIsland() {
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-base-content/48">Bildirimler</p>
                       <p className="mt-1 text-sm font-semibold text-base-content/72">
-                        {unreadCount > 0 ? `${unreadCount} okunmamis bildirim` : "Tum bildirimler okundu"}
+                        {unreadCount > 0 ? `${unreadCount} okunmamis` : "Tum bildirimler okundu"}
                       </p>
                     </div>
-                    <Link
-                      href="/notifications"
-                      onClick={() => setIsNotificationsOpen(false)}
-                      className="rounded-full border border-base-content/12 bg-base-100/46 px-3 py-1.5 text-xs font-bold text-base-content/78 no-underline transition hover:border-primary/30 hover:text-primary"
-                    >
-                      Tumunu Gor
-                    </Link>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => void markAllAsRead()}
+                        className="flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-[10px] font-bold text-primary transition hover:bg-primary/14"
+                        title="Tumunu okundu yap"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" />
+                        Okundu Yap
+                      </button>
+                    )}
                   </div>
 
                   <div className="overlay-scroll-region mt-2 max-h-[26rem] space-y-2 overflow-y-auto">
@@ -269,6 +273,18 @@ export function HeaderIsland() {
                       </div>
                     )}
                   </div>
+
+                  {notifications.length > 0 && (
+                    <div className="mt-2 border-t border-base-content/10 pt-2 text-center">
+                       <Link
+                        href="/notifications"
+                        onClick={() => setIsNotificationsOpen(false)}
+                        className="block w-full rounded-2xl bg-base-content/6 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-base-content/55 no-underline transition hover:bg-primary/10 hover:text-primary"
+                      >
+                        Tum Bildirimleri Gor
+                      </Link>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>

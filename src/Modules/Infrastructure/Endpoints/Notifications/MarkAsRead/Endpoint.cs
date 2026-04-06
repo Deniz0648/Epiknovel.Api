@@ -6,24 +6,22 @@ using System.Security.Claims;
 
 namespace Epiknovel.Modules.Infrastructure.Endpoints.Notifications.MarkAsRead;
 
-public record Request
-{
-    public Guid NotificationId { get; init; }
-}
-
-public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
+public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<string>>
 {
     public override void Configure()
     {
-        Post("/notifications/{NotificationId}/read"); // Removed /infrastructure prefix to match frontend
+        Post("/notifications/{NotificationId}/read");
         Summary(s => {
             s.Summary = "Bildirimi okundu yap.";
-            s.Description = "Belirtilen bildirim ID'sine ait bildirimi okundu olarak işaretler. MediatR standardı uygulanmıştır.";
+            s.Description = "Belirtilen bildirim ID'sine ait bildirimi okundu olarak işaretler.";
         });
     }
 
-    public override async Task HandleAsync(Request req, CancellationToken ct)
+    public override async Task HandleAsync(CancellationToken ct)
     {
+        // 📍 NotificationId'yi URL rotasından çekiyoruz.
+        var notificationId = Route<Guid>("NotificationId");
+        
         var userIdString = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(userIdString, out var userId))
         {
@@ -31,7 +29,7 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
             return;
         }
 
-        var result = await mediator.Send(new MarkNotificationAsReadCommand(userId, req.NotificationId), ct);
+        var result = await mediator.Send(new MarkNotificationAsReadCommand(userId, notificationId), ct);
 
         if (!result.IsSuccess)
         {

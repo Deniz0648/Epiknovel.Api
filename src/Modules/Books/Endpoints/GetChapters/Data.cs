@@ -12,6 +12,8 @@ public class Request
     public string SortBy { get; set; } = "Order"; // "Order", "PublishedAt"
     public bool SortDescending { get; set; } = false;
     
+    public string? SearchTerm { get; set; }
+    
     public bool IncludeDrafts { get; set; } = false; // Only for author/admin
 }
 

@@ -11,6 +11,7 @@ namespace Epiknovel.Modules.Social.Endpoints.Library.Add;
 public record Request
 {
     public Guid BookId { get; init; }
+    public int? Status { get; init; } // 🌲 Added: Status can now be set during initial add
 }
 
 public class Endpoint(IMediator mediator) : Endpoint<Request, Result<LibraryItemResponse>>
@@ -33,7 +34,7 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<LibraryItem
             return;
         }
 
-        var result = await mediator.Send(new AddToLibraryCommand(userId, req.BookId), ct);
+        var result = await mediator.Send(new AddToLibraryCommand(userId, req.BookId, req.Status), ct);
 
         if (!result.IsSuccess)
         {

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { ApiError } from "@/lib/api";
 import { dispatchHubInvocation, getHubInvocationEventName } from "@/lib/hub-events";
-import { getNotifications, markNotificationAsRead, type NotificationItem } from "@/lib/notifications";
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, type NotificationItem } from "@/lib/notifications";
 import { connectHub, type HubInvocation } from "@/lib/signalr-client";
 import { showToast } from "@/lib/toast";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -22,6 +22,7 @@ type NotificationsContextValue = {
   error: string | null;
   refreshNotifications: () => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
 };
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
@@ -105,6 +106,35 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function markAllAsRead() {
+    if (unreadCount === 0) return;
+
+    const previousItems = [...items];
+    
+    // 🎭 Optimistic UI Update
+    setItems((current) => current.map((item) => ({ ...item, isRead: true })));
+
+    try {
+      await markAllNotificationsAsRead();
+      showToast({
+        title: "Basarili",
+        description: "Tum bildirimler okundu olarak isaretlendi.",
+        tone: "success",
+      });
+    } catch (error) {
+      // 🔙 Rollback on failure
+      setItems(previousItems);
+
+      if (error instanceof ApiError) {
+        showToast({
+          title: "Hata",
+          description: error.message,
+          tone: "error",
+        });
+      }
+    }
+  }
+
   useEffect(() => {
     void refreshNotifications();
   }, [profile?.userId]);
@@ -159,6 +189,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
         error,
         refreshNotifications,
         markAsRead,
+        markAllAsRead,
       }}
     >
       {children}

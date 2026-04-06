@@ -21,5 +21,13 @@ export async function markNotificationAsRead(notificationId: string) {
   return apiRequest<{ message: string }>(`/notifications/${notificationId}/read`, {
     method: "POST",
     credentials: "include",
+    body: JSON.stringify({ notificationId }) // 🛡️ Fix 415: Send explicit body as fallback
+  });
+}
+
+export async function markAllNotificationsAsRead() {
+  return apiRequest<{ message: string }>("/notifications/read-all", {
+    method: "POST",
+    credentials: "include",
   });
 }

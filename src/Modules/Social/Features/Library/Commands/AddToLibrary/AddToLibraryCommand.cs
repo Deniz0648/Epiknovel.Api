@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Epiknovel.Modules.Social.Features.Library.Commands.AddToLibrary;
 
-public record AddToLibraryCommand(Guid UserId, Guid BookId) : IRequest<Result<LibraryItemResponse>>;
+public record AddToLibraryCommand(Guid UserId, Guid BookId, int? Status = null) : IRequest<Result<LibraryItemResponse>>;

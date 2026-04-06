@@ -11,7 +11,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("tr-TR", {
 });
 
 export default function NotificationsPage() {
-  const { items, unreadCount, isLoading, error, refreshNotifications, markAsRead } = useNotifications();
+  const { items, unreadCount, isLoading, error, refreshNotifications, markAsRead, markAllAsRead } = useNotifications();
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   useEffect(() => {
@@ -88,13 +88,26 @@ export default function NotificationsPage() {
                   <p className="mt-1 text-sm text-base-content/66">okunmamis bildirim</p>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void refreshNotifications()}
-                  className="w-full rounded-2xl border border-base-content/12 bg-base-100/34 px-4 py-3 text-sm font-bold text-base-content/76 transition hover:border-primary/25 hover:text-primary"
-                >
-                  Listeyi yenile
-                </button>
+                <div className="space-y-2">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => void markAllAsRead()}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-bold text-primary-content shadow-lg shadow-primary/18 transition hover:opacity-92"
+                    >
+                      <CheckCheck className="h-4 w-4" />
+                      Tumunu okundu yap
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => void refreshNotifications()}
+                    className="w-full rounded-2xl border border-base-content/12 bg-base-100/34 px-4 py-3 text-sm font-bold text-base-content/76 transition hover:border-primary/25 hover:text-primary"
+                  >
+                    Listeyi yenile
+                  </button>
+                </div>
               </div>
             </aside>
 

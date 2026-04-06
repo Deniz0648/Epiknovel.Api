@@ -45,6 +45,7 @@
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at 8% -12%, color-mix(in oklab, var(--color-primary) 26%, transparent) 0%, transparent 42%),
     radial-gradient(circle at 88% 4%, color-mix(in oklab, var(--color-secondary) 26%, transparent) 0%, transparent 40%),
@@ -176,7 +177,7 @@ body {
 /* 📖 EPİK OKUYUCU ÖZEL STİLLERİ */
 
 .font-serif {
-  font-family: 'Outfit', Georgia, Cambria, "Times New Roman", Times, serif;
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 .font-sans {
@@ -203,21 +204,97 @@ body {
   -ms-user-select: none;
 }
 
-/* Paragraf Yorum Balonu Efekti */
-.group\/p:hover .comment-trigger {
-  opacity: 0.4;
+/* 📖 Paragraf Yorum Balonu Sistemi */
+.reader-paragraph-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Hover alanını butonun olduğu yöne doğru genişletiyoruz (Sadece Masaüstü) */
+@media (min-width: 1024px) {
+  .reader-paragraph-wrapper::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: -60px;
+    /* Butonun olduğu alanı da kapsayacak kadar genişletiyoruz */
+    width: 60px;
+    height: 100%;
+    background: transparent;
+    pointer-events: auto;
+    /* Hover'ın algılanması için */
+  }
+}
+
+.comment-trigger {
+  position: absolute;
+  top: 4px;
+  right: -42px;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+  z-index: 20;
+  /* Pseudo-elementten yukarıda olmalı */
+}
+
+
+/* Masaüstü Hover Etkileşimi */
+.reader-paragraph-wrapper:hover .comment-trigger {
+  opacity: 0.45;
   transform: translateX(0);
+  pointer-events: auto;
 }
 
 .comment-trigger:hover {
   opacity: 1 !important;
-  transform: scale(1.1) !important;
+  transform: scale(1.15) !important;
+  filter: drop-shadow(0 4px 12px color-mix(in oklab, var(--color-primary) 30%, transparent));
 }
+
+/* 📱 Mobil Optimizasyonu */
+@media (max-width: 1024px) {
+  .comment-trigger {
+    right: -18px;
+    opacity: 0;
+    transform: translateX(10px);
+    pointer-events: none;
+    background: color-mix(in oklab, var(--color-base-100) 80%, transparent);
+    backdrop-filter: blur(4px);
+    border-radius: 999px;
+    padding: 6px;
+    border: 1px solid color-mix(in oklab, var(--color-base-content) 10%, transparent);
+  }
+
+  /* Tıklandığında Görünürlük */
+  .is-focused .comment-trigger {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+
+  .comment-trigger:active {
+    opacity: 1;
+    transform: scale(0.95);
+    background: var(--color-primary);
+    color: var(--color-primary-content);
+  }
+}
+
+
 
 /* Akıllı Header Blur */
 .header-blur {
   background: color-mix(in oklab, var(--color-base-100) 80%, transparent);
   backdrop-filter: blur(12px) saturate(180%);
+}
+
+/* 📖 Reader Paragraf Miras Ayarları */
+.reader-paragraph,
+.reader-paragraph * {
+  font-size: inherit !important;
+  line-height: inherit !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -229,7 +306,8 @@ body {
 /* 📱 GLOBAL MOBİL EKMEK KIRINTISI (BREADCRUMB) OPTİMİZASYONU */
 @media (max-width: 640px) {
   .breadcrumbs {
-    font-size: 0.68rem !important; /* Yaklaşık 11px / 10px */
+    font-size: 0.68rem !important;
+    /* Yaklaşık 11px / 10px */
     letter-spacing: 0.025em;
   }
 }

@@ -70,8 +70,8 @@ public class RefreshTokenHandler(
                 RefreshToken = newRefreshToken,
                 AccessTokenJti = jti,
                 ExpiryDate = DateTime.UtcNow.AddDays(7),
-                IpAddress = request.IpAddress,
-                UserAgent = request.UserAgent
+                IpAddress = string.IsNullOrWhiteSpace(request.IpAddress) || request.IpAddress == "unknown" ? session.IpAddress : request.IpAddress,
+                UserAgent = string.IsNullOrWhiteSpace(request.UserAgent) ? session.UserAgent : request.UserAgent
             };
 
             dbContext.UserSessions.Add(newSession);

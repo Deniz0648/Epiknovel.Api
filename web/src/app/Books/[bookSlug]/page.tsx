@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Check, Eye, Home, Loader2, Minus, Play, Plus, Star, Tag } from "lucide-react";
+import { BookOpen, Check, CheckCircle2, ChevronDown, Clock, Eye, Home, Loader2, Minus, PauseCircle, Play, Plus, Star, Tag, Trash2, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -336,7 +336,56 @@ export default function BookDetailPage() {
   const [isLibraryActionLoading, setIsLibraryActionLoading] = useState(false);
   const [isLibraryStatusLoading, setIsLibraryStatusLoading] = useState(true);
   const [isLibraryHover, setIsLibraryHover] = useState(false);
+
+  // 🚄 Chapter Pagination & Filtering States
+  const [filters, setFilters] = useState({
+    query: "",
+    sort: "oldest" as any,
+    pageSize: 20 as any,
+    page: 1
+  });
+  const [totalChaptersCount, setTotalChaptersCount] = useState(0);
+  const [isLoadingChapters, setIsLoadingChapters] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
   const comments = useMemo(() => buildComments(title), [title]);
+
+  // ⏳ Debounce Search Query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(filters.query);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters.query]);
+
+  const loadChapters = async (isManualUpdate = false) => {
+    if (!bookSlug || !detail?.id) return;
+
+    try {
+      if (isManualUpdate) setIsLoadingChapters(true);
+
+      const sortBy = filters.sort === "newest" || filters.sort === "oldest" ? "Order" : filters.sort;
+      const sortDescending = filters.sort === "newest";
+
+      const chapterData = await apiRequest<ChaptersApiResponse>(
+        `/books/${bookSlug}/chapters?pageNumber=${filters.page}&pageSize=${filters.pageSize}&sortBy=${sortBy}&sortDescending=${sortDescending}&searchTerm=${encodeURIComponent(debouncedQuery)}`
+      );
+
+      setChapters(mapChaptersFromApi(chapterData.chapters));
+      setTotalChaptersCount(chapterData.totalCount);
+    } catch (err) {
+      console.error("Bolumler yuklenirken hata:", err);
+    } finally {
+      setIsLoadingChapters(false);
+    }
+  };
+
+  // 🔄 Trigger Chapter Load on Filter Change
+  useEffect(() => {
+    if (detail?.id) {
+       void loadChapters(true);
+    }
+  }, [debouncedQuery, filters.sort, filters.pageSize, filters.page, detail?.id]);
 
   const getStatusText = (status: any) => {
     if (status === 0 || status === "Reading") return "Okuyorum";
@@ -351,11 +400,23 @@ export default function BookDetailPage() {
   const checkLibraryStatus = async (bookId: string) => {
     try {
       setIsLibraryStatusLoading(true);
-      const libStatus = await apiRequest<{ id?: string; Id?: string; status?: any; Status?: any } | null>(`/social/library/check/${bookId}`);
-      if (libStatus) {
-        setLibraryEntryId(libStatus.id || libStatus.Id || null);
-        const statusVal = libStatus.status !== undefined ? libStatus.status : libStatus.Status;
-        setLibraryStatus(getStatusText(statusVal));
+      const res = await apiRequest<{ 
+        isAdded: boolean; 
+        libraryItem?: { id: string; status: any; Id?: string; Status?: any } 
+      } | null>(`/social/library/check/${bookId}`);
+      
+      const isAdded = res?.isAdded ?? (res as any)?.IsAdded;
+      
+      if (isAdded && res) {
+        const libItem = res.libraryItem ?? (res as any).LibraryItem;
+        if (libItem) {
+          setLibraryEntryId(libItem.id || libItem.Id || null);
+          const statusVal = libItem.status !== undefined ? libItem.status : libItem.Status;
+          setLibraryStatus(getStatusText(statusVal));
+        } else {
+          setLibraryEntryId(null);
+          setLibraryStatus(null);
+        }
       } else {
         setLibraryEntryId(null);
         setLibraryStatus(null);
@@ -382,13 +443,12 @@ export default function BookDetailPage() {
         
         if (!isMounted) return;
 
-        // 2. Kitap ID'sini kullanarak bölümleri çek (En Eski İlk: sortDescending=false)
-        const chapterData = await apiRequest<ChaptersApiResponse>(
-           `/books/${bookSlug}/chapters?pageNumber=1&pageSize=500&sortBy=Order&sortDescending=false`
-        );
-
-        // Backend bazen 'Id' bazen 'id' gönderebiliyor (Serializer farkı)
         const bookId = (bookData as any).id || (bookData as any).Id;
+
+        // 2. Kitap ID'sini kullanarak bölümleri çek (Sayfalı ve Filtreli)
+        const chapterData = await apiRequest<ChaptersApiResponse>(
+           `/books/${bookSlug}/chapters?pageNumber=1&pageSize=${filters.pageSize}&sortBy=Order&sortDescending=${filters.sort === "newest"}`
+        );
 
         setDetail({
           id: bookId,
@@ -412,6 +472,7 @@ export default function BookDetailPage() {
         });
 
         setChapters(chapterData.chapters.length > 0 ? mapChaptersFromApi(chapterData.chapters) : []);
+        setTotalChaptersCount(chapterData.totalCount);
         
         // 3. Kütüphane durumunu kontrol et
         if (bookId) {
@@ -435,13 +496,14 @@ export default function BookDetailPage() {
     };
   }, [bookSlug]);
 
-  const handleToggleLibrary = async () => {
+  const handleLibraryAction = async (targetStatus?: number) => {
     if (!detail) return;
 
     try {
       setIsLibraryActionLoading(true);
-      if (libraryEntryId) {
-        // Kütüphaneden çıkar
+      
+      // 1️⃣ Kütüphaneden Çıkarma (Parametresiz veya hedef durum boşsa)
+      if (libraryEntryId && targetStatus === undefined) {
         await apiRequest(`/social/library/${libraryEntryId}`, { method: "DELETE" });
         setLibraryEntryId(null);
         setLibraryStatus(null);
@@ -450,25 +512,61 @@ export default function BookDetailPage() {
           description: "Kitap okuma listenizden kaldırıldı.",
           tone: "success",
         });
-      } else {
-        // Kütüphaneye ekle
+        return;
+      }
+
+      // 🛑 AKILLI KONTROL: Devam eden eser tamamlandı işaretlenemez.
+      const isBookOngoing = detail.status === "Ongoing" || detail.status === "Devam Ediyor";
+      if (targetStatus === 1 && isBookOngoing) {
+        showToast({
+          title: "Geçersiz İşlem",
+          description: "Devam eden bir eseri 'Tamamlandı' olarak işaretleyemezsiniz.",
+          tone: "error",
+        });
+        return;
+      }
+
+      // 2️⃣ Durum Güncelleme (Zaten kütüphanedeyse)
+      if (libraryEntryId && targetStatus !== undefined) {
+        await apiRequest(`/social/library/${libraryEntryId}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: targetStatus }),
+        });
+        setLibraryStatus(getStatusText(targetStatus));
+        showToast({
+          title: "Durum Güncellendi",
+          description: `Okuma durumunuz "${getStatusText(targetStatus)}" olarak güncellendi.`,
+          tone: "success",
+        });
+        return;
+      }
+
+      // 3️⃣ Kütüphaneye Ekleme (Mutlaka bir durum seçilmiş olmalı)
+      if (!libraryEntryId) {
+        if (targetStatus === undefined) return; // 🛡️ Koruma: Durum seçilmeden ekleme yapamaz
+
         const response = await apiRequest<{ id?: string; Id?: string; status?: any; Status?: any }>("/social/library", {
           method: "POST",
-          body: JSON.stringify({ bookId: detail.id }),
+          body: JSON.stringify({ 
+            bookId: detail.id,
+            status: targetStatus 
+          }),
         });
+        
         const newId = response.id || response.Id;
         const statusVal = response.status !== undefined ? response.status : response.Status;
+        
         setLibraryEntryId(newId || null);
         setLibraryStatus(getStatusText(statusVal));
+        
         showToast({
           title: "Kütüphaneye Eklendi",
-          description: `Kitap "${getStatusText(statusVal)}" listesine eklendi.`,
+          description: `Kitap "${getStatusText(statusVal)}" olarak listenize eklendi.`,
           tone: "success",
         });
       }
     } catch (err: any) {
       if (err.message?.includes("zaten kütüphanenizde")) {
-        console.warn("[SYNC] Kitap zaten ekli görünüyor, durum tazeleniyor...");
         await checkLibraryStatus(detail.id);
       } else {
         showToast({
@@ -477,44 +575,6 @@ export default function BookDetailPage() {
           tone: "error",
         });
       }
-    } finally {
-      setIsLibraryActionLoading(false);
-    }
-  };
-
-  const handleUpdateLibraryStatus = async (newStatus: number) => {
-    if (!libraryEntryId || !detail) return;
-
-    // Akıllı Kontrol: Devam eden eser tamamlandı işaretlenemez.
-    const isBookOngoing = detail.status === "Ongoing" || detail.status === "Devam Ediyor";
-    if (newStatus === 1 && isBookOngoing) {
-      showToast({
-        title: "Geçersiz İşlem",
-        description: "Devam eden bir eseri 'Tamamlandı' olarak işaretleyemezsiniz.",
-        tone: "error",
-      });
-      return;
-    }
-
-    try {
-      setIsLibraryActionLoading(true);
-      await apiRequest(`/social/library/${libraryEntryId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus }),
-      });
-      setLibraryStatus(getStatusText(newStatus));
-      showToast({
-        title: "Durum Güncellendi",
-        description: `Okuma durumunuz "${getStatusText(newStatus)}" olarak güncellendi.`,
-        tone: "success",
-      });
-    } catch (err: any) {
-      console.error("Durum guncelleme hatasi:", err);
-      showToast({
-        title: "Hata",
-        description: err.message || "Durum güncellenirken bir hata oluştu.",
-        tone: "error",
-      });
     } finally {
       setIsLibraryActionLoading(false);
     }
@@ -553,8 +613,8 @@ export default function BookDetailPage() {
           </div>
 
           <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-7">
-            <div className="mx-auto w-full max-w-[17.5rem]">
-              <div className="glass-frame relative aspect-[2/3] overflow-hidden p-1.5">
+            <div className="mx-auto w-full max-w-70">
+              <div className="glass-frame relative aspect-2/3 overflow-hidden p-1.5">
                 <div className="relative h-full w-full overflow-hidden rounded-[1.1rem]">
                   <Image
                     src={detail.cover.image}
@@ -656,87 +716,118 @@ export default function BookDetailPage() {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-3 pt-1">
+              <div className="flex w-full items-center gap-3 pt-4">
                 {chapters.length > 0 ? (
                   <Link 
                     href={`/read/${bookSlug}/${chapters[0].slug}`} 
-                    className="btn btn-primary rounded-full px-7"
+                    className="btn btn-primary h-12 w-[30%] rounded-2xl px-6 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
                   >
                     <Play className="h-4 w-4 fill-current" />
-                    Oku
+                    <span className="font-bold">Oku</span>
                   </Link>
                 ) : (
-                  <button disabled className="btn btn-primary rounded-full px-7 opacity-50">
+                  <button disabled className="btn btn-primary h-12 w-[30%] rounded-2xl px-6 opacity-50 shadow-none">
                     <Play className="h-4 w-4 fill-current" />
-                    Oku
+                    <span className="font-bold">Oku</span>
                   </button>
                 )}
-                <button 
-                  onClick={handleToggleLibrary}
-                  onMouseEnter={() => setIsLibraryHover(true)}
-                  onMouseLeave={() => setIsLibraryHover(false)}
-                  disabled={isLibraryActionLoading || isLibraryStatusLoading}
-                  className={`btn flex-1 rounded-full border px-7 transition-all duration-300 ${
-                    libraryEntryId 
-                      ? "border-primary/30 bg-primary/10 text-primary hover:border-error/30 hover:bg-error/10 hover:text-error" 
-                      : "border-base-content/20 bg-base-100/28 hover:bg-base-100/40"
-                  } disabled:opacity-50`}
-                >
-                  {isLibraryActionLoading || isLibraryStatusLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : libraryEntryId ? (
-                    isLibraryHover ? <Minus className="h-4 w-4" /> : <Check className="h-4 w-4" />
-                  ) : (
-                    <Plus className="h-4 w-4" />
-                  )}
-                  {libraryEntryId 
-                    ? (isLibraryHover ? "Kütüphaneden Çıkar" : libraryStatus) 
-                    : "Kütüphaneye Ekle"}
-                </button>
 
-                {libraryEntryId && (
-                  <div className="group relative">
-                    <button
-                      className="btn h-full aspect-square rounded-full border border-primary/30 bg-primary/10 px-0 text-primary hover:bg-primary/20 transition-colors"
-                      title="Okuma Durumunu Değiştir"
-                    >
-                      <Star className="h-4 w-4 fill-current" />
-                    </button>
-                    
-                    <div className="absolute right-0 top-full z-50 mt-2 hidden w-56 flex-col overflow-hidden rounded-2xl border border-base-content/10 bg-base-100/95 backdrop-blur-md shadow-2xl group-hover:flex">
-                      <div className="bg-base-200/50 px-4 py-2.5 text-[10px] font-bold uppercase tracking-wider text-base-content/40">
-                        OKUMA DURUMU
-                      </div>
-                      {[
-                        { id: 0, label: "Okuyorum", icon: BookOpen },
-                        { id: 3, label: "Okuyacağım", icon: Eye },
-                        { id: 1, label: "Tamamlandı", icon: Check, disabled: detail.status === "Ongoing" || detail.status === "Devam Ediyor" },
-                        { id: 4, label: "Beklemede", icon: Loader2 },
-                        { id: 5, label: "Arşiv", icon: Tag },
-                        { id: 2, label: "Bırakıldı", icon: Minus },
-                      ].map((item) => (
-                        <button
-                          key={item.id}
-                          disabled={item.disabled}
-                          onClick={() => handleUpdateLibraryStatus(item.id)}
-                          className={`flex items-center gap-3 px-4 py-3 text-sm transition-all hover:bg-primary/10 hover:text-primary ${
-                            item.disabled ? "opacity-40 grayscale cursor-not-allowed" : ""
-                          } ${libraryStatus === item.label ? "bg-primary/5 text-primary font-bold" : "text-base-content/70"}`}
-                        >
-                          <item.icon className={`h-4 w-4 ${libraryStatus === item.label ? "fill-primary/20" : ""}`} />
-                          {item.label}
-                          {item.disabled && <span className="ml-auto text-[9px] font-bold opacity-60">YAYINDA</span>}
-                        </button>
-                      ))}
+                {/* 📚 PREMIUM DROPDOWN KÜTÜPHANE YÖNETİMİ */}
+                <div className="dropdown dropdown-end flex-1">
+                  <div 
+                    tabIndex={0} 
+                    role="button"
+                    onMouseEnter={() => libraryEntryId && setIsLibraryHover(true)}
+                    onMouseLeave={() => libraryEntryId && setIsLibraryHover(false)}
+                    className={`flex h-12 w-full items-center justify-between rounded-2xl border px-6 transition-all duration-500 shadow-sm ${
+                      libraryEntryId 
+                        ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 shadow-primary/5" 
+                        : "border-base-content/15 bg-base-100/30 hover:bg-base-100/50 hover:border-base-content/25"
+                    } ${isLibraryStatusLoading ? "opacity-50 pointer-events-none" : ""}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {isLibraryStatusLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : libraryEntryId ? (
+                         <div className="flex items-center justify-center h-6 w-6 rounded-lg bg-primary/20">
+                            <Check className="h-3.5 w-3.5 stroke-3" />
+                         </div>
+                      ) : (
+                        <Plus className="h-4 w-4 opacity-70" />
+                      )}
+                      
+                      <span className="font-bold tracking-tight">
+                        {libraryEntryId ? libraryStatus : "Kütüphaneye Ekle"}
+                      </span>
                     </div>
+                    
+                    <ChevronDown className="h-4 w-4 opacity-30 group-hover:opacity-100 transition-opacity" />
                   </div>
-                )}
+
+                  {/* 📜 DURUM SEÇİM VE YÖNETİM MENÜSÜ */}
+                  <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow-2xl bg-base-200/95 border border-base-content/10 rounded-2xl w-full mt-2 font-semibold backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                    <li className="menu-title text-[9px] font-black uppercase tracking-[0.15em] opacity-40 px-3 py-2">DURUMU GÜNCELLE</li>
+                    
+                    <li>
+                      <button onClick={() => handleLibraryAction(0)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
+                        <BookOpen className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform" />
+                        <span>Okuyorum</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button onClick={() => handleLibraryAction(3)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
+                        <Clock className="h-4 w-4 text-amber-500 group-hover:rotate-12 transition-transform" />
+                        <span>Okuyacağım</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button onClick={() => handleLibraryAction(1)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
+                        <CheckCircle2 className="h-4 w-4 text-green-500 group-hover:scale-110 transition-transform" />
+                        <span>Tamamlandı</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button onClick={() => handleLibraryAction(4)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
+                        <PauseCircle className="h-4 w-4 text-zinc-400 group-hover:scale-110 transition-transform" />
+                        <span>Beklemede</span>
+                      </button>
+                    </li>
+                    <li>
+                      <button onClick={() => handleLibraryAction(2)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
+                        <XCircle className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
+                        <span>Bıraktım</span>
+                      </button>
+                    </li>
+                    
+                    {libraryEntryId && (
+                      <>
+                        <div className="divider mx-3 my-1 opacity-10"></div>
+                        <li>
+                          <button 
+                            onClick={() => handleLibraryAction()} 
+                            className="bg-error/5 text-error hover:bg-error/15 py-3 rounded-xl flex items-center gap-3 group transition-all"
+                          >
+                            <Trash2 className="h-4 w-4 group-hover:shake" />
+                            <span>Kütüphaneden Kaldır</span>
+                          </button>
+                        </li>
+                      </>
+                    )}
+                  </ul>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <BookDetailPanels chapters={chapters} comments={comments} />
+        <BookDetailPanels 
+          chapters={chapters} 
+          comments={comments} 
+          totalChaptersCount={totalChaptersCount}
+          activeFilters={filters}
+          onFiltersChange={(newFilters) => setFilters(newFilters)}
+          isLoadingChapters={isLoadingChapters}
+        />
 
         <section className="glass-frame p-4 sm:p-5">
           <div className="mb-3 flex items-center gap-2">
