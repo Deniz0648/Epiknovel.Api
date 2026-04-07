@@ -1,4 +1,4 @@
-export type HeaderOverlayName = "mobile-nav" | "notifications" | "profile" | "theme";
+export type HeaderOverlayName = "mobile-nav" | "notifications" | "profile" | "theme" | "search";
 
 const HEADER_OVERLAY_EVENT_NAME = "epiknovel:header-overlay-open";
 

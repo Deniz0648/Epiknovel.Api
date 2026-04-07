@@ -1,7 +1,0 @@
-Get-Content : A parameter cannot be found that matches parameter name 'Raw'.
-At line:1 char:73
-+ ... ath 'web\src\app\read\[bookSlug]\[chapterSlug]\page.tsx' -Raw) -repla ...
-+                                                              ~~~~
-    + CategoryInfo          : InvalidArgument: (:) [Get-Content], ParameterBindingException
-    + FullyQualifiedErrorId : NamedParameterNotFound,Microsoft.PowerShell.Commands.GetContentCommand
- 

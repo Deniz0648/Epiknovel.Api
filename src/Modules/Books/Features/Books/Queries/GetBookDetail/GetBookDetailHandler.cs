@@ -11,6 +11,7 @@ namespace Epiknovel.Modules.Books.Features.Books.Queries.GetBookDetail;
 public class GetBookDetailHandler(
     BooksDbContext dbContext, 
     IDistributedCache cache,
+    Epiknovel.Shared.Core.Interfaces.IUserAccountProvider userAccountProvider,
     StackExchange.Redis.IConnectionMultiplexer redis) : IRequestHandler<GetBookDetailQuery, Result<BookDetailResponse>>
 {
     public async Task<Result<BookDetailResponse>> Handle(GetBookDetailQuery request, CancellationToken ct)
@@ -44,6 +45,17 @@ public class GetBookDetailHandler(
                 return Result<BookDetailResponse>.Failure("Kitap bulunamadı.");
             }
 
+            var authorName = "Yazar";
+            if (book.Type == BookType.Translation && !string.IsNullOrEmpty(book.OriginalAuthorName))
+            {
+                authorName = book.OriginalAuthorName;
+            }
+            else
+            {
+                var dic = await userAccountProvider.GetDisplayNamesAsync(new[] { book.AuthorId }, ct);
+                if (dic.TryGetValue(book.AuthorId, out var name)) authorName = name;
+            }
+
             response = new BookDetailResponse
             {
                 Id = book.Id,
@@ -52,7 +64,7 @@ public class GetBookDetailHandler(
                 Description = book.Description,
                 CoverImageUrl = book.CoverImageUrl,
                 AuthorId = book.AuthorId,
-                AuthorName = "Yazar", // TODO: Users modülünden çekilecek
+                AuthorName = authorName,
                 Status = book.Status.ToString(),
                 ContentRating = book.ContentRating.ToString(),
                 Type = book.Type.ToString(),

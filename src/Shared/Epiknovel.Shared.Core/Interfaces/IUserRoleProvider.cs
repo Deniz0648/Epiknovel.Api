@@ -4,4 +4,5 @@ public interface IUserRoleProvider
 {
     Task AddRoleAsync(Guid userId, string roleName, CancellationToken ct = default);
     Task RemoveRoleAsync(Guid userId, string roleName, CancellationToken ct = default);
+    Task<IList<string>> GetRolesAsync(Guid userId, CancellationToken ct = default);
 }

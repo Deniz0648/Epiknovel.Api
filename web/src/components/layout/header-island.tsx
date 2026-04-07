@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CheckCheck, Library, LogIn, LogOut, Menu, Shield, UserRound, X } from "lucide-react";
+import { Bell, CheckCheck, LayoutDashboard, Library, LifeBuoy, LogIn, LogOut, Menu, Search, Shield, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -8,7 +8,7 @@ import { LogoMark } from "@/components/layout/logo-mark";
 import { ThemeSelector } from "@/components/layout/theme-selector";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useNotifications } from "@/components/providers/notifications-provider";
-import { canAccessAuthorPanel } from "@/lib/auth";
+import { canAccessAdminPanel, canAccessAuthorPanel } from "@/lib/auth";
 import { dispatchHeaderOverlayOpen, getHeaderOverlayEventName, type HeaderOverlayName } from "@/lib/header-overlays";
 
 export function HeaderIsland() {
@@ -27,6 +27,7 @@ export function HeaderIsland() {
   const { profile, isLoading, logout } = useAuth();
   const { items: notifications, unreadCount, isLoading: notificationsLoading, markAsRead, markAllAsRead } = useNotifications();
   const canAccessAuthor = canAccessAuthorPanel(profile);
+  const canAccessAdmin = canAccessAdminPanel(profile);
 
   useEffect(() => {
     if (!isMobileNavOpen && !isProfileMenuOpen && !isNotificationsOpen) {
@@ -289,6 +290,23 @@ export function HeaderIsland() {
               ) : null}
             </div>
           ) : null}
+          <button
+            type="button"
+            onClick={() => dispatchHeaderOverlayOpen("search")}
+            className="flex h-10 w-10 items-center justify-center gap-3 rounded-2xl border border-base-content/14 bg-base-100/26 text-base-content/50 transition-all hover:border-primary/30 hover:bg-primary/5 xl:w-64 xl:justify-start xl:px-3"
+          >
+            <Search className="h-4.5 w-4.5 shrink-0" />
+            <span className="hidden text-sm font-semibold xl:inline">Ara...</span>
+            <div className="ml-auto hidden items-center gap-1 xl:flex">
+              <kbd className="flex h-5 min-w-5 items-center justify-center rounded border border-base-content/18 bg-base-100/50 px-1 text-[10px] font-black text-base-content/42 shadow-sm">
+                ⌘
+              </kbd>
+              <kbd className="flex h-5 min-w-5 items-center justify-center rounded border border-base-content/18 bg-base-100/50 px-1 text-[10px] font-black text-base-content/42 shadow-sm">
+                K
+              </kbd>
+            </div>
+          </button>
+
           <ThemeSelector />
           {profile ? (
             <div className="relative">
@@ -324,10 +342,20 @@ export function HeaderIsland() {
                       {profile.displayName.charAt(0).toUpperCase()}
                     </span>
                   </div>
+                  {canAccessAdmin ? (
+                    <Link
+                      href="/management"
+                      onClick={closeProfileMenu}
+                      className="mt-2 flex items-center gap-3 rounded-2xl border border-primary/20 bg-primary/8 px-3 py-3 text-sm font-bold text-primary no-underline transition hover:bg-primary/12"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Yonetici Paneli
+                    </Link>
+                  ) : null}
                   <Link
                     href="/profile#profile"
                     onClick={closeProfileMenu}
-                    className="mt-2 flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-base-content/82 no-underline transition hover:bg-base-100/38 hover:text-primary"
+                    className={`${canAccessAdmin ? "mt-1" : "mt-2"} flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-base-content/82 no-underline transition hover:bg-base-100/38 hover:text-primary`}
                   >
                     <UserRound className="h-4 w-4" />
                     Profilim
@@ -347,6 +375,14 @@ export function HeaderIsland() {
                   >
                     <Shield className="h-4 w-4" />
                     Guvenlik
+                  </Link>
+                  <Link
+                    href="/support"
+                    onClick={closeProfileMenu}
+                    className="mt-1 flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-base-content/82 no-underline transition hover:bg-base-100/38 hover:text-primary"
+                  >
+                    <LifeBuoy className="h-4 w-4" />
+                    Destek
                   </Link>
                   <button
                     type="button"

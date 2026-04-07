@@ -25,7 +25,7 @@ public enum BookType
     Translation
 }
 
-public class Book : BaseEntity, ISoftDelete, IOwnable, ISlugified
+public class Book : BaseEntity, ISoftDelete, IOwnable, ISlugified, IAuditable
 {
     // Author Identity modülündeki UserId ile eşleşir.
     public Guid UserId { get => AuthorId; set => AuthorId = value; }
@@ -53,6 +53,7 @@ public class Book : BaseEntity, ISoftDelete, IOwnable, ISlugified
     public virtual ICollection<Chapter> Chapters { get; set; } = new List<Chapter>();
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
+    public virtual ICollection<BookMember> Members { get; set; } = new List<BookMember>();
 
     public override void UndoDelete()
     {

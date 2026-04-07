@@ -10,7 +10,7 @@ public enum ChapterStatus
     Scheduled
 }
 
-public class Chapter : BaseEntity, IOwnable, ISlugified
+public class Chapter : BaseEntity, IOwnable, ISlugified, IAuditable
 {
     public Guid BookId { get; set; }
     public virtual Book Book { get; set; } = null!;

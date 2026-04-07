@@ -65,13 +65,13 @@ public class GetAuditLogsEndpoint(ManagementDbContext dbContext) : Endpoint<GetA
             query = query.Where(a => a.UserId == req.UserId.Value);
             
         if (!string.IsNullOrWhiteSpace(req.Module))
-            query = query.Where(a => a.Module == req.Module);
+            query = query.Where(a => a.Module.Contains(req.Module));
             
         if (!string.IsNullOrWhiteSpace(req.Action))
-            query = query.Where(a => a.Action == req.Action);
+            query = query.Where(a => a.Action.Contains(req.Action));
 
         if (!string.IsNullOrWhiteSpace(req.TraceId))
-            query = query.Where(a => a.TraceId == req.TraceId);
+            query = query.Where(a => a.TraceId!.Contains(req.TraceId));
 
         if (req.State.HasValue)
             query = query.Where(a => a.State == req.State.Value);

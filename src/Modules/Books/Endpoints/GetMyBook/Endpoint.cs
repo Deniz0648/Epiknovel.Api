@@ -42,7 +42,10 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
             return;
         }
 
-        if (book.AuthorId != userId)
+        var isMember = await dbContext.BookMembers.AnyAsync(m => m.BookId == book.Id && m.UserId == userId, ct);
+        bool isAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod);
+        
+        if (book.AuthorId != userId && !isMember && !isAdmin)
         {
             await Send.ResponseAsync(Result<Response>.Failure("Bu işlem için yetkiniz bulunmuyor."), 403, ct);
             return;
@@ -58,6 +61,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
             Status = book.Status.ToString(),
             ContentRating = book.ContentRating.ToString(),
             Type = book.Type.ToString(),
+            OriginalAuthorName = book.OriginalAuthorName,
             AuthorId = book.AuthorId,
             ChapterCount = book.Chapters.Count(c => !c.IsDeleted),
             ViewCount = book.ViewCount,

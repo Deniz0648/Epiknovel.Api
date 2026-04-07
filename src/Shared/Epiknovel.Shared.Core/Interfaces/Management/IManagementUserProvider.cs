@@ -7,6 +7,7 @@ public interface IManagementUserProvider
     Task<bool> UpdateUserRoleAsync(Guid userId, string role, CancellationToken ct = default);
     Task<bool> TriggerPasswordResetAsync(Guid userId, CancellationToken ct = default);
     Task<List<UserManagementDto>> GetPaginatedUsersAsync(DateTime? cursor, int take, string? searchString, CancellationToken ct = default);
+    Task<Guid?> GetSuperAdminIdAsync(CancellationToken ct = default);
 }
 
 public class UserManagementDto

@@ -51,7 +51,7 @@ public class Endpoint(
         // BOLA Hardening: İsteği atan kişi ana sahip mi, bölümü oluşturan mı yoksa ekip üyesi (Çevirmen/Editör) mi?
         bool isBookOwner = chapter.Book.AuthorId == req.UserId;
         bool isChapterCreator = chapter.UserId == req.UserId;
-        bool isTeamMember = await dbContext.BookAuthors.AnyAsync(ba => ba.BookId == chapter.BookId && ba.UserId == req.UserId, ct);
+        bool isTeamMember = await dbContext.BookMembers.AnyAsync(bm => bm.BookId == chapter.BookId && bm.UserId == req.UserId, ct);
 
         if (!isBookOwner && !isChapterCreator && !isTeamMember)
         {

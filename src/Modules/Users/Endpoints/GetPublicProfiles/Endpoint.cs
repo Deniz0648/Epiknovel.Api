@@ -95,6 +95,7 @@ public class Endpoint(UsersDbContext dbContext, IFileService fileService, IBookP
 
         var items = profiles.Select(x => new PublicProfileListItem
         {
+            UserId = x.UserId,
             Slug = x.Slug,
             DisplayName = x.DisplayName,
             Bio = x.Bio,

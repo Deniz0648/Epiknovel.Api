@@ -7,6 +7,8 @@ using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Events;
 using Epiknovel.Shared.Infrastructure.Logging;
+using Epiknovel.Shared.Core.Attributes;
+using Epiknovel.Shared.Core.Enums;
 using System.Reflection;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
@@ -73,12 +75,29 @@ public class AuditInterceptor(IHttpContextAccessor httpContextAccessor, IService
 
             auditEntries.Add(auditEntry);
 
+            var sensitiveProps = new[] { 
+                "Password", "Hash", "Secret", "Stamp", "Token", 
+                "Key", "ApiKey", "Iban", "Swift", "Pin", "AccountNumber"
+            };
+
             foreach (var property in entry.Properties)
             {
-                if (property.Metadata.PropertyInfo?.GetCustomAttribute<NotAuditedAttribute>() != null)
+                var auditAttr = property.Metadata.PropertyInfo?.GetCustomAttribute<NotAuditedAttribute>();
+                var maskedAttr = property.Metadata.PropertyInfo?.GetCustomAttribute<MaskedAttribute>();
+
+                if (auditAttr != null || sensitiveProps.Any(p => property.Metadata.Name.Contains(p, StringComparison.OrdinalIgnoreCase)))
                     continue;
 
                 string propertyName = property.Metadata.Name;
+                object? oldValue = property.OriginalValue;
+                object? newValue = property.CurrentValue;
+
+                if (maskedAttr != null)
+                {
+                    oldValue = ApplyMask(oldValue, maskedAttr.Type);
+                    newValue = ApplyMask(newValue, maskedAttr.Type);
+                }
+
                 if (property.Metadata.IsPrimaryKey())
                 {
                     auditEntry.KeyValues[propertyName] = property.CurrentValue;
@@ -89,12 +108,12 @@ public class AuditInterceptor(IHttpContextAccessor httpContextAccessor, IService
                 {
                     case Microsoft.EntityFrameworkCore.EntityState.Added:
                         auditEntry.State = Shared.Core.Domain.EntityState.Added;
-                        auditEntry.NewValues[propertyName] = property.CurrentValue;
+                        auditEntry.NewValues[propertyName] = newValue;
                         break;
 
                     case Microsoft.EntityFrameworkCore.EntityState.Deleted:
                         auditEntry.State = Shared.Core.Domain.EntityState.Deleted;
-                        auditEntry.OldValues[propertyName] = property.OriginalValue;
+                        auditEntry.OldValues[propertyName] = oldValue;
                         break;
 
                     case Microsoft.EntityFrameworkCore.EntityState.Modified:
@@ -102,8 +121,8 @@ public class AuditInterceptor(IHttpContextAccessor httpContextAccessor, IService
                         {
                             auditEntry.ChangedColumns.Add(propertyName);
                             auditEntry.State = Shared.Core.Domain.EntityState.Modified;
-                            auditEntry.OldValues[propertyName] = property.OriginalValue;
-                            auditEntry.NewValues[propertyName] = property.CurrentValue;
+                            auditEntry.OldValues[propertyName] = oldValue;
+                            auditEntry.NewValues[propertyName] = newValue;
                         }
                         break;
                 }
@@ -111,6 +130,22 @@ public class AuditInterceptor(IHttpContextAccessor httpContextAccessor, IService
         }
 
         return auditEntries;
+    }
+
+    private string? ApplyMask(object? value, MaskType type)
+    {
+        if (value == null) return null;
+        var str = value.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(str)) return str;
+
+        return type switch
+        {
+            MaskType.IBAN => str.Length > 8 ? str[..2] + "****************" + str[^4..] : "****",
+            MaskType.Email => str.Contains("@") ? str[..3] + "****@" + str.Split('@')[1] : "****",
+            MaskType.Phone => str.Length > 4 ? str[..3] + "****" + str[^2..] : "****",
+            MaskType.Password => "********",
+            _ => str.Length > 4 ? str[..2] + "****" + str[^2..] : "****"
+        };
     }
 
     private async Task OnAfterSaveChanges(DbContext context, List<AuditEntry> auditEntries)

@@ -217,11 +217,29 @@ export type MyProfile = {
 type PermissionFlags = Partial<NonNullable<MyProfile["permissions"]>>;
 
 export function canAccessAuthorPanel(profile?: { isAuthor?: boolean; permissions?: PermissionFlags } | null) {
-  return !!(profile?.permissions?.accessAuthorPanel ?? profile?.isAuthor);
+  return !!(
+    profile?.permissions?.adminAccess || 
+    profile?.permissions?.superAdminAccess || 
+    profile?.permissions?.moderateContent ||
+    (profile?.permissions?.accessAuthorPanel ?? profile?.isAuthor)
+  );
+}
+
+export function canAccessAdminPanel(profile?: { permissions?: PermissionFlags } | null) {
+  return !!(
+    profile?.permissions?.adminAccess ||
+    profile?.permissions?.superAdminAccess ||
+    profile?.permissions?.moderateContent
+  );
 }
 
 export function canCreateBook(profile?: { permissions?: PermissionFlags } | null) {
-  return !!profile?.permissions?.createBook;
+  return !!(
+    profile?.permissions?.adminAccess || 
+    profile?.permissions?.superAdminAccess || 
+    profile?.permissions?.moderateContent ||
+    profile?.permissions?.createBook
+  );
 }
 
 let sessionPromise: Promise<MyProfile | null> | null = null;

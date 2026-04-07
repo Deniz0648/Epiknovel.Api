@@ -25,7 +25,7 @@ public class Endpoint(BooksDbContext dbContext, IOutputCacheStore cacheStore) : 
     {
         // 1. Sahiplik ve Ekip Kontrolü (BOLA)
         bool isBookOwner = await dbContext.Books.AnyAsync(x => x.Id == req.BookId && x.AuthorId == req.UserId, ct);
-        bool isTeamMember = await dbContext.BookAuthors.AnyAsync(ba => ba.BookId == req.BookId && ba.UserId == req.UserId, ct);
+        bool isTeamMember = await dbContext.BookMembers.AnyAsync(ba => ba.BookId == req.BookId && ba.UserId == req.UserId, ct);
 
         if (!isBookOwner && !isTeamMember)
         {

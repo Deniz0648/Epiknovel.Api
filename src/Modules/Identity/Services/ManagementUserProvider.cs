@@ -225,4 +225,13 @@ public class ManagementUserProvider(
 
         return users;
     }
+
+    public async Task<Guid?> GetSuperAdminIdAsync(CancellationToken ct = default)
+    {
+        var superAdminRole = await identityDbContext.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Name == RoleNames.SuperAdmin, ct);
+        if (superAdminRole == null) return null;
+
+        var superAdminUserRole = await identityDbContext.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.RoleId == superAdminRole.Id, ct);
+        return superAdminUserRole?.UserId;
+    }
 }

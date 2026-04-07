@@ -1,8 +1,9 @@
+using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Wallet.Domain;
 
-public class Wallet : IOwnable
+public class Wallet : IOwnable, IAuditable
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

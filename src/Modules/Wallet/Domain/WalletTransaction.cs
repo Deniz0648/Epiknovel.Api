@@ -1,3 +1,4 @@
+using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Wallet.Domain;
@@ -11,7 +12,7 @@ public enum TransactionType
     Adjustment // Manuel Düzeltme
 }
 
-public class WalletTransaction : IOwnable
+public class WalletTransaction : IOwnable, IAuditable
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 

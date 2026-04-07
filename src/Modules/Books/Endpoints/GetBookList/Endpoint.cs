@@ -120,6 +120,7 @@ public class Endpoint(
             {
                 Id = x.Id,
                 AuthorId = x.AuthorId,
+                OriginalAuthorName = x.OriginalAuthorName,
                 Res = new Response
                 {
                     Title = x.Title,
@@ -163,10 +164,15 @@ public class Endpoint(
 
         foreach (var item in itemsWithIds)
         {
-            if (authorNames.TryGetValue(item.AuthorId, out var name))
+            if (item.Res.Type == Epiknovel.Modules.Books.Domain.BookType.Translation && !string.IsNullOrEmpty(item.OriginalAuthorName))
+            {
+                item.Res.AuthorName = item.OriginalAuthorName;
+            }
+            else if (authorNames.TryGetValue(item.AuthorId, out var name))
             {
                 item.Res.AuthorName = name;
             }
+
             if (authorSlugs.TryGetValue(item.AuthorId, out var slug))
             {
                 item.Res.AuthorSlug = slug;

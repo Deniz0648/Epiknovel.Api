@@ -28,19 +28,22 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
             return;
         }
 
-        // 1. Sahiplik Kontrolü (Book bazlı)
-        var bookId = await dbContext.Books
+        // 1. Sahiplik ve Ekip Kontrolü (Book bazlı)
+        var bookInfo = await dbContext.Books
             .Where(x => x.Slug.ToLower() == req.BookSlug.ToLower() && !x.IsDeleted)
             .Select(x => new { x.Id, x.AuthorId })
             .FirstOrDefaultAsync(ct);
 
-        if (bookId == null)
+        if (bookInfo == null)
         {
             await Send.ResponseAsync(Result<PagedResult<Response>>.Failure("Kitap bulunamadı."), 404, ct);
             return;
         }
 
-        if (bookId.AuthorId != userId)
+        var isMember = await dbContext.BookMembers.AnyAsync(m => m.BookId == bookInfo.Id && m.UserId == userId, ct);
+        bool isAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod);
+
+        if (bookInfo.AuthorId != userId && !isMember && !isAdmin)
         {
             await Send.ResponseAsync(Result<PagedResult<Response>>.Failure("Bu işlem için yetkiniz bulunmuyor."), 403, ct);
             return;
@@ -49,7 +52,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
         // 2. Query İnşası
         var query = dbContext.Chapters
             .AsNoTracking()
-            .Where(x => x.BookId == bookId.Id && !x.IsDeleted);
+            .Where(x => x.BookId == bookInfo.Id && !x.IsDeleted);
 
         // Arama (Başlık)
         if (!string.IsNullOrWhiteSpace(req.Search))

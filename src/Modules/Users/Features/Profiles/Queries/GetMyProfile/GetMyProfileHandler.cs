@@ -13,6 +13,7 @@ public class GetMyProfileHandler(
     UsersDbContext dbContext,
     IFileService fileService,
     IUserAccountProvider userAccountProvider,
+    IUserRoleProvider userRoleProvider,
     IPermissionService permissionService) : IRequestHandler<GetMyProfileQuery, Result<MyProfileResponse>>
 {
     public async Task<Result<MyProfileResponse>> Handle(GetMyProfileQuery request, CancellationToken ct)
@@ -51,7 +52,10 @@ public class GetMyProfileHandler(
 
         // 3. Mapping
         // Build a fake ClaimsPrincipal for PermissionService (standard across the project)
-        var claims = new[] { new Claim(ClaimTypes.NameIdentifier, request.UserId.ToString()) };
+        var roles = await userRoleProvider.GetRolesAsync(request.UserId, ct);
+        var claims = new List<Claim> { new Claim(ClaimTypes.NameIdentifier, request.UserId.ToString()) };
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
+
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Default"));
         
         var permissions = await permissionService.GetSnapshotAsync(principal, ct);

@@ -29,12 +29,11 @@ public sealed class PermissionService(
             PermissionNames.SuperAdminAccess => isSuperAdmin,
             PermissionNames.AdminAccess => isAdmin,
             PermissionNames.ModerateContent => isModerator,
-            PermissionNames.AccessAuthorPanel when isModerator => true,
-            PermissionNames.AccessAuthorPanel => (await GetSnapshotAsync(user, ct)).AccessAuthorPanel,
-            PermissionNames.CreateBook => (await GetSnapshotAsync(user, ct)).CreateBook,
-            PermissionNames.PublishPaidChapters => (await GetSnapshotAsync(user, ct)).PublishPaidChapters,
-            PermissionNames.ManageOwnBooks => (await GetSnapshotAsync(user, ct)).ManageOwnBooks,
-            PermissionNames.ManageOwnChapters => (await GetSnapshotAsync(user, ct)).ManageOwnChapters,
+            PermissionNames.AccessAuthorPanel => isModerator || (await GetSnapshotAsync(user, ct)).AccessAuthorPanel,
+            PermissionNames.CreateBook => isModerator || (await GetSnapshotAsync(user, ct)).CreateBook,
+            PermissionNames.PublishPaidChapters => isModerator || (await GetSnapshotAsync(user, ct)).PublishPaidChapters,
+            PermissionNames.ManageOwnBooks => isModerator || (await GetSnapshotAsync(user, ct)).ManageOwnBooks,
+            PermissionNames.ManageOwnChapters => isModerator || (await GetSnapshotAsync(user, ct)).ManageOwnChapters,
             _ => false
         };
     }
@@ -67,10 +66,10 @@ public sealed class PermissionService(
         var snapshot = new PermissionSnapshot
         {
             AccessAuthorPanel = canAccessAuthorPanel,
-            CreateBook = isAuthor,
-            PublishPaidChapters = isPaidAuthor,
-            ManageOwnBooks = isAuthor,
-            ManageOwnChapters = isAuthor,
+            CreateBook = isAuthor || isModerator,
+            PublishPaidChapters = isPaidAuthor || isModerator,
+            ManageOwnBooks = isAuthor || isModerator,
+            ManageOwnChapters = isAuthor || isModerator,
             ModerateContent = isModerator,
             AdminAccess = isAdmin,
             SuperAdminAccess = isSuperAdmin

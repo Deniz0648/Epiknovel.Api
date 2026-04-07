@@ -39,7 +39,8 @@ public class LocalFileService : IFileService
         { "covers", (600, 900, ResizeMode.Crop) },    // Kitap Kapakları (2:3 Standart)
         { "avatars", (300, 300, ResizeMode.Pad) },    // Kullanıcı Avatarları (1:1 Standart)
         { "chapters", (1200, 0, ResizeMode.Max) },   // Bölüm İçi Görseller (Max Genişlik, Oransal)
-        { "comments", (800, 0, ResizeMode.Max) }     // Yorum Görselleri (Sıkıştırılmış)
+        { "comments", (800, 0, ResizeMode.Max) },    // Yorum Görselleri (Sıkıştırılmış)
+        { "icons", (128, 128, ResizeMode.Crop) }     // Kategoriler vb. için ikonlar (1:1 Kare, WebP)
     };
 
     public async Task<string> SaveImageAsync(IFormFile file, string category, int width = 0, int height = 0)

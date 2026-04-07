@@ -13,10 +13,10 @@ public class BooksDbContext(DbContextOptions<BooksDbContext> options) : DbContex
     public DbSet<Paragraph> Paragraphs => Set<Paragraph>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Tag> Tags => Set<Tag>();
-    public DbSet<BookAuthor> BookAuthors => Set<BookAuthor>();
     public DbSet<AuditArchive> AuditArchives => Set<AuditArchive>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<BookRating> BookRatings => Set<BookRating>();
+    public DbSet<BookMember> BookMembers => Set<BookMember>();
 
     /// <summary>
     /// Bir MediatR notification olayını asenkron işlenmek üzere Outbox tablosuna yazar. 
@@ -57,11 +57,6 @@ public class BooksDbContext(DbContextOptions<BooksDbContext> options) : DbContex
 
         modelBuilder.Entity<Category>(b => b.ToTable("Categories"));
         modelBuilder.Entity<Tag>(b => b.ToTable("Tags"));
-        modelBuilder.Entity<BookAuthor>(b =>
-        {
-            b.ToTable("BookAuthors");
-            b.HasQueryFilter(x => !x.Book.IsDeleted);
-        });
         modelBuilder.Entity<Paragraph>(b => {
             b.ToTable("Paragraphs");
             b.HasIndex(x => new { x.ChapterId, x.Order }); // Sequential read performance
@@ -83,6 +78,13 @@ public class BooksDbContext(DbContextOptions<BooksDbContext> options) : DbContex
             b.ToTable("BookRatings");
             b.HasIndex(x => new { x.BookId, x.UserId }).IsUnique();
             b.HasQueryFilter(x => !x.Book.IsDeleted);
+        });
+
+        modelBuilder.Entity<BookMember>(b => {
+           b.ToTable("BookAuthors"); // Use existing table name from initial migration
+           b.HasKey(x => x.Id);
+           b.HasIndex(x => new { x.BookId, x.UserId });
+           b.HasQueryFilter(x => !x.Book.IsDeleted);
         });
     }
 }

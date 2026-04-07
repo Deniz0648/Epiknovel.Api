@@ -457,6 +457,35 @@ export default function NewAuthorBookPage() {
                   </div>
                 ) : null}
               </label>
+
+              {/* Eser Tipi Yonetimi (Sadece Admin) */}
+              {profile?.permissions?.adminAccess && (
+                <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20 space-y-4">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-xs font-black uppercase tracking-[0.1em] text-primary/70">Yonetici: Eser Tipi</span>
+                    <select 
+                      value={bookType} 
+                      onChange={(e) => setBookType(Number(e.target.value))} 
+                      className="select select-bordered h-12 w-full rounded-xl border-primary/30 bg-base-100 font-bold"
+                    >
+                      {BOOK_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </label>
+
+                  {bookType === 1 && (
+                    <label className="flex flex-col gap-1.5 pt-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                      <span className="text-xs font-black uppercase tracking-[0.1em] text-primary/70">Orijinal Yazar Adi</span>
+                      <input 
+                        type="text" 
+                        value={originalAuthorName} 
+                        onChange={(e) => setOriginalAuthorName(e.target.value)} 
+                        placeholder="Orijinal yazar adini girin..." 
+                        className="input input-bordered h-12 w-full rounded-xl border-primary/30 bg-base-100 font-bold"
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 

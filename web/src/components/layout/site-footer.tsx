@@ -33,6 +33,12 @@ export function SiteFooter() {
               >
                 Duyurular
               </Link>
+              <Link
+                href="/support"
+                className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary"
+              >
+                Destek
+              </Link>
             </nav>
           </div>
 

@@ -74,7 +74,7 @@ public class Endpoint(
         if (isAuthenticated)
         {
             // Kitabın ana sahibi veya yetki verilmiş ortak yazarlarından biri mi?
-            isBookOwnerOrCollaborator = await dbContext.BookAuthors
+            isBookOwnerOrCollaborator = await dbContext.BookMembers
                 .AnyAsync(x => x.BookId == response.BookId && x.UserId == currentUserId, ct);
         }
 

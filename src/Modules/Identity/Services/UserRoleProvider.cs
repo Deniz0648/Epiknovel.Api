@@ -31,6 +31,13 @@ public class UserRoleProvider(UserManager<User> userManager) : IUserRoleProvider
         }
     }
 
+    public async Task<IList<string>> GetRolesAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null) return new List<string>();
+        return await userManager.GetRolesAsync(user);
+    }
+
     public async Task<Dictionary<Guid, string>> GetDisplayNamesAsync(IEnumerable<Guid> userIds, CancellationToken ct = default)
     {
         if (userIds == null || !userIds.Any()) return new Dictionary<Guid, string>();

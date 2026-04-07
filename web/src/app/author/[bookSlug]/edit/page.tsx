@@ -387,21 +387,16 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
                     <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="virgul ile ayirarak yazin" className="input input-bordered h-12 w-full rounded-xl border-base-content/12 bg-base-100/20 font-medium" />
                   </label>
 
-                  {/* Eser Tipi Yonetimi (Sadece Admin) */}
-                  {profile?.permissions?.adminAccess && (
-                    <div className="p-5 rounded-2xl bg-primary/5 border border-primary/20">
-                      <label className="flex flex-col gap-1.5">
-                        <span className="text-xs font-black uppercase tracking-[0.1em] text-primary/70">Yonetici: Eser Tipi</span>
-                        <select 
-                          value={bookType} 
-                          onChange={(e) => setBookType(Number(e.target.value))} 
-                          className="select select-bordered h-12 w-full rounded-xl border-primary/30 bg-base-100 font-bold"
-                        >
-                          {BOOK_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                        </select>
-                      </label>
-                    </div>
-                  )}
+                  {/* Eser Tipi Yonetimi (Duzenleme sayfasinda degistirilemez) */}
+                  <div className="p-5 rounded-2xl bg-base-content/5 border border-base-content/10">
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-xs font-black uppercase tracking-[0.1em] text-base-content/40">Eser Tipi (Sabit)</span>
+                      <div className="h-12 w-full flex items-center px-4 rounded-xl border border-base-content/5 bg-base-100/50 font-bold text-sm text-base-content/60">
+                        {BOOK_TYPE_OPTIONS.find(o => o.value === bookType)?.label || "Bilinmiyor"}
+                      </div>
+                      <input type="hidden" value={bookType} name="bookType" />
+                    </label>
+                  </div>
 
                   {/* Orijinal Yazar Bilgisi (Ceviri eseri ise her zaman gorunur) */}
                   {bookType === 1 && (

@@ -20,6 +20,7 @@ public class UpdateBookHandler(
         var book = await dbContext.Books
             .Include(x => x.Categories)
             .Include(x => x.Tags)
+            .Include(x => x.Members)
             .FirstOrDefaultAsync(x => x.Id == request.Id, ct);
 
         if (book == null)
@@ -27,8 +28,9 @@ public class UpdateBookHandler(
             return Result<UpdateBookResponse>.Failure("Kitap bulunamadı.");
         }
 
-        // BOLA Check (Admin bypass allowed for management)
-        if (book.AuthorId != request.UserId && !request.IsAdmin)
+        // BOLA Check (Admin bypass or Member access allowed)
+        var isMember = book.Members.Any(m => m.UserId == request.UserId);
+        if (book.AuthorId != request.UserId && !request.IsAdmin && !isMember)
         {
             return Result<UpdateBookResponse>.Failure("Bu kitabı güncelleme yetkiniz yok.");
         }

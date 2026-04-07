@@ -35,8 +35,7 @@ public class Endpoint(
         var pageSize = req.PageSize < 1 ? 12 : Math.Min(req.PageSize, 48);
 
         var query = dbContext.Books
-            .AsNoTracking()
-            .Where(x => !x.IsDeleted && x.AuthorId == userId);
+            .Where(x => !x.IsDeleted && (x.AuthorId == userId || x.Members.Any(m => m.UserId == userId)));
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {

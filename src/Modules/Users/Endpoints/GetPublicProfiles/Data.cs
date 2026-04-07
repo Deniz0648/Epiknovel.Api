@@ -12,6 +12,7 @@ public class Request
 
 public class PublicProfileListItem
 {
+    public Guid UserId { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string? Bio { get; set; }

@@ -18,6 +18,7 @@ public class Response
     public string Status { get; set; } = string.Empty;
     public string ContentRating { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
+    public string? OriginalAuthorName { get; set; }
     public Guid AuthorId { get; set; }
     
     public int ChapterCount { get; set; }

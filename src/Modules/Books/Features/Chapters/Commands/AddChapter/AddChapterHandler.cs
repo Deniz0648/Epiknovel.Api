@@ -23,9 +23,9 @@ public class AddChapterHandler(
     {
         // 1. Mülkiyet ve Ekip Kontrolü (BOLA)
         bool isOwner = await dbContext.Books.AnyAsync(x => x.Id == request.BookId && x.AuthorId == request.UserId, ct);
-        bool isCollaborator = await dbContext.BookAuthors.AnyAsync(ba => ba.BookId == request.BookId && ba.UserId == request.UserId, ct);
+        bool isMember = await dbContext.BookMembers.AnyAsync(bm => bm.BookId == request.BookId && bm.UserId == request.UserId, ct);
 
-        if (!isOwner && !isCollaborator)
+        if (!isOwner && !isMember)
         {
             return Result<AddChapterResponse>.Failure("Kitap bulunamadı veya bu kitaba bölüm ekleme yetkiniz yok.");
         }
