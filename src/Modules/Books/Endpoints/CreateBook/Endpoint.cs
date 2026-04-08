@@ -27,8 +27,8 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Response>>
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         // 🚀 RESTRICTION: Authors can only create ORIGINAL books.
-        // Translation books can only be created by Admins via Admin Panel.
-        if (req.Type == BookType.Translation && !User.IsInRole(RoleNames.Admin) && !User.IsInRole(RoleNames.Mod))
+        // Translation books can only be created by Admins/Mods via Admin Panel.
+        if (req.Type == BookType.Translation && !User.IsInRole(RoleNames.Admin) && !User.IsInRole(RoleNames.Mod) && !User.IsInRole(RoleNames.SuperAdmin))
         {
             await Send.ResponseAsync(Result<Response>.Failure("Çeviri eser oluşturma yetkiniz bulunmamaktadır. Lütfen Orijinal Eser seçiniz."), 403, ct);
             return;

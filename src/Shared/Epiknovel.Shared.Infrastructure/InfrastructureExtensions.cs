@@ -344,6 +344,7 @@ public static class InfrastructureExtensions
         services.AddSingleton<IBackgroundAuditQueue, BackgroundAuditQueue>();
         services.AddHostedService<BackgroundAuditWorker>();
         services.AddScoped<AuditInterceptor>();
+        services.AddScoped<SoftDeleteInterceptor>();
         
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
@@ -387,14 +388,19 @@ public static class InfrastructureExtensions
             .AddReferrerPolicyStrictOriginWhenCrossOrigin()
             .RemoveServerHeader());
 
-        // 2. Performans: ETag Desteği (Bant genişliği tasarrufu)
-        // 🛡️ HARDENING: Swagger, Scalar ve anlık Social (Library/Follow) işlemlerini önbellek başlıklarından muaf tut
-        // Aksi takdirde "Headers are read-only" hatası oluşur veya state senkronizasyon sorunları yaşanabilir.
+        // 🛡️ HARDENING: Sadece GET/HEAD isteklerinde önbellek başlıklarını etkinleştir. 
+        // POST/DELETE gibi işlemlerde Marvin'in araya girmesini ve olası çakışmaları engeller.
         app.UseWhen(context => {
             var path = context.Request.Path.Value ?? "";
+            var method = context.Request.Method;
+
+            // Sadece GET ve HEAD istekleri için önbellek yönetimi yap
+            if (!HttpMethods.IsGet(method) && !HttpMethods.IsHead(method)) return false;
+
             return !path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) && 
                    !path.StartsWith("/scalar", StringComparison.OrdinalIgnoreCase) && 
-                   !path.StartsWith("/hubs", StringComparison.OrdinalIgnoreCase) && 
+                   !path.Contains("/hubs/", StringComparison.OrdinalIgnoreCase) && 
+                   !path.EndsWith("/negotiate", StringComparison.OrdinalIgnoreCase) &&
                    (!path.Contains("/social/", StringComparison.OrdinalIgnoreCase) && !path.EndsWith("/social", StringComparison.OrdinalIgnoreCase));
         }, builder => builder.UseHttpCacheHeaders());
 

@@ -142,6 +142,7 @@ export type MyBookListItem = {
   voteCount: number;
   originalAuthorName: string | null;
   type: "Original" | "Translation" | number;
+  isHidden: boolean;
   authorId: string;
   categories: BookCategoryItem[];
   tags: string[];
@@ -510,6 +511,7 @@ export async function getMyBooks(request?: {
   search?: string;
   status?: string;
   type?: string | number;
+  isDeleted?: boolean;
   sortBy?: string;
   sortDescending?: boolean;
 }) {
@@ -526,6 +528,9 @@ export async function getMyBooks(request?: {
   if (request?.status?.trim()) {
     searchParams.set("status", request.status.trim());
   }
+  if (request?.isDeleted !== undefined) {
+    searchParams.set("isDeleted", String(request.isDeleted));
+  }
   if (request?.type !== undefined && request.type !== "") {
     searchParams.set("type", String(request.type));
   }
@@ -539,6 +544,20 @@ export async function getMyBooks(request?: {
 export async function getMyBookBySlug(slug: string) {
   return apiRequest<MyBookListItem>(`/books/mine/${slug}`, {
     method: "GET",
+    credentials: "include",
+  });
+}
+
+export async function restoreBook(id: string) {
+  return apiRequest<{ message: string }>(`/books/${id}/restore`, {
+    method: "POST",
+    credentials: "include",
+  });
+}
+
+export async function restoreChapter(id: string) {
+  return apiRequest<{ message: string }>(`/books/chapters/${id}/restore`, {
+    method: "POST",
     credentials: "include",
   });
 }
@@ -575,7 +594,7 @@ export async function deleteBook(id: string) {
 
 export async function getMyChapters(
   bookSlug: string,
-  request?: { pageNumber?: number; pageSize?: number; search?: string; status?: string },
+  request?: { pageNumber?: number; pageSize?: number; search?: string; status?: string; isDeleted?: boolean },
 ) {
   const searchParams = new URLSearchParams();
 
@@ -590,6 +609,9 @@ export async function getMyChapters(
   }
   if (request?.status?.trim()) {
     searchParams.set("status", request.status.trim());
+  }
+  if (request?.isDeleted !== undefined) {
+    searchParams.set("isDeleted", String(request.isDeleted));
   }
 
   return apiRequest<MyChapterPagedResponse>(`/books/mine/${bookSlug}/chapters?${searchParams.toString()}`, {

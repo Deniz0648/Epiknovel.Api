@@ -7,8 +7,10 @@ using FastEndpoints;
 namespace Epiknovel.Modules.Management.Endpoints.Compliance;
 
 [AuditLog("Delete Management Book")]
-public class DeleteManagementBookEndpoint(IManagementBookProvider bookProvider) : EndpointWithoutRequest<Result<string>>
+public class DeleteManagementBookEndpoint(IManagementBookProvider bookProvider) : EndpointWithoutRequest<Epiknovel.Shared.Core.Models.Result<string>>
 {
+    private readonly IManagementBookProvider _bookProvider = bookProvider;
+
     public override void Configure()
     {
         Delete("/management/compliance/books/{Id}");
@@ -18,13 +20,11 @@ public class DeleteManagementBookEndpoint(IManagementBookProvider bookProvider) 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<Guid>("Id");
-        // In the management provider, we could implement a full delete or soft-delete.
-        // For now, let's assume we're toggling isHidden or using a dedicated delete.
-        // Since IManagementBookProvider doesn't have Delete yet, I'll add it or use toggle for now.
-        // Actually, let's just use SetBookVisibilityAsync(false) as a "soft delete" equivalent for admin
-        // OR add it to provider.
+        var success = await _bookProvider.DeleteBookAsync(id, ct);
         
-        // I'll expand provider with DeleteBookAsync.
-        await Send.ResponseAsync(Result<string>.Failure("Kitap silme yetkisi sadece veritabani seviyesindedir veya soft-delete uygulanmalidir."), 400, ct);
+        if (success)
+            await Send.ResponseAsync(Epiknovel.Shared.Core.Models.Result<string>.Success("Kitap silindi (soft-delete)."), 200, ct);
+        else
+            await Send.ResponseAsync(Epiknovel.Shared.Core.Models.Result<string>.Failure("Kitap bulunamadi."), 404, ct);
     }
 }

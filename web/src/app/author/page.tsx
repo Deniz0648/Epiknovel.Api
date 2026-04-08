@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { Eye, BookOpen, Clock, ExternalLink, ChevronLeft, ChevronRight, Feather, Loader2, Plus, Search, SlidersHorizontal, Home, Star, MessageSquare, LayoutGrid, Wallet, Trash2, BarChart3, Type } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter } from "next/navigation";
-import { canAccessAuthorPanel as hasAuthorPanelAccess, getMyBooks, type MyBookListItem } from "@/lib/auth";
+import { canAccessAuthorPanel as hasAuthorPanelAccess, getMyBooks, restoreBook, type MyBookListItem } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/api";
 
 const STATUS_OPTIONS = [
@@ -108,6 +108,9 @@ export default function AuthorPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
+  const [deletedBooks, setDeletedBooks] = useState<MyBookListItem[]>([]);
+  const [isTrashLoading, setIsTrashLoading] = useState(false);
+
   useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
@@ -123,34 +126,46 @@ export default function AuthorPage() {
 
   useEffect(() => {
     let isMountedLocal = true;
-    const loadBooks = async () => {
+    const loadBooks = async (isDeleted: boolean = false) => {
       try {
+        if (isDeleted) setIsTrashLoading(true);
         setIsLoading(true);
         const response = await getMyBooks({
           pageNumber: page,
           pageSize: pageSize,
           search: query || undefined,
           status: status || undefined,
-          type: bookType || undefined
+          type: bookType || undefined,
+          isDeleted: isDeleted
         });
 
         if (isMountedLocal) {
-          setBooks(response.items);
-          setTotalCount(response.totalCount);
-          setTotalPages(response.totalPages);
+          if (isDeleted) {
+            setDeletedBooks(response.items);
+          } else {
+            setBooks(response.items);
+            setTotalCount(response.totalCount);
+            setTotalPages(response.totalPages);
+          }
           setError(null);
         }
       } catch (err) {
         if (isMountedLocal) setError("Eserler yüklenirken bir hata oluştu.");
       } finally {
-        if (isMountedLocal) setIsLoading(false);
+        if (isMountedLocal) {
+          setIsLoading(false);
+          setIsTrashLoading(false);
+        }
       }
     };
     if (hasAuthorPanelAccess(profile)) {
-      loadBooks();
+      setBooks([]);
+      setDeletedBooks([]);
+      if (activeTab === "trash") loadBooks(true);
+      else loadBooks(false);
     }
     return () => { isMountedLocal = false; };
-  }, [profile, query, status, bookType, page, pageSize]);
+  }, [profile, query, status, bookType, page, pageSize, activeTab]);
 
   // Gerçek Veri Hesaplamaları (Dashboard Genişletme)
   const stats = useMemo(() => {
@@ -170,6 +185,22 @@ export default function AuthorPage() {
   );
 
 
+
+  const handleRestoreBook = async (id: string) => {
+    try {
+      if (!confirm("Bu eseri geri yüklemek istediğinize emin misiniz?")) return;
+      
+      await restoreBook(id);
+      
+      // Çöp kutusunu yenile
+      const response = await getMyBooks({ pageNumber: 1, pageSize: 50, isDeleted: true });
+      setDeletedBooks(response.items);
+      
+      alert("Eser başarıyla geri yüklendi.");
+    } catch (err) {
+      alert("Geri yükleme sırasında bir hata oluştu: " + (err instanceof Error ? err.message : "Bilinmeyen hata"));
+    }
+  };
 
   // Ortak Glassmorphism Sınıfı
   const glassStyle = "bg-base-100/40 backdrop-blur-xl border border-base-content/10 shadow-xl";
@@ -431,6 +462,20 @@ export default function AuthorPage() {
                             <p className="text-[11px] font-medium leading-relaxed text-base-content/40 italic line-clamp-2">
                               {book.description || "Henüz bir açıklama eklenmemiş."}
                             </p>
+
+                            {book.isHidden && (
+                              <div className="flex gap-3 items-center p-3 rounded-xl bg-error/12 border border-error/20 animate-pulse">
+                                <div className="p-2 rounded-lg bg-error/20 text-error">
+                                   <SlidersHorizontal className="w-4 h-4" />
+                                </div>
+                                <div className="space-y-0.5">
+                                   <p className="text-[10px] font-black uppercase tracking-widest text-error">YONETICI MUDAHALESI</p>
+                                   <p className="text-[11px] font-bold text-error/80 leading-tight">
+                                     Kitabınız yönetici tarafından gizlenmiştir. Problem olduğunu düşünüyorsanız lütfen destek talebi oluşturun.
+                                   </p>
+                                </div>
+                              </div>
+                            )}
 
                             <div className="flex flex-wrap gap-5 border-t border-base-content/5 pt-4">
                               <div className="flex items-center gap-2 text-xs font-black text-base-content/60">
@@ -990,18 +1035,81 @@ export default function AuthorPage() {
           </div>
         )}
 
-        {/* Bos Sekmeler (Gelirlerim & Cop Kutusu) */}
-        {(activeTab === "earnings" || activeTab === "trash") && (
+        {/* Gelirlerim Sekmesi */}
+        {activeTab === "earnings" && (
           <section className={`py-40 flex flex-col items-center justify-center gap-6 rounded-[2rem] border-dashed ${glassStyle} opacity-60`}>
             <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-              {activeTab === "earnings" && <Wallet className="w-12 h-12 text-primary" />}
-              {activeTab === "trash" && <Trash2 className="w-12 h-12 text-primary" />}
+              <Wallet className="w-12 h-12 text-primary" />
             </div>
             <div className="text-center space-y-2">
               <h2 className="text-xl font-black uppercase italic tracking-tighter">Henuz Veri Bulunamadi</h2>
               <p className="text-xs font-bold uppercase tracking-widest text-base-content/40 italic">Bu bolum henuz yapilandirilma asamasindadir.</p>
             </div>
           </section>
+        )}
+
+        {/* Çöp Kutusu Sekmesi */}
+        {activeTab === "trash" && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between px-2">
+              <div>
+                <h3 className="text-2xl font-black italic uppercase tracking-tighter hero-title-gradient">Çöp Kutusu</h3>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-base-content/30 italic">Silinen Eserleriniz</p>
+              </div>
+            </div>
+
+            {isTrashLoading ? (
+              <div className={`py-32 flex flex-col items-center justify-center gap-5 rounded-[2rem] ${glassStyle} opacity-60`}>
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="text-[11px] font-black uppercase tracking-[0.3em] italic">Yükleniyor...</p>
+              </div>
+            ) : deletedBooks.length === 0 ? (
+              <div className={`py-40 flex flex-col items-center justify-center gap-6 rounded-[2rem] border-dashed ${glassStyle} opacity-60`}>
+                 <div className="w-24 h-24 rounded-full bg-base-content/5 flex items-center justify-center">
+                    <Trash2 className="w-12 h-12 text-base-content/20" />
+                 </div>
+                 <div className="text-center space-y-2">
+                    <h2 className="text-xl font-black uppercase italic tracking-tighter">Çöp Kutusu Boş</h2>
+                    <p className="text-xs font-bold uppercase tracking-widest text-base-content/40 italic">Burada henüz silinmiş bir eseriniz bulunmuyor.</p>
+                 </div>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {deletedBooks.map((book) => {
+                  const statusInfo = getStatusProps(book.status);
+                  return (
+                    <article key={book.id} className={`group relative overflow-hidden rounded-[2rem] border border-base-content/10 transition-all hover:border-primary/30 ${glassStyle} hover:shadow-2xl hover:shadow-primary/5`}>
+                       <div className="flex gap-5 p-6">
+                          <div className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40">
+                               {book.coverImageUrl ? (
+                                 <img src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} className="h-full w-full object-cover opacity-50 grayscale" />
+                               ) : (
+                                 <div className="flex h-full items-center justify-center text-[8px] font-bold text-base-content/20">NO IMAGE</div>
+                               )}
+                          </div>
+                          <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                             <div>
+                                <h3 className="text-sm font-black tracking-tight line-clamp-1 opacity-70 italic group-hover:text-primary transition-colors">{book.title}</h3>
+                                <div className="flex items-center gap-2 mt-2">
+                                   <span className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusInfo.color} opacity-60`}>
+                                      {statusInfo.label}
+                                   </span>
+                                </div>
+                             </div>
+                             <button 
+                               onClick={() => handleRestoreBook(book.id)}
+                               className="btn btn-primary btn-sm h-10 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all"
+                             >
+                                Geri Getir
+                             </button>
+                          </div>
+                       </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         )}
 
       </div>

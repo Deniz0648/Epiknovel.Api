@@ -31,17 +31,17 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
         else
         {
             // Slug üzerinden ID bul
-            var resolvedId = await dbContext.Books
+            var book = await dbContext.Books
                 .Where(x => x.Slug == req.BookId)
-                .Select(x => x.Id)
+                .Select(x => new { x.Id, x.IsHidden })
                 .FirstOrDefaultAsync(ct);
 
-            if (resolvedId == Guid.Empty)
+            if (book == null || book.IsHidden)
             {
                 await Send.NotFoundAsync(ct);
                 return;
             }
-            bookId = resolvedId;
+            bookId = book.Id;
         }
 
         var pageNumber = req.PageNumber < 1 ? 1 : req.PageNumber;

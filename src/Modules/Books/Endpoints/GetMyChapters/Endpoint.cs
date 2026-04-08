@@ -41,7 +41,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
         }
 
         var isMember = await dbContext.BookMembers.AnyAsync(m => m.BookId == bookInfo.Id && m.UserId == userId, ct);
-        bool isAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod);
+        bool isAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod) || User.IsInRole(RoleNames.SuperAdmin);
 
         if (bookInfo.AuthorId != userId && !isMember && !isAdmin)
         {
@@ -50,9 +50,12 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
         }
 
         // 2. Query İnşası
+        bool filterIsDeleted = req.isDeleted ?? (HttpContext.Request.Query.TryGetValue("isDeleted", out var values) && values.ToString().Equals("true", StringComparison.OrdinalIgnoreCase));
+        
         var query = dbContext.Chapters
+            .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(x => x.BookId == bookInfo.Id && !x.IsDeleted);
+            .Where(x => x.BookId == bookInfo.Id && x.IsDeleted == filterIsDeleted);
 
         // Arama (Başlık)
         if (!string.IsNullOrWhiteSpace(req.Search))

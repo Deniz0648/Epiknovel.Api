@@ -25,7 +25,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
 
         IQueryable<Chapter> query = dbContext.Chapters
             .AsNoTracking()
-            .Where(x => x.Status == ChapterStatus.Published && !x.IsDeleted)
+            .Where(x => x.Status == ChapterStatus.Published && !x.IsDeleted && !x.Book.IsHidden)
             .Include(x => x.Book)
                 .ThenInclude(b => b.Categories);
 

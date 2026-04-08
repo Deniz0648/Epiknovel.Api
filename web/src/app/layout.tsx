@@ -21,6 +21,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="tr" data-theme="light" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const storedTheme = localStorage.getItem('theme');
+                  if (storedTheme) {
+                    document.documentElement.setAttribute('data-theme', storedTheme);
+                  } else {
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+                  }
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-screen antialiased">
         <ToastProvider>
           <RealtimeProvider>

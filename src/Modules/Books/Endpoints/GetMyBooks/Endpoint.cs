@@ -34,8 +34,11 @@ public class Endpoint(
         var pageNumber = req.PageNumber < 1 ? 1 : req.PageNumber;
         var pageSize = req.PageSize < 1 ? 12 : Math.Min(req.PageSize, 48);
 
+        bool filterIsDeleted = req.isDeleted ?? (HttpContext.Request.Query.TryGetValue("isDeleted", out var values) && values.ToString().Equals("true", StringComparison.OrdinalIgnoreCase));
+        
         var query = dbContext.Books
-            .Where(x => !x.IsDeleted && (x.AuthorId == userId || x.Members.Any(m => m.UserId == userId)));
+            .IgnoreQueryFilters()
+            .Where(x => x.IsDeleted == filterIsDeleted && (x.AuthorId == userId || x.Members.Any(m => m.UserId == userId)));
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {

@@ -43,7 +43,7 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
         }
 
         var isMember = await dbContext.BookMembers.AnyAsync(m => m.BookId == book.Id && m.UserId == userId, ct);
-        bool isAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod);
+        bool isAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod) || User.IsInRole(RoleNames.SuperAdmin);
         
         if (book.AuthorId != userId && !isMember && !isAdmin)
         {

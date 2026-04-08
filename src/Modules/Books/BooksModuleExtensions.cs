@@ -17,7 +17,8 @@ public static class BooksModuleExtensions
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "books")
                  .EnableRetryOnFailure())
                  .ConfigureWarnings(w => w.Ignore(20100, 20605))
-                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>())
+                 .AddInterceptors(sp.GetRequiredService<SoftDeleteInterceptor>()));
 
         // 2. Background Workers (İstatistik Senkronizasyonu + Zamanlanmış Yayın + Outbox)
         services.AddHostedService<Epiknovel.Modules.Books.Workers.ChapterStatsSyncWorker>();

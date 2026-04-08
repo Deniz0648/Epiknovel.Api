@@ -3,11 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
-
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Constants;
 
-namespace Epiknovel.Modules.Books.Endpoints.RestoreBook;
+namespace Epiknovel.Modules.Books.Endpoints.RestoreChapter;
 
 public record Request 
 { 
@@ -15,55 +14,52 @@ public record Request
     public Guid Id { get; init; } 
 }
 
-[AuditLog("Kitap Çöp Kutusundan Geri Yüklendi")]
+[AuditLog("Bölüm Çöp Kutusundan Geri Yüklendi")]
 public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
-        Post("/books/{Id}/restore");
+        Post("/books/chapters/{Id}/restore");
         Policies(PolicyNames.AuthorPanelAccess);
         Summary(s => {
-            s.Summary = "Silinen bir kitabı çöp kutusundan geri getirir.";
-            s.Description = "Kitap ve bağlı tüm bölümleri geri yükler. Yazar kendi eserini, admin her eseri geri yükleyebilir.";
+            s.Summary = "Silinen bir bölümü çöp kutusundan geri getirir.";
+            s.Description = "Bölümü geri yükler. Yazar kendi bölümünü, admin her bölümü geri yükleyebilir.";
         });
     }
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var id = req.Id;
         var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         bool isAdmin = User.HasClaim(c => c.Type == ClaimTypes.Role && (c.Value == "Admin" || c.Value == "SuperAdmin"));
 
-        // 1. Kitabı Getir
-        var book = await dbContext.Books
+        var chapter = await dbContext.Chapters
             .IgnoreQueryFilters()
-            .Include(x => x.Chapters)
-            .FirstOrDefaultAsync(x => x.Id == id, ct);
+            .Include(c => c.Book)
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct);
 
-        if (book == null)
+        if (chapter == null)
         {
-            await Send.ResponseAsync(Result<string>.Failure("Kitap bulunamadı."), 404, ct);
+            await Send.ResponseAsync(Result<string>.Failure("Bölüm bulunamadı."), 404, ct);
             return;
         }
 
-        // 2. Yetki Kontrolü
-        if (!isAdmin && (!Guid.TryParse(userIdStr, out var userId) || book.AuthorId != userId))
+        // Yetki Kontrolü
+        if (!isAdmin && (!Guid.TryParse(userIdStr, out var userId) || chapter.Book.AuthorId != userId))
         {
             await Send.ResponseAsync(Result<string>.Failure("Bu işlem için yetkiniz yok."), 403, ct);
             return;
         }
 
-
-        if (!book.IsDeleted)
+        if (!chapter.IsDeleted)
         {
-             await Send.ResponseAsync(Result<string>.Failure("Kitap zaten aktif."), 400, ct);
+             await Send.ResponseAsync(Result<string>.Failure("Bölüm zaten aktif."), 400, ct);
              return;
         }
 
-        // Kitabı geri yükle
-        book.UndoDelete();
+        // Bölümü geri yükle
+        chapter.UndoDelete();
 
         await dbContext.SaveChangesAsync(ct);
-        await Send.ResponseAsync(Result<string>.Success("Kitap başarıyla geri yüklendi."), 200, ct);
+        await Send.ResponseAsync(Result<string>.Success("Bölüm başarıyla geri yüklendi."), 200, ct);
     }
 }

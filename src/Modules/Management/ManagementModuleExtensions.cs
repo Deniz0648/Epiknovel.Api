@@ -15,7 +15,8 @@ public static class ManagementModuleExtensions
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "management")
                  .EnableRetryOnFailure())
                  .ConfigureWarnings(w => w.Ignore(20100, 20605))
-                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+                 .AddInterceptors(sp.GetRequiredService<AuditInterceptor>())
+                 .AddInterceptors(sp.GetRequiredService<SoftDeleteInterceptor>()));
 
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider, Services.SystemSettingProvider>();
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService, Services.EmailTemplateService>();

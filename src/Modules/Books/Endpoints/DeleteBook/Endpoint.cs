@@ -63,7 +63,12 @@ public class Endpoint(
         
         if (fullBookData != null)
         {
-            var json = System.Text.Json.JsonSerializer.Serialize(fullBookData);
+            var serializeOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles,
+                WriteIndented = false
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(fullBookData, serializeOptions);
             await mediator.Publish(new Epiknovel.Shared.Core.Events.DataArchivedEvent(
                 "Book",
                 req.Id,

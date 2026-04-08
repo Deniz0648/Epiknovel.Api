@@ -18,6 +18,24 @@ public class ManagementBookProvider(BooksDbContext dbContext) : IManagementBookP
         return true;
     }
 
+    public async Task<bool> DeleteBookAsync(Guid bookId, CancellationToken ct = default)
+    {
+        var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
+        if (book == null) return false;
+
+        var now = DateTime.UtcNow;
+        // Mark chapters as deleted first
+        await dbContext.Chapters
+            .Where(c => c.BookId == bookId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(c => c.IsDeleted, true)
+                .SetProperty(c => c.DeletedAt, now), ct);
+
+        dbContext.Books.Remove(book); // This will be handled by SoftDeleteInterceptor for the book entity itself
+        await dbContext.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, string? searchTerm, int page, int pageSize, CancellationToken ct = default)
     {
         var query = dbContext.Books.AsNoTracking().IgnoreQueryFilters();

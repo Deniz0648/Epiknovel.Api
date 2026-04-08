@@ -22,7 +22,10 @@ import {
   Globe,
   Check,
   UserPlus,
-  Users
+  Users,
+  MessageSquare,
+  Clock,
+  ThumbsUp
 } from "lucide-react";
 
 type ContentTab = "books-original" | "books-translated" | "categories" | "tags" | "quotes" | "faq";
@@ -36,6 +39,7 @@ export default function CompliancePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
   const [assigningBook, setAssigningBook] = useState<any | null>(null);
+  const [reviewingBook, setReviewingBook] = useState<any | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   // Sync tab with URL
@@ -215,6 +219,7 @@ export default function CompliancePage() {
                   onToggleVisibility={handleToggleVisibility}
                   onDelete={handleDelete}
                   onAssign={(book) => setAssigningBook(book)}
+                  onReviewSocial={(book) => setReviewingBook(book)}
                   onEdit={(book) => {
                     router.push(`/author/${book.slug}/edit`);
                   }}
@@ -258,6 +263,13 @@ export default function CompliancePage() {
           onClose={() => setAssigningBook(null)}
         />
       )}
+
+      {reviewingBook && (
+        <SocialActivityModal
+          book={reviewingBook}
+          onClose={() => setReviewingBook(null)}
+        />
+      )}
     </div>
   );
 }
@@ -267,12 +279,14 @@ function BookManagementView({
   onToggleVisibility,
   onDelete,
   onAssign,
+  onReviewSocial,
   onEdit
 }: {
   books: any[],
   onToggleVisibility: (id: string, hidden: boolean) => void,
   onDelete: (id: string) => void,
   onAssign: (book: any) => void,
+  onReviewSocial: (book: any) => void,
   onEdit: (book: any) => void
 }) {
   if (!books || books.length === 0) {
@@ -297,7 +311,7 @@ function BookManagementView({
         </thead>
         <tbody className="divide-y divide-base-content/5">
           {books.map((book) => (
-            <tr key={book.id} className="group transition hover:bg-base-content/[0.02]">
+            <tr key={book.id} className="group transition hover:bg-base-content/2">
               <td className="py-4 pl-4">
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-12 overflow-hidden rounded-lg bg-base-content/5 flex items-center justify-center">
@@ -335,6 +349,13 @@ function BookManagementView({
                     title={book.isHidden ? "Goster" : "Gizle"}
                   >
                     {book.isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => onReviewSocial(book)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-base-content/5 text-base-content/40 hover:bg-primary/20 hover:text-primary transition"
+                    title="Etkileşimleri İncele"
+                  >
+                    <MessageSquare className="h-4 w-4" />
                   </button>
                   {book.type === "Translation" && (
                     <button
@@ -442,20 +463,21 @@ function SimpleListingView({
     }
   }
 
+  const hasIcon = activeTab === "categories";
+
   const renderFormRow = (id?: string) => (
     <tr className="border-b border-primary/20 bg-primary/5 animate-in fade-in slide-in-from-top-2 duration-300">
-      {/* Icon Column */}
-      <td className="py-3 pl-4 w-16">
-        {activeTab === "categories" && (
-          <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-base-content/10 flex items-center justify-center border border-dashed border-base-content/20 hover:border-primary/50 transition cursor-pointer group/upload">
+      {hasIcon && (
+        <td className="py-4 pl-6 w-20">
+          <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-base-100 flex items-center justify-center border-2 border-dashed border-primary/20 hover:border-primary/50 transition cursor-pointer group/upload shadow-inner">
             {editData.iconUrl ? (
               <img src={editData.iconUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <Plus className="h-4 w-4 text-base-content/20 group-hover/upload:text-primary transition" />
+              <Plus className="h-5 w-5 text-primary/30 group-hover/upload:text-primary transition" />
             )}
             {isUploading && (
               <div className="absolute inset-0 bg-base-100/60 backdrop-blur-sm flex items-center justify-center">
-                <span className="h-4 w-4 animate-spin border-2 border-primary border-t-transparent rounded-full" />
+                <span className="h-5 w-5 animate-spin border-2 border-primary border-t-transparent rounded-full" />
               </div>
             )}
             <input
@@ -466,108 +488,98 @@ function SimpleListingView({
               disabled={isUploading}
             />
           </div>
-        )}
-      </td>
+        </td>
+      )}
 
-      {/* Primary Column */}
-      <td className="py-3 px-4 min-w-[200px]">
-        {(activeTab === "categories" || activeTab === "tags") && (
-          <div className="flex flex-col gap-1">
+      <td className={`py-4 px-4 ${hasIcon ? '' : 'pl-6'}`}>
+        <div className="flex flex-col gap-2">
+          {activeTab === "faq" ? (
             <input
               autoFocus
               type="text"
-              placeholder="Isim..."
-              className="h-10 w-full rounded-xl border border-primary/20 bg-base-100 px-4 text-xs font-bold outline-none focus:border-primary ring-offset-4 ring-primary/5 focus:ring-4"
-              value={editData.name || ""}
-              onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+              placeholder="Soru metni..."
+              className="h-11 w-full rounded-xl border border-primary/20 bg-base-100 px-4 text-sm font-bold outline-none focus:border-primary shadow-sm"
+              value={editData.question || ""}
+              onChange={(e) => setEditData({ ...editData, question: e.target.value })}
             />
-            <div className="text-[9px] font-black text-primary/40 uppercase tracking-widest pl-1">
-              URL: {editData.name?.toLocaleLowerCase('tr-TR').replace(/ /g, "-") || "..."}
-            </div>
-          </div>
-        )}
-        {activeTab === "quotes" && (
-          <textarea
-            autoFocus
-            placeholder="Ozlu Soz..."
-            className="min-h-[80px] w-full rounded-xl border border-primary/20 bg-base-100 p-4 text-xs font-bold outline-none focus:border-primary resize-none"
-            value={editData.content || ""}
-            onChange={(e) => setEditData({ ...editData, content: e.target.value })}
-          />
-        )}
-        {activeTab === "faq" && (
-          <input
-            autoFocus
-            type="text"
-            placeholder="Soru..."
-            className="h-10 w-full rounded-xl border border-primary/20 bg-base-100 px-4 text-xs font-bold outline-none focus:border-primary"
-            value={editData.question || ""}
-            onChange={(e) => setEditData({ ...editData, question: e.target.value })}
-          />
-        )}
-      </td>
-
-      {/* Secondary Column */}
-      <td className="py-3 px-4">
-        <div className="flex flex-col gap-2">
-          {activeTab === "categories" && (
+          ) : activeTab === "quotes" ? (
+            <textarea
+              autoFocus
+              placeholder="Özlü söz içeriği..."
+              className="min-h-[100px] w-full rounded-xl border border-primary/20 bg-base-100 p-4 text-sm font-bold outline-none focus:border-primary resize-none shadow-sm"
+              value={editData.content || ""}
+              onChange={(e) => setEditData({ ...editData, content: e.target.value })}
+            />
+          ) : (
             <>
               <input
+                autoFocus
                 type="text"
-                placeholder="Kisa Aciklama..."
-                className="h-10 w-full rounded-xl border border-primary/20 bg-base-100 px-4 text-xs font-bold outline-none focus:border-primary"
-                value={editData.description || ""}
-                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                placeholder="Başlık/İsim..."
+                className="h-11 w-full rounded-xl border border-primary/20 bg-base-100 px-4 text-sm font-bold outline-none focus:border-primary shadow-sm"
+                value={editData.name || ""}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
               />
-              <input
-                type="text"
-                placeholder="Manuel Icon URL..."
-                className="h-8 w-full rounded-lg border border-base-content/10 bg-base-100 px-3 text-[10px] font-bold outline-none focus:border-primary/40"
-                value={editData.iconUrl || ""}
-                onChange={(e) => setEditData({ ...editData, iconUrl: e.target.value })}
-              />
+              <div className="text-[10px] font-black text-primary/40 uppercase tracking-widest pl-1">
+                SLUG: {editData.name?.toLocaleLowerCase('tr-TR').replace(/ /g, "-").replace(/[^a-z0-9-]/g, "") || "..." }
+              </div>
             </>
           )}
-          {activeTab === "quotes" && (
-            <input
-              type="text"
-              placeholder="Yazar Ismi..."
-              className="h-10 w-full rounded-xl border border-primary/20 bg-base-100 px-3 text-xs font-bold outline-none focus:border-primary"
-              value={editData.authorName || ""}
-              onChange={(e) => setEditData({ ...editData, authorName: e.target.value })}
-            />
-          )}
-          {activeTab === "faq" && (
-            <textarea
-              placeholder="Detayli Cevap..."
-              className="min-h-[80px] w-full rounded-xl border border-primary/20 bg-base-100 p-4 text-xs font-bold outline-none focus:border-primary resize-none"
-              value={editData.answer || ""}
-              onChange={(e) => setEditData({ ...editData, answer: e.target.value })}
-            />
-          )}
-          {activeTab === "tags" && <span className="text-[10px] font-black uppercase text-base-content/20 italic tracking-widest pl-2">Etiket parametreleri otomatik yonetilir</span>}
         </div>
       </td>
 
-      {/* Actions Column */}
-      <td className="py-3 pr-4 text-right">
-        <div className="flex justify-end gap-2 px-2">
+      <td className="py-4 px-4">
+        <div className="flex flex-col gap-2">
+          {activeTab === "categories" ? (
+            <textarea
+              placeholder="Kategori açıklaması (opsiyonel)..."
+              className="min-h-[80px] w-full rounded-xl border border-primary/20 bg-base-100 p-4 text-sm font-bold outline-none focus:border-primary resize-none shadow-sm"
+              value={editData.description || ""}
+              onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+            />
+          ) : activeTab === "faq" ? (
+            <textarea
+              placeholder="Detaylı cevap metni..."
+              className="min-h-[100px] w-full rounded-xl border border-primary/20 bg-base-100 p-4 text-sm font-bold outline-none focus:border-primary resize-none shadow-sm"
+              value={editData.answer || ""}
+              onChange={(e) => setEditData({ ...editData, answer: e.target.value })}
+            />
+          ) : activeTab === "quotes" ? (
+            <input
+              type="text"
+              placeholder="Yazar/Kaynak ismi..."
+              className="h-11 w-full rounded-xl border border-primary/20 bg-base-100 px-4 text-sm font-bold outline-none focus:border-primary shadow-sm"
+              value={editData.authorName || ""}
+              onChange={(e) => setEditData({ ...editData, authorName: e.target.value })}
+            />
+          ) : (
+             <div className="rounded-xl border border-dashed border-base-content/10 bg-base-content/5 p-4 text-[10px] font-black uppercase tracking-widest text-base-content/20 text-center">
+                Etiket Parametreleri Otomatik
+             </div>
+          )}
+        </div>
+      </td>
+
+      <td className="py-4 pr-6 text-right w-32">
+        <div className="flex justify-end gap-2">
           <button
             disabled={isSaving}
             onClick={() => handleSubmit(id)}
-            className="group flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-content shadow-lg shadow-primary/20 transition hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-content shadow-lg shadow-primary/20 transition hover:scale-105 active:scale-95 disabled:opacity-50"
+            title="Kaydet"
           >
             {isSaving ? (
-              <span className="h-4 w-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
+              <span className="h-5 w-5 animate-spin border-2 border-white border-t-transparent rounded-full" />
             ) : (
-              <Check className="h-5 w-5" />
+              <Check className="h-6 w-6" />
             )}
           </button>
           <button
             onClick={() => { setIsAdding(false); setEditingId(null); setEditData({}); }}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-base-content/5 text-base-content/40 hover:bg-red-500 hover:text-white transition group"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-base-content/5 text-base-content/40 hover:bg-error hover:text-white transition group shadow-sm"
+            title="İptal"
           >
-            <X className="h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
+            <X className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" />
           </button>
         </div>
       </td>
@@ -575,18 +587,20 @@ function SimpleListingView({
   );
 
   return (
-    <div className="overflow-hidden rounded-[2rem] border border-base-content/5 bg-base-100/30 backdrop-blur-md">
+    <div className="overflow-hidden rounded-4xl border border-base-content/5 bg-base-100/30 backdrop-blur-md shadow-xl">
       <table className="w-full text-left border-collapse">
         <thead>
-          <tr className="border-b border-base-content/5 bg-base-content/5">
-            <th className="py-5 pl-4 w-16 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic">Ikon</th>
-            <th className="py-5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic">
-              {activeTab === "quotes" ? "Soz / Icerik" : activeTab === "faq" ? "Soru" : "Baslik"}
+          <tr className="border-b border-base-content/5 bg-base-content/3">
+            {hasIcon && (
+              <th className="py-5 pl-6 w-20 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic">Ikon</th>
+            )}
+            <th className={`py-5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic ${!hasIcon ? 'pl-6' : ''}`}>
+              {activeTab === "quotes" ? "Özlü Söz / İçerik" : activeTab === "faq" ? "Soru" : "Başlık / İsim"}
             </th>
             <th className="py-5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic">
-              {activeTab === "quotes" ? "Atif / Yazar" : activeTab === "faq" ? "Cevap" : "Aciklama / Detay"}
+              {activeTab === "categories" ? "Kategori Açıklaması" : activeTab === "quotes" ? "Yazar / Kaynak" : activeTab === "faq" ? "Cevap Metni" : "Sistem Bilgisi"}
             </th>
-            <th className="py-5 pr-6 text-right text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic">Yonetim</th>
+            <th className="py-5 pr-6 text-right text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic w-32">Eylemler</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-base-content/5">
@@ -596,42 +610,46 @@ function SimpleListingView({
             editingId === item.id ? (
               <React.Fragment key={item.id}>{renderFormRow(item.id)}</React.Fragment>
             ) : (
-              <tr key={item.id} className="group hover:bg-base-content/5 transition duration-300">
-                <td className="py-5 pl-4">
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-base-content/5 border border-base-content/5 flex items-center justify-center p-0.5">
-                    {item.iconUrl ? (
-                      <img src={item.iconUrl} alt={item.name} className="h-full w-full object-contain rounded-lg" />
-                    ) : (
-                      <Layers className="h-4 w-4 text-base-content/10" />
-                    )}
-                  </div>
-                </td>
-                <td className="py-5 px-4">
-                  <div className="font-bold text-sm text-base-content/80 group-hover:text-primary transition line-clamp-1">
+              <tr key={item.id} className="group hover:bg-primary/3 transition-colors duration-300">
+                {hasIcon && (
+                  <td className="py-5 pl-6">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-base-100 border border-base-content/5 flex items-center justify-center p-0.5 shadow-sm group-hover:shadow-md transition-shadow">
+                      {item.iconUrl ? (
+                        <img src={item.iconUrl} alt={item.name} className="h-full w-full object-contain rounded-xl" />
+                      ) : (
+                        <Layers className="h-5 w-5 text-base-content/10" />
+                      )}
+                    </div>
+                  </td>
+                )}
+                <td className={`py-5 px-4 ${!hasIcon ? 'pl-6' : ''}`}>
+                  <div className="font-black italic text-base-content/80 group-hover:text-primary transition text-base">
                     {item.name || item.question || item.content}
                   </div>
-                  {(item.slug) && (
-                    <div className="text-[10px] font-black italic text-base-content/15 uppercase tracking-widest mt-0.5 group-hover:text-primary/40 transition">
+                  {item.slug && (
+                    <div className="text-[10px] font-bold text-base-content/20 uppercase tracking-widest mt-1 opacity-60 group-hover:opacity-100 transition">
                       {item.slug}
                     </div>
                   )}
                 </td>
                 <td className="py-5 px-4">
-                  <div className="text-[11px] font-bold text-base-content/40 line-clamp-2 max-w-sm italic leading-relaxed opacity-60 group-hover:opacity-100 transition">
+                  <div className="text-xs font-medium text-base-content/40 line-clamp-2 max-w-sm italic leading-relaxed opacity-70 group-hover:opacity-100 transition">
                     {item.description || item.authorName || item.answer || "---"}
                   </div>
                 </td>
                 <td className="py-5 pr-6 text-right">
-                  <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition duration-300 translate-x-2 group-hover:translate-x-0">
+                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
                     <button
                       onClick={() => { setEditingId(item.id); setEditData(item); }}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl bg-base-content/5 text-base-content/40 hover:bg-yellow-500/10 hover:text-yellow-500 transition-all shadow-sm"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-base-100 border border-base-content/5 text-base-content/40 hover:bg-yellow-500/10 hover:text-yellow-600 hover:border-yellow-500/20 transition-all shadow-sm"
+                      title="Düzenle"
                     >
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => onDelete(item.id)}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl bg-base-content/5 text-base-content/40 hover:bg-red-500/10 hover:text-red-500 transition-all shadow-sm"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-base-100 border border-base-content/5 text-base-content/40 hover:bg-error/10 hover:text-error hover:border-error/20 transition-all shadow-sm"
+                      title="Sil"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -643,10 +661,10 @@ function SimpleListingView({
 
           {(!items || items.length === 0) && !isAdding && (
             <tr>
-              <td colSpan={4} className="py-16 text-center">
-                <div className="flex flex-col items-center justify-center opacity-10">
-                  <Layers className="h-12 w-12 mb-4" />
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em]">Kayit Bulunamadi</p>
+              <td colSpan={hasIcon ? 4 : 3} className="py-24 text-center">
+                <div className="flex flex-col items-center justify-center opacity-20">
+                  <Layers className="h-16 w-16 mb-4 animate-slow-pulse" />
+                  <p className="text-xs font-black uppercase tracking-[0.4em]">Henüz Kayıt Bulunamadı</p>
                 </div>
               </td>
             </tr>
@@ -782,7 +800,7 @@ function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void 
               <button
                 key={user.id}
                 onClick={() => handleAssign(user)}
-                className="flex w-full items-center justify-between rounded-2xl border border-base-content/5 bg-base-content/[0.02] p-3 transition hover:bg-primary/10 hover:border-primary/20 group"
+                className="flex w-full items-center justify-between rounded-2xl border border-base-content/5 bg-base-content/2 p-3 transition hover:bg-primary/10 hover:border-primary/20 group"
               >
                 <div className="flex items-center gap-3 text-left">
                   <div className="h-8 w-8 rounded-full bg-base-content/5 flex items-center justify-center text-[10px] font-black">
@@ -805,6 +823,170 @@ function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void 
           >
             {isSaving ? "Kaydediliyor..." : "Atamaları Tamamla"}
           </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void }) {
+  const [activeTab, setActiveTab] = useState<"reviews" | "comments" | "inline">("reviews");
+  const [activity, setActivity] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchActivity() {
+      setIsLoading(true);
+      try {
+        const res = await fetch(`/api/social/admin/books/${book.id}/activity`);
+        const json = await res.json();
+        if (json.isSuccess) {
+          setActivity(json.data);
+        }
+      } catch (err) {
+        console.error("Fetch activity error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchActivity();
+  }, [book.id]);
+
+  async function handleToggleHide(type: string, id: string, currentHidden: boolean) {
+    try {
+      const res = await fetch(`/api/social/admin/content/visibility`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, type, isHidden: !currentHidden }),
+      });
+      if (res.ok) {
+        setActivity((prev: any) => {
+          const next = { ...prev };
+          const listName =
+            type === "review"
+              ? "reviews"
+              : type === "comment"
+              ? "chapterComments"
+              : "inlineComments";
+          next[listName] = next[listName].map((item: any) =>
+            item.id === id ? { ...item, isHidden: !currentHidden } : item
+          );
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error("Toggle social visibility error:", err);
+    }
+  }
+
+  const renderList = (items: any[], type: string) => (
+    <div className="mt-4 space-y-3">
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className={`transition rounded-2xl border p-4 ${
+            item.isHidden
+              ? "border-error/20 bg-error/5 opacity-60"
+              : "border-base-content/5 bg-base-content/2 hover:border-primary/20"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="mb-2 flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-base-content/10 text-[8px] font-black">
+                  U
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">
+                  {item.userId}
+                </span>
+                <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-base-content/20">
+                  <Clock className="h-3 w-3" /> {new Date(item.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="italic leading-relaxed text-sm font-medium text-base-content/80">
+                "{item.content}"
+              </p>
+              <div className="mt-3 flex items-center gap-4">
+                <div className="italic flex items-center gap-1 text-[10px] font-bold text-base-content/30">
+                  <ThumbsUp className="h-3 w-3" /> {item.likeCount || 0} Beğeni
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => handleToggleHide(type, item.id, item.isHidden)}
+              className={`btn btn-xs rounded-lg font-black uppercase tracking-widest ${
+                item.isHidden ? "btn-success h-8 px-4 text-white" : "btn-error h-8 px-4 text-white"
+              }`}
+            >
+              {item.isHidden ? "Göster" : "Gizle"}
+            </button>
+          </div>
+        </div>
+      ))}
+      {items.length === 0 && (
+        <div className="py-12 text-center opacity-20">
+          <MessageSquare className="mx-auto mb-2 h-10 w-10" />
+          <p className="text-xs font-black uppercase tracking-widest">Kayıt Bulunmuyor</p>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-base-300/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative h-[80vh] w-full max-w-2xl animate-in zoom-in-95 flex flex-col rounded-[2.5rem] border border-base-content/10 bg-base-100 shadow-2xl duration-300">
+        <div className="border-b border-base-content/5 p-8">
+          <button
+            onClick={onClose}
+            className="absolute right-6 top-6 flex h-10 w-10 items-center justify-center rounded-xl bg-base-content/5 text-base-content/40 transition hover:bg-base-content/10"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <h3 className="text-2xl font-black uppercase italic tracking-tight text-base-content/80">
+            Etkileşim Denetimi
+          </h3>
+          <p className="mt-1 text-xs font-bold uppercase tracking-widest text-base-content/20">
+            {book.title}
+          </p>
+
+          <div className="mt-6 flex gap-2">
+            {[
+              { id: "reviews", label: "İncelemeler" },
+              { id: "comments", label: "Bölüm Yorumları" },
+              { id: "inline", label: "Satır Yorumları" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`transition-all rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest ${
+                  activeTab === tab.id
+                    ? "bg-primary text-primary-content shadow-lg"
+                    : "bg-base-content/5 text-base-content/40 hover:bg-base-content/10"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="custom-scrollbar flex-1 overflow-y-auto p-8 pt-0">
+          {isLoading ? (
+            <div className="flex h-64 items-center justify-center">
+              <span className="loading loading-spinner text-primary"></span>
+            </div>
+          ) : (
+            <>
+              {activeTab === "reviews" && activity?.reviews && renderList(activity.reviews, "review")}
+              {activeTab === "comments" &&
+                activity?.chapterComments &&
+                renderList(activity.chapterComments, "comment")}
+              {activeTab === "inline" &&
+                activity?.inlineComments &&
+                renderList(activity.inlineComments, "inline")}
+            </>
+          )}
         </div>
       </div>
     </div>

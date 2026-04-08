@@ -55,8 +55,14 @@ public class BooksDbContext(DbContextOptions<BooksDbContext> options) : DbContex
            b.HasQueryFilter(x => !x.IsDeleted && !x.Book.IsDeleted);
         });
 
-        modelBuilder.Entity<Category>(b => b.ToTable("Categories"));
-        modelBuilder.Entity<Tag>(b => b.ToTable("Tags"));
+        modelBuilder.Entity<Category>(b => {
+            b.ToTable("Categories");
+            b.HasQueryFilter(x => !x.IsDeleted);
+        });
+        modelBuilder.Entity<Tag>(b => {
+            b.ToTable("Tags");
+            b.HasQueryFilter(x => !x.IsDeleted);
+        });
         modelBuilder.Entity<Paragraph>(b => {
             b.ToTable("Paragraphs");
             b.HasIndex(x => new { x.ChapterId, x.Order }); // Sequential read performance

@@ -51,8 +51,14 @@ public class ManagementDbContext(DbContextOptions<ManagementDbContext> options) 
              b.HasIndex(x => x.Module);
              b.HasIndex(x => x.TraceId);
         });
-        modelBuilder.Entity<DailyQuote>(b => b.ToTable("DailyQuotes"));
-        modelBuilder.Entity<FAQ>(b => b.ToTable("FAQs"));
+        modelBuilder.Entity<DailyQuote>(b => {
+             b.ToTable("DailyQuotes");
+             b.HasQueryFilter(x => !x.IsDeleted);
+        });
+        modelBuilder.Entity<FAQ>(b => {
+             b.ToTable("FAQs");
+             b.HasQueryFilter(x => !x.IsDeleted);
+        });
         modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
              b.ToTable("OutboxMessages");
              b.HasIndex(x => x.ProcessedAtUtc);

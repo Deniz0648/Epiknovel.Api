@@ -155,7 +155,7 @@ public class Endpoint(
     {
         // DB ve Navigasyon işlemleri bu factory içinde Thundering Herd korumalı çalışır
         var chapter = await dbContext.Chapters
-            .Where(x => x.Slug == slug)
+            .Where(x => x.Slug == slug && !x.Book.IsHidden)
             .Select(c => new 
             {
                 c.Id,

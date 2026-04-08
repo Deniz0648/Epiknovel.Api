@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { ThemeSelector } from "@/components/layout/theme-selector";
 import { canAccessAdminPanel } from "@/lib/auth";
 import { 
   LayoutDashboard, 
@@ -154,6 +155,8 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
                 <Bell className="h-5 w-5" />
                 <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary border-2 border-base-100" />
              </button>
+             
+             <ThemeSelector />
              
              <Link 
                 href="/" 

@@ -8,6 +8,7 @@ public record ManagementSimpleDto(Guid Id, string Name, string Slug, string? Des
 public interface IManagementBookProvider
 {
     Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, CancellationToken ct = default);
+    Task<bool> DeleteBookAsync(Guid bookId, CancellationToken ct = default);
     Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, string? searchTerm, int page, int pageSize, CancellationToken ct = default);
     
     // Categories

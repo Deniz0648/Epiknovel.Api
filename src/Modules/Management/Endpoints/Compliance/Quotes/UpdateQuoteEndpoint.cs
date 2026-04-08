@@ -32,8 +32,8 @@ public class UpdateQuoteEndpoint(ManagementDbContext dbContext) : Endpoint<Updat
             return;
         }
 
-        quote.Content = req.Content;
-        quote.AuthorName = req.AuthorName;
+        quote.Content = req.Content ?? string.Empty;
+        quote.AuthorName = req.AuthorName ?? string.Empty;
 
         await dbContext.SaveChangesAsync(ct);
         await Send.ResponseAsync(Result<string>.Success("Soz guncellendi."), 200, ct);

@@ -29,7 +29,7 @@ public class Endpoint(IMediator mediator, IOutputCacheStore cacheStore) : Endpoi
         {
             Id = req.Id,
             UserId = req.UserId,
-            IsAdmin = User.IsInRole(RoleNames.Admin),
+            IsAdmin = User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Mod) || User.IsInRole(RoleNames.SuperAdmin),
             Title = req.Title,
             Description = req.Description,
             CoverImageUrl = req.CoverImageUrl,

@@ -33,4 +33,9 @@ public interface IBookProvider
     /// Verilen yazarların (UserId) yayınlanan eser sayılarını toplu döner.
     /// </summary>
     Task<Dictionary<Guid, int>> GetPublishedBookCountsByAuthorIdsAsync(IEnumerable<Guid> authorIds, CancellationToken ct = default);
+
+    /// <summary>
+    /// Verilen kitabın tüm (silinmemiş) bölümlerinin ID listesini döner.
+    /// </summary>
+    Task<List<Guid>> GetChapterIdsByBookIdAsync(Guid bookId, CancellationToken ct = default);
 }

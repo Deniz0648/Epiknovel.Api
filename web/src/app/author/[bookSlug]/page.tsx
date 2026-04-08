@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, LayoutDashboard, Settings, FileText, BarChart3, PlusCircle, Share2, Eye, Star, Clock, LoaderCircle, AlertCircle } from "lucide-react";
+import { ChevronLeft, LayoutDashboard, Settings, FileText, BarChart3, PlusCircle, Share2, Eye, Star, Clock, LoaderCircle, AlertCircle, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getMyBookBySlug, getMyChapters, type MyBookListItem } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/api";
@@ -19,7 +19,9 @@ export default function ManageBookPage() {
   
   const [book, setBook] = useState<MyBookListItem | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
+  const [deletedChapters, setDeletedChapters] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isTrashLoading, setIsTrashLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -38,11 +40,17 @@ export default function ManageBookPage() {
           setError(null);
         }
 
-        // 2. Bölümleri Çek (Yazar yetkisiyle)
+        // 2. Bölümleri Çek
         try {
-          const chaptersData = await getMyChapters(bookSlug, { pageSize: 100 });
+          const chaptersData = await getMyChapters(bookSlug, { pageSize: 100, isDeleted: false });
           if (isMounted) {
             setChapters(chaptersData.items || []);
+          }
+          
+          // 3. Silinen Bölümleri Çek
+          const deletedChaptersData = await getMyChapters(bookSlug, { pageSize: 100, isDeleted: true });
+          if (isMounted) {
+            setDeletedChapters(deletedChaptersData.items || []);
           }
         } catch (chapterErr) {
           console.error("Bolumler yuklenirken hata:", chapterErr);
@@ -193,6 +201,57 @@ export default function ManageBookPage() {
               <div className="glass-frame flex flex-col items-center justify-center gap-4 border-dashed py-24 text-center opacity-60">
                 <FileText className="h-8 w-8 opacity-20" />
                 <p className="text-sm font-bold">Henuz hic bolum eklenmemis.</p>
+              </div>
+            )}
+
+            {/* Silinen Bölümler (Çöp Kutusu) */}
+            {deletedChapters.length > 0 && (
+              <div className="mt-12 space-y-4">
+                <div className="flex items-center gap-6 px-2">
+                   <h3 className="flex items-center gap-2 text-xl font-black text-error">
+                     <Trash2 className="h-5 w-5" /> Silinen Bölümler
+                   </h3>
+                   <div className="h-px flex-1 bg-gradient-to-r from-error/20 to-transparent" />
+                </div>
+                
+                <div className="grid gap-3">
+                  {deletedChapters.map((chapter) => (
+                    <div key={chapter.id} className="glass-frame flex items-center justify-between p-4 bg-error/5 border-error/10">
+                       <div className="min-w-0">
+                          <p className="font-bold text-sm truncate opacity-60 italic">{chapter.title}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-base-content/30 mt-1">Silindi</p>
+                       </div>
+                       <button 
+                         onClick={async () => {
+                            if (!confirm("Bölümü geri yüklemek istediğinize emin misiniz?")) return;
+                            try {
+                               setIsTrashLoading(true);
+                               const { restoreChapter, getMyChapters } = await import("@/lib/auth");
+                               await restoreChapter(chapter.id);
+                               
+                               // Verileri yenile
+                               const [updChapters, updDeleted] = await Promise.all([
+                                 getMyChapters(bookSlug, { pageSize: 100, isDeleted: false }),
+                                 getMyChapters(bookSlug, { pageSize: 100, isDeleted: true })
+                               ]);
+                               
+                               setChapters(updChapters.items || []);
+                               setDeletedChapters(updDeleted.items || []);
+                               alert("Bölüm başarıyla geri yüklendi.");
+                            } catch (e) {
+                               alert("Geri yükleme sırasında bir hata oluştu.");
+                            } finally {
+                               setIsTrashLoading(false);
+                            }
+                         }}
+                         className="btn btn-ghost btn-sm text-error hover:bg-error/10 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                         disabled={isTrashLoading}
+                       >
+                          Geri Getir
+                       </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

@@ -71,4 +71,13 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
             .Select(g => new { AuthorId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.AuthorId, x => x.Count, ct);
     }
+
+    public async Task<List<Guid>> GetChapterIdsByBookIdAsync(Guid bookId, CancellationToken ct = default)
+    {
+        return await dbContext.Chapters
+            .AsNoTracking()
+            .Where(c => c.BookId == bookId)
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+    }
 }

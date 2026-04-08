@@ -7,7 +7,6 @@ using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Events;
 using Epiknovel.Shared.Infrastructure.Logging;
-using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Enums;
 using System.Reflection;
 using MediatR;

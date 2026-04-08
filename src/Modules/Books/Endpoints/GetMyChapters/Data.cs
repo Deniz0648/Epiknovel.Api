@@ -8,11 +8,13 @@ public class Request : PaginationRequest
     public string BookSlug { get; set; } = string.Empty;
     public string? Search { get; set; }
     public ChapterStatus? Status { get; set; }
+    public bool? isDeleted { get; set; }
 }
 
 public class Response 
 {
     public Guid Id { get; set; }
+    public bool IsDeleted { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
     public int Order { get; set; }
