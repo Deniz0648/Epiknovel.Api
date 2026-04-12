@@ -3,11 +3,12 @@ using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Shared.Core.Models;
 using Epiknovel.Shared.Core.Constants;
+using Epiknovel.Shared.Core.Interfaces;
 using System.Security.Claims;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetMyChapters;
 
-public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<PagedResult<Response>>>
+public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccountProvider) : Endpoint<Request, Result<PagedResult<Response>>>
 {
     public override void Configure()
     {
@@ -72,27 +73,49 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Paged
 
         // 3. Paging & Fetch
         var totalCount = await query.CountAsync(ct);
-        var chapters = await query
+        var dbChapters = await query
             .OrderBy(x => x.Order)
             .ThenByDescending(x => x.CreatedAt)
             .Skip((req.PageNumber - 1) * req.PageSize)
             .Take(req.PageSize)
-            .Select(x => new Response
+            .Select(x => new 
             {
-                Id = x.Id,
-                Title = x.Title,
-                Slug = x.Slug,
-                Order = x.Order,
-                WordCount = x.WordCount,
-                Status = x.Status,
-                Price = x.Price,
-                IsFree = x.IsFree,
-                ViewCount = x.ViewCount,
-                CreatedAt = x.CreatedAt,
-                PublishedAt = x.PublishedAt,
-                ScheduledPublishDate = x.ScheduledPublishDate
+                x.Id,
+                x.Title,
+                x.Slug,
+                x.Order,
+                x.WordCount,
+                x.Status,
+                x.Price,
+                x.IsFree,
+                x.ViewCount,
+                x.CreatedAt,
+                x.PublishedAt,
+                x.ScheduledPublishDate,
+                x.UserId
             })
             .ToListAsync(ct);
+
+        // Yazarları Getir
+        var userIds = dbChapters.Select(x => x.UserId).Distinct().ToArray();
+        var userDisplayNames = await userAccountProvider.GetDisplayNamesAsync(userIds, ct);
+
+        var chapters = dbChapters.Select(x => new Response
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Slug = x.Slug,
+            Order = x.Order,
+            WordCount = x.WordCount,
+            Status = x.Status,
+            Price = x.Price,
+            IsFree = x.IsFree,
+            ViewCount = x.ViewCount,
+            CreatedAt = x.CreatedAt,
+            PublishedAt = x.PublishedAt,
+            ScheduledPublishDate = x.ScheduledPublishDate,
+            AuthorName = userDisplayNames.TryGetValue(x.UserId, out var name) ? name : "Yazar"
+        }).ToList();
 
         var pagedResult = PagedResult<Response>.Create(chapters, totalCount, req.PageNumber, req.PageSize);
         await Send.ResponseAsync(Result<PagedResult<Response>>.Success(pagedResult), 200, ct);

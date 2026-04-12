@@ -63,10 +63,10 @@ public class Endpoint(
         if (!req.IsFree || req.Price > 0)
         {
              // 🚀 GLOBAL ECONOMY CHECK
-            var economyEnabled = await settings.GetSettingValueAsync<string>("Economy_EnableWalletSystem", ct);
-            if (economyEnabled == "false")
+            var paidChaptersAllowed = await settings.GetSettingValueAsync<string>("CONTENT_AllowPaidChapters", ct);
+            if (paidChaptersAllowed == "false" && !User.IsInRole(RoleNames.Admin) && !User.IsInRole(RoleNames.SuperAdmin))
             {
-                await Send.ResponseAsync(Result<Response>.Failure("Ücretli içerik sistemi şu anda kapalıdır."), 403, ct);
+                await Send.ResponseAsync(Result<Response>.Failure("Ücretli içerik sistemi (Bölüm Satışı) şu anda kapalıdır."), 403, ct);
                 return;
             }
 

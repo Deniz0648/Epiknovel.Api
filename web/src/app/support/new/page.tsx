@@ -2,12 +2,46 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Home, Send, AlertCircle, MessageCircle, Lightbulb, HelpCircle, ChevronRight } from "lucide-react";
+import { Home, Send, AlertCircle, MessageCircle, Lightbulb, HelpCircle, ChevronRight, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { showToast } from "@/lib/toast";
 
 type Category = "Şikayet" | "İstek" | "Öneri" | "Diğer";
 
 export default function NewSupportTicketPage() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<Category>("Şikayet");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!title || !description) {
+      showToast({ title: "Hata", description: "Lütfen tüm alanları doldurun.", tone: "error" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await apiRequest("/management/support/tickets", {
+        method: "POST",
+        body: JSON.stringify({
+          title,
+          description,
+          category: selectedCategory
+        })
+      });
+
+      showToast({ title: "Başarılı", description: "Destek talebiniz oluşturuldu.", tone: "success" });
+      router.push("/support");
+    } catch (err) {
+      console.error("Talep olusturulurken hata:", err);
+      showToast({ title: "Hata", description: "Talep oluşturulurken bir hata oluştu.", tone: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const categories = [
     { id: "Şikayet" as Category, icon: AlertCircle, label: "Şikayet", color: "text-error", bg: "bg-error/10", border: "border-error/20", desc: "Hatalar, ihlaller veya mağduriyet durumları" },
@@ -74,7 +108,10 @@ export default function NewSupportTicketPage() {
               <input
                 type="text"
                 placeholder="Kısaca konuyu özetleyin..."
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 className="w-full rounded-2xl border border-base-content/10 bg-base-100/32 px-5 py-4 text-sm font-medium focus:border-primary/50 focus:outline-none transition-colors"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -84,14 +121,25 @@ export default function NewSupportTicketPage() {
               <textarea
                 placeholder="Detaylı bir şekilde açıklayın..."
                 rows={8}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
                 className="w-full resize-none rounded-2xl border border-base-content/10 bg-base-100/32 px-5 py-4 text-sm font-medium focus:border-primary/50 focus:outline-none transition-colors"
+                disabled={isSubmitting}
               />
             </div>
 
             {/* Submit Button */}
             <div className="pt-2">
-              <button className="btn btn-primary h-14 w-full rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20">
-                <Send className="mr-2 h-4 w-4" />
+              <button 
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="btn btn-primary h-14 w-full rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
                 Talebi Gönder
               </button>
             </div>

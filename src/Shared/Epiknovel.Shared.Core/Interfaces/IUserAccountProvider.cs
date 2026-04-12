@@ -9,4 +9,8 @@ public interface IUserAccountProvider
     /// N+1 problemini çözmek için kullanılır.
     /// </summary>
     Task<Dictionary<Guid, string>> GetDisplayNamesAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
+
+    Task<string?> GetEmailAsync(Guid userId, CancellationToken ct = default);
+    
+    Task<(string? Email, string? DisplayName)> GetUserBasicInfoAsync(Guid userId, CancellationToken ct = default);
 }

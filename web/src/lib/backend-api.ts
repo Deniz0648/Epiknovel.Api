@@ -36,6 +36,8 @@ export function buildProxyHeaders(sourceHeaders: Headers): HeadersInit {
     "accept-language",
     "x-forwarded-for",
     "x-forwarded-proto",
+    "x-forwarded-host",
+    "host",
     "x-real-ip",
   ];
 
@@ -51,38 +53,22 @@ export async function backendApiRequest<T>(
   path: string,
   options: BackendRequestOptions = {},
 ): Promise<T> {
-  const { token, headers, ...rest } = options;
-  const method = rest.method?.toUpperCase() || "GET";
-  
-  const finalHeaders = new Headers(headers);
-  finalHeaders.set("Accept", "application/json");
+  const response = await backendFetch(path, options);
 
-  if (token) {
-    finalHeaders.set("Authorization", `Bearer ${token}`);
+  if (response.status === 401) {
+    throw new ApiError("Backend tarafindan yetki hatasi alindi (401). Token gecersiz veya yetersiz.", 401);
   }
 
-  if (rest.body && !(rest.body instanceof FormData)) {
-    finalHeaders.set("Content-Type", "application/json");
-  }
-
-  const url = `${BACKEND_API_BASE_URL}${path}`;
-  
-  if (typeof window === "undefined") {
-    const maskedToken = token ? `${token.substring(0, 10)}...${token.substring(token.length - 10)}` : "MISSING";
-    console.log(`[BACKEND_REQUEST] ${method} ${url} | Token: [${maskedToken}]`);
-  }
-
-  const response = await fetch(url, {
-    ...rest,
-    method,
-    headers: finalHeaders,
-    cache: "no-store",
-  });
+  const contentType = response.headers.get("content-type");
+  const isJson = contentType?.includes("application/json");
 
   const text = await response.text();
   
-  if (response.status === 401) {
-    throw new ApiError("Backend tarafindan yetki hatasi alindi (401). Token gecersiz veya yetersiz.", 401);
+  if (!isJson) {
+      // JSON degilse ama response ok ise, text olarak don (veya hata firlat)
+      // Ancak mevcut backendApiRequest kontrati T donduruyor, genellikle JSON beklenir.
+      if (response.ok) return text as any;
+      throw new ApiError("Backend gecersiz format dondu.", response.status);
   }
 
   let payload: BackendResult<T> | null = null;
@@ -103,4 +89,43 @@ export async function backendApiRequest<T>(
   }
 
   return resData as T;
+}
+
+/**
+ * Backend'e ham istek atar ve Response objesini doner.
+ * Proxy ve streaming islemleri icin kullanilir.
+ */
+export async function backendFetch(
+    path: string,
+    options: BackendRequestOptions = {},
+): Promise<Response> {
+    const { token, headers, ...rest } = options;
+    const method = rest.method?.toUpperCase() || "GET";
+    
+    const finalHeaders = new Headers(headers);
+    if (!finalHeaders.has("Accept")) {
+        finalHeaders.set("Accept", "application/json, application/octet-stream, */*");
+    }
+
+    if (token) {
+        finalHeaders.set("Authorization", `Bearer ${token}`);
+    }
+
+    if (rest.body && !(rest.body instanceof FormData) && !finalHeaders.has("Content-Type")) {
+        finalHeaders.set("Content-Type", "application/json");
+    }
+
+    const url = `${BACKEND_API_BASE_URL}${path}`;
+    
+    if (typeof window === "undefined") {
+        const maskedToken = token ? `${token.substring(0, 10)}...${token.substring(token.length - 10)}` : "MISSING";
+        console.log(`[BACKEND_FETCH] ${method} ${url} | Token: [${maskedToken}]`);
+    }
+
+    return fetch(url, {
+        ...rest,
+        method,
+        headers: finalHeaders,
+        cache: "no-store",
+    });
 }

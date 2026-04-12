@@ -12,12 +12,16 @@ using Epiknovel.Shared.Infrastructure.Security;
 using System.Threading;
 using Epiknovel.Shared.Core.Constants;
 
+using Epiknovel.Shared.Core.Interfaces.Management;
+
 namespace Epiknovel.Modules.Books.Features.Chapters.Commands.AddChapter;
 
 public class AddChapterHandler(
     BooksDbContext dbContext,
     ISlugService slugService,
-    IOutputCacheStore cacheStore) : IRequestHandler<AddChapterCommand, Result<AddChapterResponse>>
+    IOutputCacheStore cacheStore,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService redisCache,
+    ISystemSettingProvider settingProvider) : IRequestHandler<AddChapterCommand, Result<AddChapterResponse>>
 {
     public async Task<Result<AddChapterResponse>> Handle(AddChapterCommand request, CancellationToken ct)
     {
@@ -36,6 +40,12 @@ public class AddChapterHandler(
         // 2. Ücretli Yazarlık Yetki Kontrolü
         if (!request.IsFree || request.Price > 0)
         {
+            var allowPaidChapters = await settingProvider.GetSettingValueAsync<bool>("CONTENT_AllowPaidChapters", ct);
+            if (!allowPaidChapters)
+            {
+                return Result<AddChapterResponse>.Failure("Şu anda sistem genelinde ücretli bölüm oluşturulması geçici olarak durdurulmuştur.");
+            }
+
             // Note: Permission check inside Handler usually requires passing the ClaimsPrincipal
             // or having a service that can resolve it. Refactored to assume caller validates permissions for now
             // OR we can pass a 'CanPublishPaid' flag. For standardization, let's keep it here.
@@ -124,6 +134,9 @@ public class AddChapterHandler(
                 await cacheStore.EvictByTagAsync(CacheTags.Book(request.BookId), ct);
                 await cacheStore.EvictByTagAsync(CacheTags.Chapters(request.BookId), ct);
                 await cacheStore.EvictByTagAsync(CacheTags.AllBooks, ct);
+                
+                // Redis Content Cache'i de temizle (Eğer eski bir slug çakışması varsa veya Order değişmişse)
+                await redisCache.RemoveChapterAsync(chapter.Slug);
                 
                 await transaction.CommitAsync(ct);
                 return Result<AddChapterResponse>.Success(new AddChapterResponse(chapter.Id, chapter.Slug, "Bölüm satır bazlı olarak başarıyla yayınlandı."));

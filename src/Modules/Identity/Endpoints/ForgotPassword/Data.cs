@@ -3,6 +3,7 @@ namespace Epiknovel.Modules.Identity.Endpoints.ForgotPassword;
 public class Request
 {
     public string Email { get; set; } = string.Empty;
+    public string BaseUrl { get; set; } = string.Empty;
 }
 
 public class Response

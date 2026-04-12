@@ -61,21 +61,28 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     },
   });
 
+  const contentType = response.headers.get("content-type");
+  const isJson = contentType?.includes("application/json");
   const text = await response.text();
-  let payload: ApiResult<T> | null = null;
 
+  // Eğer yanıt JSON DEĞİLSE ve başarılıysa, ham veriyi döndürelim
+  if (!isJson && response.ok) {
+    return text as T;
+  }
+
+  let payload: ApiResult<T> | null = null;
   if (text) {
     try {
       payload = JSON.parse(text) as ApiResult<T>;
     } catch {
-      throw new ApiError("API yaniti gecersiz JSON dondu.", response.status);
+      throw new ApiError("API yanıtı geçersiz JSON döndü.", response.status);
     }
   }
 
-  const result = payload?.isSuccess ?? payload?.IsSuccess;
-  const msg = payload?.message ?? payload?.Message;
-  const errs = payload?.errors ?? payload?.Errors;
-  const resData = payload?.data ?? payload?.Data;
+  const result = (payload?.isSuccess !== undefined ? payload.isSuccess : payload?.IsSuccess) ?? false;
+  const msg = (payload?.message !== undefined ? payload.message : payload?.Message) ?? "";
+  const errs = payload?.errors !== undefined ? payload.errors : payload?.Errors;
+  const resData = payload?.data !== undefined ? payload.data : payload?.Data;
 
   let formattedErrs: string[] = [];
   if (Array.isArray(errs)) {

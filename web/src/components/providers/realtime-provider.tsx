@@ -46,7 +46,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
 
   // Real-time Settings Hub Bağlantısı
   useEffect(() => {
-    return connectHub("/hubs/settings", {
+    const hub = connectHub("/hubs/settings", {
       onInvocation: (msg) => {
         if (msg.target === "SettingUpdated") {
             const key = msg.args[0] as string;
@@ -60,6 +60,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         }
       }
     });
+
+    return () => hub.dispose();
   }, []);
 
   return (

@@ -6,6 +6,8 @@ using Epiknovel.Modules.Wallet.Services;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
 
+using Epiknovel.Shared.Core.Interfaces.Management;
+
 namespace Epiknovel.Modules.Wallet.Endpoints.Orders.Initialize;
 
 public record Request
@@ -19,7 +21,12 @@ public record Response
     public string Token { get; init; } = string.Empty;
 }
 
-public class Endpoint(WalletDbContext dbContext, IIyzicoService iyzicoService) : Endpoint<Request, Result<Response>>
+public class Endpoint(
+    WalletDbContext dbContext, 
+    IIyzicoService iyzicoService, 
+    Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider settings,
+    Epiknovel.Shared.Core.Interfaces.IUserAccountProvider userAccountProvider,
+    Epiknovel.Shared.Core.Interfaces.IUserProvider userProvider) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -39,23 +46,42 @@ public class Endpoint(WalletDbContext dbContext, IIyzicoService iyzicoService) :
             return;
         }
 
+        // 🚀 GLOBAL SETTING CHECK (WALLET ENABLED?)
+        var walletEnabled = await settings.GetSettingValueAsync<string>("CONTENT_EnableWallet", ct);
+        if (walletEnabled == "false" && !User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Cüzdan ve satın alım işlemleri geçici olarak kapalıdır."), 403, ct);
+            return;
+        }
+
         var package = await dbContext.CoinPackages
             .FirstOrDefaultAsync(p => p.Id == req.CoinPackageId && p.IsActive, ct);
 
         if (package == null)
         {
-            await Send.ResponseAsync(Result<Response>.Failure("Paket bulunamadı."), 404, ct);
+            await Send.ResponseAsync(Result<Response>.Failure("Seçilen paket aktif değil veya bulunamadı."), 404, ct);
             return;
         }
 
-        var buyerEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? "test@test.com";
+        // 🔍 Gerçek kullanıcı bilgilerini al (Iyzico için zorunlu)
+        var (userEmail, displayName) = await userAccountProvider.GetUserBasicInfoAsync(userId, ct);
+        var buyerEmail = userEmail ?? User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value ?? "guest@epiknovel.com";
+        var buyerName = displayName ?? "Epiknovel";
+
+        // 🏠 Fatura adresi kontrolü
+        var billingAddress = await userProvider.GetBillingAddressAsync(userId, ct);
+        if (billingAddress == null)
+        {
+            await Send.ResponseAsync(Result<Response>.Failure("Ödeme yapabilmek için lütfen profilinizden fatura bilgilerinizi doldurun."), 400, ct);
+            return;
+        }
 
         var order = new CoinPurchaseOrder
         {
             UserId = userId,
             CoinPackageId = package.Id,
             PricePaid = package.Price,
-            CoinAmount = package.Amount + package.BonusAmount, // Toplam coin
+            CoinAmount = package.Amount + package.BonusAmount, 
             Status = OrderStatus.Pending,
             IyzicoConversationId = Guid.NewGuid().ToString(),
             BuyerEmail = buyerEmail
@@ -64,35 +90,41 @@ public class Endpoint(WalletDbContext dbContext, IIyzicoService iyzicoService) :
         dbContext.CoinPurchaseOrders.Add(order);
         await dbContext.SaveChangesAsync(ct);
 
-        // Iyzico Formunu Başlat
-        // TODO: Gerçekte Callback URL bu api'nin callback ucu olacak (Proxy/Public URL gerekebilir)
-        var callbackUrl = "https://your-api.com/api/wallet/orders/callback";
+        // 🌐 DINAMIK CALLBACK URL: Proxy/Frontend üzerinden gelen Host bilgisini kullan
+        var proto = HttpContext.Request.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? HttpContext.Request.Scheme;
+        var host = HttpContext.Request.Headers["X-Forwarded-Host"].FirstOrDefault() ?? HttpContext.Request.Host.Value;
         
-        // Mock Buyer (Sandbox için zorunlu ama kısıtlı bilgi yeterli)
-
+        // Önemli: Iyzico callback'i bizim API ucumuz olan /api/wallet/orders/callback noktasına gelmeli
+        var callbackUrl = $"{proto}://{host}/api/wallet/orders/callback";
+        
         var iyzicoResponse = await iyzicoService.InitializeCheckoutFormAsync(
             order.IyzicoConversationId,
             order.PricePaid,
             order.Id.ToString(),
             callbackUrl,
             userId.ToString(),
-            "User", // Mock name
-            "Name", // Mock surname
+            billingAddress.FullName, // Gerçek isim
+            "User",    
             buyerEmail,
-            "11111111111", // Mock ID
-            "+905555555555", // Mock Phone
-            "Istanbul", // Address
-            "Istanbul",
-            "Turkey",
+            billingAddress.IdentityNumber ?? "11111111111", 
+            billingAddress.PhoneNumber, 
+            billingAddress.AddressLine, 
+            billingAddress.City, 
+            billingAddress.Country,
             HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1",
             ct
         );
 
         if (iyzicoResponse.Status != "success")
         {
-            await Send.ResponseAsync(Result<Response>.Failure($"Iyzico Hatası: {iyzicoResponse.ErrorMessage}"), 400, ct);
+            await Send.ResponseAsync(Result<Response>.Failure($"Ödeme servisi hatası: {iyzicoResponse.ErrorMessage}"), 400, ct);
             return;
         }
+
+        // 🛡️ DİKKAT: Webhook'tan (veya sayfa içi yönlendirmeden) önce token'ın 
+        // veritabanında kesin olarak commit edildiğinden emin ol (Out-of-Order protection)
+        order.IyzicoToken = iyzicoResponse.Token;
+        await dbContext.SaveChangesAsync(ct);
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

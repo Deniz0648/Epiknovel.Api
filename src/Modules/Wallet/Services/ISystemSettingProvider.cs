@@ -4,18 +4,32 @@ public interface ISystemSettingProvider
 {
     Task<decimal> GetAuthorSharePercentageAsync(CancellationToken ct = default);
     Task<decimal> GetCoinToCurrencyRateAsync(CancellationToken ct = default);
+    Task<bool> IsWalletEnabledAsync(CancellationToken ct = default);
+    Task<bool> IsPurchasingEnabledAsync(CancellationToken ct = default);
 }
 
-// TODO: Gerçekte Management modülünden veya Redis'ten okunacak!
-public class MockSystemSettingProvider : ISystemSettingProvider
+public class WalletSystemSettingProvider(
+    Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider globalSettings) : ISystemSettingProvider
 {
-    public Task<decimal> GetAuthorSharePercentageAsync(CancellationToken ct = default)
+    public async Task<decimal> GetAuthorSharePercentageAsync(CancellationToken ct = default)
     {
-        return Task.FromResult(0.50m); // %50 yazar payı
+        var value = await globalSettings.GetSettingValueAsync<string>("ECONOMY_AuthorSharePercentage", ct);
+        return decimal.TryParse(value, out var result) ? result / 100m : 0.50m;
     }
 
-    public Task<decimal> GetCoinToCurrencyRateAsync(CancellationToken ct = default)
+    public async Task<decimal> GetCoinToCurrencyRateAsync(CancellationToken ct = default)
     {
-        return Task.FromResult(0.15m); // 1 Coin = 0.15 TL
+        var value = await globalSettings.GetSettingValueAsync<string>("ECONOMY_CoinToCurrencyRate", ct);
+        return decimal.TryParse(value, out var result) ? result : 0.15m;
+    }
+
+    public async Task<bool> IsWalletEnabledAsync(CancellationToken ct = default)
+    {
+        return await globalSettings.GetSettingValueAsync<bool>("CONTENT_EnableWallet", ct);
+    }
+
+    public async Task<bool> IsPurchasingEnabledAsync(CancellationToken ct = default)
+    {
+        return await globalSettings.GetSettingValueAsync<bool>("Economy_EnablePurchasing", ct);
     }
 }

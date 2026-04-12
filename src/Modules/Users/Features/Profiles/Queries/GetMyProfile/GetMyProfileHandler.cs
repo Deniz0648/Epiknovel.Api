@@ -14,7 +14,8 @@ public class GetMyProfileHandler(
     IFileService fileService,
     IUserAccountProvider userAccountProvider,
     IUserRoleProvider userRoleProvider,
-    IPermissionService permissionService) : IRequestHandler<GetMyProfileQuery, Result<MyProfileResponse>>
+    IPermissionService permissionService,
+    Epiknovel.Shared.Core.Interfaces.Wallet.IWalletProvider walletProvider) : IRequestHandler<GetMyProfileQuery, Result<MyProfileResponse>>
 {
     public async Task<Result<MyProfileResponse>> Handle(GetMyProfileQuery request, CancellationToken ct)
     {
@@ -60,6 +61,8 @@ public class GetMyProfileHandler(
         
         var permissions = await permissionService.GetSnapshotAsync(principal, ct);
 
+        var (walletBalance, _) = await walletProvider.GetWalletSummaryAsync(request.UserId, 0, ct);
+
         var response = new MyProfileResponse
         {
             UserId = profile.UserId,
@@ -71,9 +74,25 @@ public class GetMyProfileHandler(
             EmailConfirmed = await userAccountProvider.IsEmailConfirmedAsync(profile.UserId, ct),
             IsAuthor = permissions.CreateBook,
             Permissions = permissions,
+            TokenBalance = walletBalance,
             AvatarUrl = string.IsNullOrEmpty(profile.AvatarUrl) 
                 ? null 
-                : fileService.GetFileUrl(profile.AvatarUrl, "profiles")
+                : fileService.GetFileUrl(profile.AvatarUrl, "profiles"),
+            BillingAddress = await dbContext.UserAddresses
+                .Where(x => x.UserId == profile.UserId && x.Type == AddressType.Billing)
+                .Select(x => new AddressDto
+                {
+                    FullName = x.FullName,
+                    Country = x.Country,
+                    City = x.City,
+                    District = x.District,
+                    AddressLine = x.AddressLine,
+                    ZipCode = x.ZipCode,
+                    PhoneNumber = x.PhoneNumber,
+                    TaxNumber = x.TaxNumber,
+                    TaxOffice = x.TaxOffice,
+                    IdentityNumber = x.IdentityNumber
+                }).FirstOrDefaultAsync(ct)
         };
 
         return Result<MyProfileResponse>.Success(response);

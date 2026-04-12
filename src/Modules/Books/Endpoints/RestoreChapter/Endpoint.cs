@@ -5,6 +5,7 @@ using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
 using Epiknovel.Shared.Core.Attributes;
 using Epiknovel.Shared.Core.Constants;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace Epiknovel.Modules.Books.Endpoints.RestoreChapter;
 
@@ -15,7 +16,10 @@ public record Request
 }
 
 [AuditLog("Bölüm Çöp Kutusundan Geri Yüklendi")]
-public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<string>>
+public class Endpoint(
+    BooksDbContext dbContext, 
+    IOutputCacheStore cacheStore,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService chapterCache) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -60,6 +64,11 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<strin
         chapter.UndoDelete();
 
         await dbContext.SaveChangesAsync(ct);
+        
+        // Cache Invalidation
+        await cacheStore.EvictByTagAsync("ChapterCache", ct);
+        await chapterCache.RemoveChapterAsync(chapter.Slug);
+
         await Send.ResponseAsync(Result<string>.Success("Bölüm başarıyla geri yüklendi."), 200, ct);
     }
 }

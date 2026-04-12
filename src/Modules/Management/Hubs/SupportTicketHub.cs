@@ -13,28 +13,14 @@ public class SupportTicketHub(
     ManagementDbContext dbContext,
     IPermissionService permissionService) : Hub
 {
-    public async Task JoinTicketGroup(Guid ticketId)
+    public async Task JoinTicket(Guid ticketId)
     {
-        var userIdStr = Context.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(userIdStr, out var userId)) return;
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"SupportTicket_{ticketId}");
+    }
 
-        // Check ownership or admin status
-        var ticket = await dbContext.SupportTickets
-            .AsNoTracking()
-            .FirstOrDefaultAsync(t => t.Id == ticketId);
-
-        if (ticket == null) return;
-
-        var isAdmin = Context.User != null &&
-            await permissionService.HasPermissionAsync(Context.User, PermissionNames.AdminAccess);
-        
-        if (ticket.UserId != userId && !isAdmin)
-        {
-            // Unauthorized access to this ticket
-            return;
-        }
-
-        await Groups.AddToGroupAsync(Context.ConnectionId, ticketId.ToString());
+    public async Task LeaveTicket(Guid ticketId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"SupportTicket_{ticketId}");
     }
 
     public async Task SendMessage(Guid ticketId, string content)

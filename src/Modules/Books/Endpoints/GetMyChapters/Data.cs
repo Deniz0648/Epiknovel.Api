@@ -26,4 +26,5 @@ public class Response
     public DateTime CreatedAt { get; set; }
     public DateTime? PublishedAt { get; set; }
     public DateTime? ScheduledPublishDate { get; set; }
+    public string AuthorName { get; set; } = string.Empty;
 }

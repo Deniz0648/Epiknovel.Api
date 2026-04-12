@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CheckCheck, LayoutDashboard, Library, LifeBuoy, LogIn, LogOut, Menu, Search, Shield, UserRound, X } from "lucide-react";
+import { Bell, CheckCheck, Coins, LayoutDashboard, Library, LifeBuoy, LogIn, LogOut, Menu, Search, Shield, UserRound, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -308,6 +308,16 @@ export function HeaderIsland() {
           </button>
 
           <ThemeSelector />
+          {profile && (
+            <Link 
+              href="/wallet" 
+              className="hidden xl:flex items-center gap-1.5 rounded-2xl border border-warning/24 bg-warning/8 px-3.5 py-2 text-xs font-black text-warning transition-all hover:bg-warning/14 no-underline"
+            >
+              <Coins className="h-4 w-4" />
+              <span>{profile.tokenBalance.toLocaleString()}</span>
+              <span className="text-[10px] opacity-40">C</span>
+            </Link>
+          )}
           {profile ? (
             <div className="relative">
               <button
@@ -341,6 +351,24 @@ export function HeaderIsland() {
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-base-100/40 text-sm font-black text-primary">
                       {profile.displayName.charAt(0).toUpperCase()}
                     </span>
+                  </div>
+                  
+                  {/* Mobile Balance - Visible in dropdown for small screens */}
+                  <div className="xl:hidden mt-2">
+                    <Link
+                      href="/wallet"
+                      onClick={closeProfileMenu}
+                      className="flex items-center justify-between rounded-2xl border border-warning/20 bg-warning/8 px-4 py-3 text-sm font-black text-warning no-underline transition hover:bg-warning/12"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-4 w-4" />
+                        <span>Bakiye</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span>{profile.tokenBalance.toLocaleString()}</span>
+                        <span className="text-[10px] opacity-40">C</span>
+                      </div>
+                    </Link>
                   </div>
                   {canAccessAdmin ? (
                     <Link

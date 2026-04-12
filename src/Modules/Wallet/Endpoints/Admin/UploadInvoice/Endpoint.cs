@@ -12,19 +12,17 @@ namespace Epiknovel.Modules.Wallet.Endpoints.Admin.UploadInvoice;
 public record Request
 {
     public Guid OrderId { get; init; }
-    public IFormFile InvoiceFile { get; init; } = null!;
+    public Guid InvoiceDocumentId { get; init; }
 }
 
 public class Endpoint(
     WalletDbContext dbContext, 
-    IFileService fileService, 
     INotificationService notificationService) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
         Post("/wallet/admin/orders/{OrderId}/invoice");
         Policies(PolicyNames.AdminAccess);
-        AllowFileUploads();
         Summary(s => {
             s.Summary = "Fatura yükle ve mail at (Admin).";
             s.Description = "Adminin bir siparişe fatura yüklemesini ve sonucunda ilgili kullanıcıya e-posta dahil bildirim gönderilmesini sağlar.";
@@ -48,11 +46,11 @@ public class Endpoint(
             return;
         }
 
-        // Faturayı Güvenli Depolamaya Kaydet
+        // Faturayı Kaydet
         try 
         {
-            var fileName = await fileService.SaveSecureDocumentAsync(req.InvoiceFile, "invoices");
-            order.InvoiceFileUrl = fileName;
+            order.InvoiceDocumentId = req.InvoiceDocumentId;
+            order.InvoiceFileUrl = $"/api/compliance/documents/{req.InvoiceDocumentId}/download"; // Legacy support
 
             await dbContext.SaveChangesAsync(ct);
 

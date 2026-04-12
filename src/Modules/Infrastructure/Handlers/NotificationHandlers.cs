@@ -12,14 +12,17 @@ public class NotificationHandlers(
     INotificationService notificationService,
     IAuthStateService authStateService,
     IHubContext<GlobalNotificationHub> hubContext,
-    ILibraryProvider libraryProvider) : // 📚 Bildirim hedefi için eklendi
+    ILibraryProvider libraryProvider,
+    Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService emailTemplateService,
+    IUserAccountProvider userAccountProvider) : 
     INotificationHandler<AuthorApplicationReviewedEvent>,
     INotificationHandler<PaidAuthorApplicationReviewedEvent>,
     INotificationHandler<InvoiceUploadedEvent>,
     INotificationHandler<OrderPaidEvent>,
     INotificationHandler<UserRoleUpdatedEvent>,
     INotificationHandler<CommentCreatedEvent>,
-    INotificationHandler<ChapterPublishedEvent> // 📚 Yeni bildirim hattı
+    INotificationHandler<ChapterPublishedEvent>,
+    INotificationHandler<SupportResponseReceivedEvent>
 {
     // Polly Resiliency Policy: 3 kez dene, her seferinde bekleme süresini artır (Exponential Backoff)
     private readonly IAsyncPolicy _retryPolicy = Policy
@@ -33,6 +36,33 @@ public class NotificationHandlers(
             // SignalR üzerinden kullanıcıya anlık bildirim fırlat
             await hubContext.Clients.User(userId.ToString()).SendAsync(method, data, ct);
         });
+    }
+
+    public async Task Handle(SupportResponseReceivedEvent notification, CancellationToken ct)
+    {
+        var title = "Destek Talebiniz Yanıtlandı";
+        var message = $"`{notification.TicketTitle}` konulu talebinize yeni bir yanıt geldi.";
+        
+        await notificationService.SendSystemNotificationAsync(notification.UserId, title, message, notification.TicketLink, ct);
+        await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title, message, url = notification.TicketLink }, ct);
+
+        // 🚀 AKILLI KONTROL: Kullanıcı o an online değilse mail gönder
+        // Not: Gerçek bir 'Presence' servisi yoksa her zaman gönderilir. 
+        // Şimdilik SignalR üzerinden 'User' grubuna mesaj gidip gitmediğini varsayıyoruz.
+        var (email, displayName) = await userAccountProvider.GetUserBasicInfoAsync(notification.UserId, ct);
+        if (!string.IsNullOrEmpty(email))
+        {
+            var templateVariables = new Dictionary<string, string>
+            {
+                { "{USER_NAME}", displayName ?? "Üye" },
+                { "{TICKET_TITLE}", notification.TicketTitle },
+                { "{RESPONSE_MESSAGE}", notification.ResponseMessage },
+                { "{TICKET_LINK}", notification.TicketLink }
+            };
+
+            var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("SupportResponse", templateVariables, ct);
+            await notificationService.SendEmailAsync(email, subject, body, ct);
+        }
     }
 
     public async Task Handle(CommentCreatedEvent notification, CancellationToken ct)
@@ -64,9 +94,26 @@ public class NotificationHandlers(
         var message = notification.IsApproved 
             ? "Tebrikler! Artık Epiknovel üzerinden kitap oluşturabilirsiniz." 
             : $"Maalesef başvurunuz reddedildi. Nedeni: {notification.Note}";
+        
         await notificationService.SendSystemNotificationAsync(notification.UserId, title, message, "/author/dashboard", ct);
         await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title, message }, ct);
         
+        // 📧 EMAIL SENDING: Yeni şifreleme ve şablon sistemi ile mail gönderimi
+        var (email, displayName) = await userAccountProvider.GetUserBasicInfoAsync(notification.UserId, ct);
+        if (!string.IsNullOrEmpty(email))
+        {
+            var templateVariables = new Dictionary<string, string>
+            {
+                { "{USER_NAME}", displayName ?? "Üye" },
+                { "{AUTHOR_NAME}", displayName ?? "Yazar" },
+                { "{SETTINGS_LINK}", "/author/dashboard" }, // 🚀 TALEP: Yazar paneline yönlendirme
+                { "{RESPONSE_MESSAGE}", notification.Note ?? "Başvurunuz onaylandı." }
+            };
+
+            var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("AuthorApproval", templateVariables, ct);
+            await notificationService.SendEmailAsync(email, subject, body, ct);
+        }
+
         if (notification.IsApproved)
         {
             await authStateService.HandlePermissionsChangedAsync(notification.UserId, "Yazarlık yetkiniz aktifleştirildi.", ct);
@@ -116,9 +163,9 @@ public class NotificationHandlers(
             notification.UserId, 
             "Faturanız Oluşturuldu", 
             "Ödemeniz için faturanız hazır. Sipariş geçmişinizden inceleyebilirsiniz.", 
-            $"/wallet/orders/{notification.OrderId}/invoice", 
+            $"/profile/orders/{notification.OrderId}", 
             ct);
-        await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title = "Faturanız Hazır", message = "Yeni faturanız yüklendi." }, ct);
+        await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title = "Faturanız Hazır", message = "Yeni faturanız yüklendi.", url = $"/profile/orders/{notification.OrderId}" }, ct);
     }
 
     public async Task Handle(OrderPaidEvent notification, CancellationToken ct)
@@ -127,8 +174,9 @@ public class NotificationHandlers(
             notification.UserId, 
             "Ödeme Başarılı", 
             $"{notification.CoinAmount} Adet Coin hesabınıza yüklendi. Keyifli okumalar!", 
-            "/wallet/history", 
+            $"/profile/orders/{notification.OrderId}", 
             ct);
+        await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title = "Ödeme Başarılı", message = $"{notification.CoinAmount} Adet Coin hesabınıza yüklendi.", url = $"/profile/orders/{notification.OrderId}" }, ct);
 
         await PushRealTimeAsync(notification.UserId, "WalletUpdated", new { amount = notification.Amount, coinAmount = notification.CoinAmount }, ct);
     }

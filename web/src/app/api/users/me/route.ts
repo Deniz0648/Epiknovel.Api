@@ -3,6 +3,19 @@ import { isApiErrorLike } from "@/lib/api";
 import { toMediaProxyUrl } from "@/lib/media";
 import { applyRefreshedTokens, clearAuthCookies, performAuthenticatedIdentityRequest } from "@/lib/server-auth";
 
+export type AddressDto = {
+  fullName: string;
+  country: string;
+  city: string;
+  district: string;
+  addressLine: string;
+  zipCode: string;
+  phoneNumber: string;
+  taxNumber?: string | null;
+  taxOffice?: string | null;
+  identityNumber?: string | null;
+};
+
 type MyProfileResponse = {
   userId: string;
   displayName: string;
@@ -23,6 +36,7 @@ type MyProfileResponse = {
     adminAccess: boolean;
     superAdminAccess: boolean;
   };
+  billingAddress?: AddressDto | null;
 };
 
 type UpdateProfilePayload = {

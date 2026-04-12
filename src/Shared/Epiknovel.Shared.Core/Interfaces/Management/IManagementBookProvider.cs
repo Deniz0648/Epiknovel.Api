@@ -2,7 +2,7 @@ using Epiknovel.Shared.Core.Models;
 
 namespace Epiknovel.Shared.Core.Interfaces.Management;
 
-public record ManagementBookDto(Guid Id, string Title, string Slug, string AuthorName, string Type, bool IsHidden, bool IsEditorChoice, long ViewCount);
+public record ManagementBookDto(Guid Id, string Title, string Slug, string AuthorName, string Type, bool IsHidden, bool IsEditorChoice, long ViewCount, string? CoverImageUrl, DateTime CreatedAt);
 public record ManagementSimpleDto(Guid Id, string Name, string Slug, string? Description = null, string? IconUrl = null);
 
 public interface IManagementBookProvider

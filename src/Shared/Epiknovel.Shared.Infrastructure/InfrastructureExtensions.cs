@@ -256,7 +256,10 @@ public static class InfrastructureExtensions
         services.AddScoped<IFileService, LocalFileService>();
         services.AddScoped<ISlugService, SlugService>();
         services.AddScoped<IEmailService, ConsoleEmailService>();
+        services.AddSingleton<IDiscordAlertService, DiscordAlertService>();
+        services.AddHttpClient();
         services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IEncryptionService, AesEncryptionService>();
         services.AddScoped<ISystemSettingsBroadcastService, SystemSettingsBroadcastService>();
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 
@@ -280,6 +283,7 @@ public static class InfrastructureExtensions
         });
 
         // 5. FastEndpoints & Redis & MediatR & OpenAPI
+        services.AddControllers(); // 🎮 Controller desteği (Legacy/3rd party callbackler için)
         services.AddFastEndpoints();
         services.SwaggerDocument(o => {
             o.DocumentSettings = s => {
@@ -465,6 +469,7 @@ public static class InfrastructureExtensions
 
         app.UseEndpoints(endpoints => 
         {
+            endpoints.MapControllers(); // 🎮 Controller'ları haritala
             endpoints.MapHub<Hubs.GlobalNotificationHub>("/hubs/notifications");
             endpoints.MapHub<Hubs.SystemSettingsHub>("/hubs/settings");
         });

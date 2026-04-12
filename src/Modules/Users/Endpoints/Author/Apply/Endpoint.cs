@@ -3,6 +3,8 @@ using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
 
+using Epiknovel.Shared.Core.Interfaces.Management;
+
 namespace Epiknovel.Modules.Users.Endpoints.Author.Apply;
 
 public record Request
@@ -12,7 +14,7 @@ public record Request
     public string PlannedWork { get; init; } = string.Empty;
 }
 
-public class Endpoint(IAuthorApplicationService authorApplicationService) : Endpoint<Request, Result<string>>
+public class Endpoint(IAuthorApplicationService authorApplicationService, ISystemSettingProvider settings) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -33,6 +35,17 @@ public class Endpoint(IAuthorApplicationService authorApplicationService) : Endp
         {
             await Send.ResponseAsync(Result<string>.Failure("Unauthorized"), 401, ct);
             return;
+        }
+
+        // 🚀 GLOBAL SETTING CHECK
+        if (!User.IsInRole("Admin") && !User.IsInRole("SuperAdmin"))
+        {
+            var allowApplications = await settings.GetSettingValueAsync<string>("CONTENT_AllowAuthorApplications", ct);
+            if (allowApplications == "false")
+            {
+                await Send.ResponseAsync(Result<string>.Failure("Şu anda yazarlık başvuruları geçici olarak kapalıdır."), 403, ct);
+                return;
+            }
         }
 
         var result = await authorApplicationService.SubmitAuthorApplicationAsync(

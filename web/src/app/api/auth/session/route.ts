@@ -9,10 +9,11 @@ export async function GET() {
     if (!session) {
       const response = NextResponse.json(
         {
-          isSuccess: false,
+          isSuccess: true,
           message: "Oturum bulunamadi.",
+          data: null,
         },
-        { status: 401 },
+        { status: 200 },
       );
       clearAuthCookies(response);
       return response;

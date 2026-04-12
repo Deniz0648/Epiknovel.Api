@@ -11,7 +11,7 @@ public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<MyProf
     public override void Configure()
     {
         Get("/auth/session");
-        Policies("BOLA"); // Require session
+        AllowAnonymous();
         Summary(s => {
             s.Summary = "Mevcut oturumun profil bilgilerini getirir.";
             s.Description = "Giriş yapmış kullanıcının profil detaylarını ve yetkilerini tek sorguda çeker. MediatR standardı uygulanmıştır.";
@@ -23,7 +23,7 @@ public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<MyProf
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(userIdString, out var userId))
         {
-            await Send.UnauthorizedAsync(ct);
+            await Send.ResponseAsync(new Result<MyProfileResponse> { IsSuccess = true, Data = null }, 200, ct);
             return;
         }
 
@@ -31,7 +31,7 @@ public class Endpoint(IMediator mediator) : EndpointWithoutRequest<Result<MyProf
         
         if (!result.IsSuccess)
         {
-            await Send.ResponseAsync(result, 401, ct);
+            await Send.ResponseAsync(new Result<MyProfileResponse> { IsSuccess = true, Data = null }, 200, ct);
             return;
         }
 

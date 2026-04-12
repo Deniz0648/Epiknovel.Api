@@ -4,6 +4,7 @@ using Epiknovel.Modules.Wallet.Data;
 using Epiknovel.Modules.Wallet.Services;
 using Epiknovel.Shared.Core.Interfaces.Wallet;
 using Epiknovel.Shared.Infrastructure.Data.Interceptors;
+using Epiknovel.Modules.Wallet.Background;
 
 namespace Epiknovel.Modules.Wallet;
 
@@ -20,7 +21,10 @@ public static class WalletModuleExtensions
 
         services.AddScoped<IWalletProvider, WalletProvider>();
         services.AddScoped<IIyzicoService, IyzicoService>();
-        services.AddScoped<ISystemSettingProvider, MockSystemSettingProvider>();
+        services.AddScoped<ISystemSettingProvider, WalletSystemSettingProvider>();
+        services.AddScoped<ICampaignService, CampaignService>();
+        services.AddHostedService<PopularityCalculatorWorker>();
+        services.AddHostedService<PaymentReconciliationWorker>();
 
         return services;
     }

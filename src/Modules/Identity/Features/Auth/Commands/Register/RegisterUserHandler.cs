@@ -12,7 +12,8 @@ namespace Epiknovel.Modules.Identity.Features.Auth.Commands.Register;
 public class RegisterUserHandler(
     UserManager<User> userManager,
     IMediator mediator,
-    IEmailService emailService) : IRequestHandler<RegisterUserCommand, Result<RegisterUserResponse>>
+    IEmailService emailService,
+    Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService emailTemplateService) : IRequestHandler<RegisterUserCommand, Result<RegisterUserResponse>>
 {
     public async Task<Result<RegisterUserResponse>> Handle(RegisterUserCommand request, CancellationToken ct)
     {
@@ -39,12 +40,16 @@ public class RegisterUserHandler(
         var encodedToken = Uri.EscapeDataString(token);
         var confirmationLink = $"{request.BaseUrl}/confirm-email?userId={user.Id}&token={encodedToken}";
 
-        // 2. Send Email
-        await emailService.SendEmailAsync(
-            user.Email!, 
-            "Epiknovel - Hesabınızı Onaylayın", 
-            $"Kaydınızı tamamlamak için lütfen şu linke tıklayın: {confirmationLink}", 
-            ct);
+        // 📧 CENTRAL TEMPLATE: EmailConfirmation
+        var variables = new Dictionary<string, string>
+        {
+            { "{USER_NAME}", user.DisplayName ?? "Üye" },
+            { "{CONFIRM_LINK}", confirmationLink },
+            { "{CONFIRM_URL}", confirmationLink }
+        };
+
+        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("EmailConfirmation", variables, ct);
+        await emailService.SendEmailAsync(user.Email!, subject, body, ct);
 
         // 3. Add Default Role
         await userManager.AddToRoleAsync(user, RoleNames.User);

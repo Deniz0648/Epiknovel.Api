@@ -50,6 +50,7 @@ export default function ReaderPage() {
     paragraphId: null,
     chapterId: null
   });
+  const skipNextUrlUpdate = useRef(false);
   const lastSaveTime = useRef(0);
 
   const [settings, setSettings] = useState<ReaderSettings>({
@@ -106,10 +107,17 @@ export default function ReaderPage() {
 
   useEffect(() => {
     async function loadFirstChapter() {
-      if (isAuthLoading) return;
+      if (isAuthLoading || !params?.chapterSlug) return;
+      
+      // Eğer bu slug zaten listemizde varsa (infinite scroll ile geldiyse), 
+      // useEffect tetiklendiğinde tekrar yükleme yapıp listeyi sıfırlama.
+      if (chapters.some(c => c.slug === params.chapterSlug)) {
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const data = await apiRequest<ChapterDetail>(`/books/chapters/${params?.chapterSlug}`);
+        const data = await apiRequest<ChapterDetail>(`/books/chapters/${params.chapterSlug}`);
         setChapters([data]);
 
         setTimeout(() => {
@@ -118,17 +126,27 @@ export default function ReaderPage() {
             const el = document.getElementById(targetPId);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           } else {
-            const savedProgress = localStorage.getItem(`read-progress-${params?.chapterSlug}`);
+            const savedProgress = localStorage.getItem(`read-progress-${params.chapterSlug}`);
             if (savedProgress) {
               const y = parseFloat(savedProgress) * document.documentElement.scrollHeight;
               window.scrollTo({ top: y, behavior: 'instant' });
             }
           }
         }, 500);
-      } catch (err) { console.error(err); } finally { setIsLoading(false); }
+      } catch (err) { 
+        console.error(err); 
+      } finally { 
+        setIsLoading(false); 
+      }
     }
-    if (params?.chapterSlug) loadFirstChapter();
-  }, [params?.chapterSlug, isAuthLoading, searchParams, profile]);
+
+    if (skipNextUrlUpdate.current) {
+      skipNextUrlUpdate.current = false;
+      return;
+    }
+
+    loadFirstChapter();
+  }, [params?.chapterSlug, isAuthLoading, searchParams]);
 
 
 
@@ -143,11 +161,18 @@ export default function ReaderPage() {
       loadingRef.current = true;
       setIsNextLoading(true);
       const data = await apiRequest<ChapterDetail>(`/books/chapters/${lastChapter.nextChapterSlug}`);
+      
+      // URL'i güncelliyoruz ama bir sonraki useEffect tetiklenmesini engelliyoruz (döngü oluşmaması için)
+      skipNextUrlUpdate.current = true;
+      window.history.replaceState(null, "", `/read/${data.bookSlug}/${data.slug}`);
+      
       setChapters(prev => [...prev, data]);
-      window.history.replaceState(null, "", `/read/${data.bookSlug}/${lastChapter.nextChapterSlug}`);
+      
       // Bölüm değişince anlık kaydet
       void saveProgress(true);
-    } catch (err) { console.error(err); } finally {
+    } catch (err) { 
+      console.error(err); 
+    } finally {
       loadingRef.current = false;
       setIsNextLoading(false);
     }

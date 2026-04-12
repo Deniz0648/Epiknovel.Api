@@ -8,15 +8,29 @@ using Microsoft.EntityFrameworkCore;
 using Epiknovel.Shared.Core.Common;
 using Epiknovel.Shared.Core.Events;
 
+using Epiknovel.Shared.Core.Interfaces.Management;
+using Epiknovel.Shared.Core.Constants;
+
 namespace Epiknovel.Modules.Books.Features.Books.Commands.CreateBook;
 
 public class CreateBookHandler(
     BooksDbContext dbContext,
     ISlugService slugService,
-    IUserProvider userProvider) : IRequestHandler<CreateBookCommand, Result<CreateBookResponse>>
+    IUserProvider userProvider,
+    ISystemSettingProvider settingProvider) : IRequestHandler<CreateBookCommand, Result<CreateBookResponse>>
 {
     public async Task<Result<CreateBookResponse>> Handle(CreateBookCommand request, CancellationToken ct)
     {
+        // 🚀 API-LEVEL GUARD: Yeni kitap oluşturma kısıtlaması
+        if (request.Type != BookType.Translation)
+        {
+            var allowNewBooks = await settingProvider.GetSettingValueAsync<bool>("CONTENT_AllowNewBooks", ct);
+            if (!allowNewBooks)
+            {
+                return Result<CreateBookResponse>.Failure("Şu anda yeni (orijinal) kitap oluşturulması sistem genelinde geçici olarak durdurulmuştur.");
+            }
+        }
+
         var profileResult = await userProvider.GetProfileAsync(request.AuthorId, null, ct);
         if (!profileResult.IsSuccess || profileResult.Data == null || !profileResult.Data.IsAuthor)
         {

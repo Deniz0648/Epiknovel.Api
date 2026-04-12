@@ -146,6 +146,9 @@ using (var scope = app.Services.CreateScope())
         
         Console.WriteLine("[DB INIT] Phase 3 - Seeding Management Templates...");
         await ManagementModuleExtensions.SeedTemplatesAsync(services);
+
+        Console.WriteLine("[DB INIT] Phase 3 - Seeding Management Settings...");
+        await ManagementModuleExtensions.SeedSettingsAsync(services);
         
         Console.WriteLine("[DB INIT] Phase 3 - SUCCESS: All initial data seeded.");
     } catch (Exception ex) {

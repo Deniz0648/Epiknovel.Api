@@ -239,12 +239,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    const unsubscribe = connectHub("/hubs/notifications", {
+    const hub = connectHub("/hubs/notifications", {
       onInvocation: handleInvocation,
       onUnauthorized: synchronizeAuthState,
     });
 
-    return unsubscribe;
+    return () => hub.dispose();
   }, [profile?.userId]);
 
   return (

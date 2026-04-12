@@ -50,6 +50,7 @@ type ChaptersApiResponse = {
     status: string;
     publishedAt?: string | null;
     viewCount: number;
+    authorName: string;
   }[];
   totalCount: number;
   pageNumber: number;
@@ -86,6 +87,7 @@ function mapChaptersFromApi(items: ChaptersApiResponse["chapters"]): (BookChapte
     dateLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "-",
     readCount: item.viewCount || 0,
     isPremium: !item.isFree,
+    authorName: item.authorName,
   }));
 }
 

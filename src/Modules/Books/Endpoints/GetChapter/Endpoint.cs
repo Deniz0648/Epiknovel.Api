@@ -135,6 +135,10 @@ public class Endpoint(
         // 4. Arka Plan İşlemleri (Hit sayacı vb.)
         ProcessBackgroundTasks(response.Id, response.BookId, currentUserId, isAuthenticated);
 
+        // 5. Dinamik Navigasyon ve İstatistik Güncelleme (Cache Dışı)
+        // Navigasyon her zaman taze olmalı (Bölüm eklendiğinde/silindiğinde cache'deki Next/Prev slug'lar eskimesin)
+        await PopulateNavigationInfoAsync(response, ct);
+
         // 🚀 ANLIK GÖRSEL İYİLEŞTİRME (Technical Decision 4)
         // SQL'den gelen değere Redis'te birikmiş ama henüz SQL'e yazılmamış (5 dk'lık buffer) hitleri ekle.
         // Böylece kullanıcı yenilediğinde sayacı artmış görür.
@@ -149,6 +153,33 @@ public class Endpoint(
         } catch { }
 
         await Send.ResponseAsync(Result<Response>.Success(response), 200, ct);
+    }
+
+    private async Task PopulateNavigationInfoAsync(Response res, CancellationToken ct)
+    {
+        // 🚀 SMART NAVIGATION (Technical Decision 1 & 5 Fix)
+        // Bu sorgular çok hızlıdır ve cache'lenmiş içerik üzerine "taze" olarak eklenir.
+        // Böylece başka bir yazar yeni bölüm eklediğinde veya bölümler reorder edildiğinde
+        // eski bölümlerin cache'ini temizlemeye gerek kalmadan yönlendirmeler güncel kalır.
+        
+        var baseNavQuery = dbContext.Chapters
+            .AsNoTracking()
+            .Where(x => x.BookId == res.BookId && x.Status == ChapterStatus.Published);
+
+        res.PreviousChapterSlug = await baseNavQuery
+            .Where(x => x.Order < res.Order)
+            .OrderByDescending(x => x.Order)
+            .Select(x => x.Slug)
+            .FirstOrDefaultAsync(ct);
+
+        res.NextChapterSlug = await baseNavQuery
+            .Where(x => x.Order > res.Order)
+            .OrderBy(x => x.Order)
+            .Select(x => x.Slug)
+            .FirstOrDefaultAsync(ct);
+
+        // Toplam bölüm sayısını da taze getir
+        res.TotalChapters = await baseNavQuery.CountAsync(ct);
     }
 
     private async Task<Response?> FetchChapterFromDbAsync(string slug, CancellationToken ct)
@@ -202,7 +233,7 @@ public class Endpoint(
             BookTitle = chapter.BookTitle,
             BookSlug = chapter.BookSlug,
             BookId = chapter.BookId,
-            TotalChapters = chapter.TotalChapters,
+            // TotalChapters, Next/Prev Slug alanları cache'lenmez, dinamik doldurulur
             PublishedAt = chapter.PublishedAt ?? DateTime.UtcNow,
             ScheduledPublishDate = chapter.ScheduledPublishDate.HasValue 
                 ? DateTime.SpecifyKind(chapter.ScheduledPublishDate.Value, DateTimeKind.Utc) 
@@ -214,23 +245,6 @@ public class Endpoint(
                 ? $"Bu bölüm çok büyük olduğu için ilk {MaxParagraphsPerResponse} satır gösteriliyor."
                 : null
         };
-
-        // Navigasyon Bilgileri
-        var baseNavQuery = dbContext.Chapters
-            .AsNoTracking()
-            .Where(x => x.BookId == chapter.BookId && x.Status == ChapterStatus.Published);
-
-        res.PreviousChapterSlug = await baseNavQuery
-            .Where(x => x.Order < chapter.Order)
-            .OrderByDescending(x => x.Order)
-            .Select(x => x.Slug)
-            .FirstOrDefaultAsync(ct);
-
-        res.NextChapterSlug = await baseNavQuery
-            .Where(x => x.Order > chapter.Order)
-            .OrderBy(x => x.Order)
-            .Select(x => x.Slug)
-            .FirstOrDefaultAsync(ct);
 
         return res;
     }

@@ -34,6 +34,7 @@ export type BookChapterItem = {
   dateLabel: string;
   readCount: number;
   isPremium: boolean;
+  authorName?: string;
 };
 
 export type BookCommentItem = {
@@ -267,6 +268,11 @@ export function BookDetailPanels({
                         Bolum {chapter.number}: {chapter.title}
                       </p>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-base-content/55">
+                        {chapter.authorName && (
+                          <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                            {chapter.authorName}
+                          </span>
+                        )}
                         <span className="inline-flex items-center gap-1">
                           <CalendarDays className="h-3.5 w-3.5" />
                           {chapter.dateLabel}

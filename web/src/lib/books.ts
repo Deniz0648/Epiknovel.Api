@@ -1,3 +1,40 @@
+import { apiRequest } from "./api";
+
+export type CategoryDto = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  displayOrder: number;
+};
+
+export type ManagementBookDto = {
+  id: string;
+  title: string;
+  authorName: string;
+  type: string;
+  isHidden: boolean;
+  viewCount: number;
+  coverImageUrl?: string;
+  createdAt: string;
+};
+
+export async function getCategories() {
+  return apiRequest<{ categories: CategoryDto[] }>("/books/categories", {
+    method: "GET"
+  });
+}
+
+export async function getAdminBooks(searchTerm?: string) {
+  const query = new URLSearchParams();
+  if (searchTerm) query.set("search", searchTerm);
+  
+  return apiRequest<{ items: ManagementBookDto[] }>(`/management/compliance/books?${query.toString()}`, {
+    method: "GET",
+    credentials: "include"
+  });
+}
+
 export function toBookSlug(title: string): string {
   return title
     .toLowerCase()

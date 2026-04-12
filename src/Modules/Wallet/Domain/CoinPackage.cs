@@ -12,5 +12,7 @@ public class CoinPackage : BaseEntity
     
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsBestValue { get; set; }
+    public bool IsPopular { get; set; }
     public int DisplayOrder { get; set; }
 }

@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Users.Domain;
 using Epiknovel.Shared.Core.Domain;
+using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Infrastructure.Data;
 
 namespace Epiknovel.Modules.Users.Data;
 
-public class UsersDbContext(DbContextOptions<UsersDbContext> options) : DbContext(options)
+public class UsersDbContext(DbContextOptions<UsersDbContext> options, IEncryptionService encryptionService) : DbContext(options)
 {
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<UserSlugHistory> UserSlugHistories => Set<UserSlugHistory>();
@@ -61,5 +63,8 @@ public class UsersDbContext(DbContextOptions<UsersDbContext> options) : DbContex
              b.ToTable("OutboxMessages");
              b.HasIndex(x => x.ProcessedAtUtc);
         });
+
+        // 🔐 Apply Encryption to marked fields
+        modelBuilder.UseEncryption(encryptionService);
     }
 }

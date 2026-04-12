@@ -173,6 +173,7 @@ export type MyChapterListItem = {
   createdAt: string;
   publishedAt?: string;
   scheduledPublishDate?: string;
+  authorName?: string;
 };
 
 export type MyChapterPagedResponse = {
@@ -193,6 +194,19 @@ export type MediaUploadResult = {
   fileName: string;
 };
 
+export type AddressDto = {
+  fullName: string;
+  country: string;
+  city: string;
+  district: string;
+  addressLine: string;
+  zipCode: string;
+  phoneNumber: string;
+  taxNumber?: string | null;
+  taxOffice?: string | null;
+  identityNumber?: string | null;
+};
+
 export type MyProfile = {
   userId: string;
   displayName: string;
@@ -203,6 +217,7 @@ export type MyProfile = {
   followingCount: number;
   emailConfirmed: boolean;
   isAuthor?: boolean;
+  tokenBalance: number;
   permissions?: {
     accessAuthorPanel: boolean;
     createBook: boolean;
@@ -213,6 +228,7 @@ export type MyProfile = {
     adminAccess: boolean;
     superAdminAccess: boolean;
   };
+  billingAddress?: AddressDto | null;
 };
 
 type PermissionFlags = Partial<NonNullable<MyProfile["permissions"]>>;
@@ -382,6 +398,14 @@ export async function updateMyAvatar(file: File) {
     method: "PUT",
     credentials: "include",
     body: formData,
+  });
+}
+
+export async function updateMyBillingAddress(request: AddressDto) {
+  return apiRequest<IdentityMessage>("/users/me/billing-address", {
+    method: "PUT",
+    credentials: "include",
+    body: JSON.stringify(request),
   });
 }
 

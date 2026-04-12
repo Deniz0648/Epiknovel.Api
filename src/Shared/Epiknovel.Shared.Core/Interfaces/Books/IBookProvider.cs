@@ -38,4 +38,17 @@ public interface IBookProvider
     /// Verilen kitabın tüm (silinmemiş) bölümlerinin ID listesini döner.
     /// </summary>
     Task<List<Guid>> GetChapterIdsByBookIdAsync(Guid bookId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bölüm ID üzerinden bağlı olduğu Kitap ID'sini döner.
+    /// </summary>
+    Task<Guid> GetBookIdByChapterIdAsync(Guid chapterId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kitap ID üzerinden bağlı olduğu kategori (Category) ID listesini döner.
+    /// </summary>
+    Task<List<Guid>> GetCategoryIdsByBookIdAsync(Guid bookId, CancellationToken ct = default);
+
+    Task<(List<Epiknovel.Shared.Core.Interfaces.Management.UserBookDto> books, int totalChapters)> GetAuthorBooksSummaryAsync(Guid authorId, CancellationToken ct = default);
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetChapterTitlesByChaptersAsync(List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto> purchases, CancellationToken ct = default);
 }

@@ -50,4 +50,16 @@ public class UserRoleProvider(UserManager<User> userManager) : IUserRoleProvider
             .Select(u => new { u.Id, u.DisplayName })
             .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? "İsimsiz", ct);
     }
+
+    public async Task<string?> GetEmailAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return user?.Email;
+    }
+
+    public async Task<(string? Email, string? DisplayName)> GetUserBasicInfoAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        return (user?.Email, user?.DisplayName);
+    }
 }

@@ -219,6 +219,9 @@ export default function ManageBookPage() {
                     <div key={chapter.id} className="glass-frame flex items-center justify-between p-4 bg-error/5 border-error/10">
                        <div className="min-w-0">
                           <p className="font-bold text-sm truncate opacity-60 italic">{chapter.title}</p>
+                          {chapter.authorName && (
+                            <p className="text-[10px] font-bold text-primary/40 mt-0.5">{chapter.authorName}</p>
+                          )}
                           <p className="text-[10px] font-bold uppercase tracking-widest text-base-content/30 mt-1">Silindi</p>
                        </div>
                        <button 

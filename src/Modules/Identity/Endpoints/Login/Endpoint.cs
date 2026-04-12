@@ -32,7 +32,8 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Response>>
 
         if (!result.IsSuccess)
         {
-            var statusCode = result.Message.Contains("kilitlenmiştir") ? 403 : 400;
+            var isBlocked = result.Message.Contains("kilitlenmiştir") || result.Message.Contains("yasaklanmıştır");
+            var statusCode = isBlocked ? 403 : 400;
             await Send.ResponseAsync(Result<Response>.Failure(result.Message), statusCode, ct);
             return;
         }

@@ -53,7 +53,13 @@ namespace Epiknovel.Modules.Wallet.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsBestValue")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPopular")
                         .HasColumnType("boolean");
 
                     b.Property<string>("ModerationNote")
@@ -93,6 +99,9 @@ namespace Epiknovel.Modules.Wallet.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("InvoiceDocumentId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("InvoiceFileUrl")
                         .HasColumnType("text");
 
@@ -101,6 +110,10 @@ namespace Epiknovel.Modules.Wallet.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("IyzicoPaymentId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IyzicoToken")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -115,6 +128,12 @@ namespace Epiknovel.Modules.Wallet.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -159,6 +178,60 @@ namespace Epiknovel.Modules.Wallet.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MonthlyRoyaltyReports", "wallet");
+                });
+
+            modelBuilder.Entity("Epiknovel.Modules.Wallet.Domain.SpendingCampaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DiscountPercentage")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("SponsorType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TargetType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SpendingCampaigns", "wallet");
                 });
 
             modelBuilder.Entity("Epiknovel.Modules.Wallet.Domain.UserUnlockedChapter", b =>
@@ -263,6 +336,46 @@ namespace Epiknovel.Modules.Wallet.Migrations
                     b.HasIndex("WalletId");
 
                     b.ToTable("WalletTransactions", "wallet");
+                });
+
+            modelBuilder.Entity("Epiknovel.Modules.Wallet.Domain.WithdrawRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountHolderName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("AdminNote")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IBAN")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReceiptDocumentId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WithdrawRequests", "wallet");
                 });
 
             modelBuilder.Entity("Epiknovel.Shared.Core.Domain.OutboxMessage", b =>

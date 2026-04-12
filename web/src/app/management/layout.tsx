@@ -6,6 +6,7 @@ import { canAccessAdminPanel } from "@/lib/auth";
 import { 
   LayoutDashboard, 
   ShieldCheck, 
+  Coins,
   Users, 
   MessageSquare, 
   Settings, 
@@ -45,6 +46,7 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
     { label: "Dashboard", href: "/management", icon: LayoutDashboard },
     { label: "Sistem Gunlukleri", href: "/management/audit", icon: ShieldCheck },
     { label: "Icerik Denetimi", href: "/management/compliance", icon: ShieldCheck },
+    { label: "Ekonomi Yonetimi", href: "/management/economy", icon: Coins },
     { label: "Destek Talepleri", href: "/management/support", icon: MessageSquare },
     { label: "Kullanicilar", href: "/management/users", icon: Users },
     { label: "Sistem Ayarlari", href: "/management/settings", icon: Settings },

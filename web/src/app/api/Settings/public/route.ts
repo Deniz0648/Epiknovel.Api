@@ -6,9 +6,14 @@ export async function GET(request: NextRequest) {
   try {
     const data = await backendApiRequest<Record<string, string>>("/Settings/public", {
       method: "GET",
+      cache: "no-store", // Onbelleği devre dişi birak
     });
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      isSuccess: true,
+      data: data,
+      message: "Ayarlar başarıyla yüklendi."
+    });
   } catch (error) {
     if (isApiErrorLike(error)) {
       return NextResponse.json({ isSuccess: false, message: error.message }, { status: error.status });

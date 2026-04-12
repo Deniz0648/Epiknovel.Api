@@ -9,7 +9,10 @@ using Epiknovel.Shared.Core.Interfaces;
 namespace Epiknovel.Modules.Books.Endpoints.ReorderChapters;
 
 [AuditLog("Bölümler Toplu Yeniden Sıralandı")]
-public class Endpoint(BooksDbContext dbContext, IOutputCacheStore cacheStore) : Endpoint<Request, Result<Response>>
+public class Endpoint(
+    BooksDbContext dbContext, 
+    IOutputCacheStore cacheStore,
+    Epiknovel.Shared.Infrastructure.Cache.IChapterCacheService chapterCache) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -81,6 +84,12 @@ public class Endpoint(BooksDbContext dbContext, IOutputCacheStore cacheStore) : 
                 
                 // Cache Invalidation
                 await cacheStore.EvictByTagAsync("ChapterCache", ct);
+                
+                // 🚀 REDIS INVALIDATION: Sıralama değiştiği için tüm bölümlerun cache'ini temizlemek en güvenlisi
+                foreach (var c in chapters)
+                {
+                    await chapterCache.RemoveChapterAsync(c.Slug);
+                }
                 
                 await transaction.CommitAsync(ct);
                 return Result<Response>.Success(new Response { Message = "Bölüm sıralaması başarıyla güncellendi." });

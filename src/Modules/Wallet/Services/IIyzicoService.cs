@@ -22,4 +22,6 @@ public interface IIyzicoService
         CancellationToken ct = default);
 
     Task<CheckoutForm> RetrieveCheckoutFormResultAsync(string token, CancellationToken ct = default);
+    
+    Task<Refund> RefundAsync(string paymentTransactionId, decimal price, string conversationId, string ipAddress, CancellationToken ct = default);
 }

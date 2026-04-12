@@ -4,7 +4,14 @@ namespace Epiknovel.Shared.Core.Events;
 
 // Bildirim tetikleyecek olaylar (Decoupled Notification Events)
 
-public record OrderPaidEvent(Guid UserId, Guid OrderId, decimal Amount, int CoinAmount) : INotification;
+public record OrderPaidEvent(
+    Guid UserId, 
+    Guid OrderId, 
+    decimal Amount, 
+    int CoinAmount, 
+    string PackageName, 
+    string Currency, 
+    DateTime CreatedAt) : INotification;
 
 public record InvoiceUploadedEvent(Guid UserId, Guid OrderId, string InvoiceUrl) : INotification;
 
@@ -21,3 +28,10 @@ public record CommentCreatedEvent(
     Guid? ChapterId, 
     string Content, 
     DateTime CreatedAt) : INotification;
+
+public record SupportResponseReceivedEvent(
+    Guid UserId, 
+    Guid TicketId, 
+    string TicketTitle, 
+    string ResponseMessage, 
+    string TicketLink) : INotification;

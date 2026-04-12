@@ -28,6 +28,16 @@ public class LoginHandler(
             return Result<LoginResponse>.Failure(ApiMessages.InvalidEmailOrPassword);
         }
 
+        // 0. Manual Ban Check
+        var isPermanentlyLocked = user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow.AddYears(10);
+        if (user.IsBanned || isPermanentlyLocked)
+        {
+            var banMessage = !string.IsNullOrWhiteSpace(user.BanReason)
+                ? $"Hesabınız yasaklanmıştır. Sebep: {user.BanReason}"
+                : "Hesabınız kuralları ihlal ettiğiniz için süresiz olarak uzaklaştırılmıştır.";
+            return Result<LoginResponse>.Failure(banMessage);
+        }
+
         // 1. Password check with lockout
         var signInResult = await signInManager.CheckPasswordSignInAsync(user, request.Password, true);
 

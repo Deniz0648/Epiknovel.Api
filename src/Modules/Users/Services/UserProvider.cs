@@ -50,6 +50,21 @@ public class UserProvider(UsersDbContext dbContext, IMediator mediator) : IUserP
             .ToDictionaryAsync(x => x.UserId, x => x.Slug, ct);
     }
 
+    public async Task<Dictionary<Guid, string>> GetDisplayNamesByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default)
+    {
+        var ids = userIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.UserProfiles
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId))
+            .Select(p => new { p.UserId, p.DisplayName })
+            .ToDictionaryAsync(x => x.UserId, x => x.DisplayName, ct);
+    }
+
     public async Task<bool> IsAuthorAsync(Guid userId, CancellationToken ct = default)
     {
         return await dbContext.UserProfiles
@@ -102,5 +117,25 @@ public class UserProvider(UsersDbContext dbContext, IMediator mediator) : IUserP
             profile.VerifiedIban = iban;
             await dbContext.SaveChangesAsync(ct);
         }
+    }
+
+    public async Task<AddressDto?> GetBillingAddressAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await dbContext.UserAddresses
+            .AsNoTracking()
+            .Where(x => x.UserId == userId && x.Type == Domain.AddressType.Billing)
+            .Select(x => new AddressDto
+            {
+                FullName = x.FullName,
+                Country = x.Country,
+                City = x.City,
+                District = x.District,
+                AddressLine = x.AddressLine,
+                ZipCode = x.ZipCode,
+                PhoneNumber = x.PhoneNumber,
+                TaxNumber = x.TaxNumber,
+                TaxOffice = x.TaxOffice,
+                IdentityNumber = x.IdentityNumber
+            }).FirstOrDefaultAsync(ct);
     }
 }

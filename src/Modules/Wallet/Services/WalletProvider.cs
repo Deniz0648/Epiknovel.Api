@@ -34,4 +34,43 @@ public class WalletProvider(WalletDbContext dbContext, IDistributedCache cache) 
 
         return hasUnlocked;
     }
+
+    public async Task<(decimal balance, List<Shared.Core.Interfaces.Management.WalletTransactionDto> recentTransactions)> GetWalletSummaryAsync(Guid userId, int transactionCount = 10, CancellationToken ct = default)
+    {
+        var wallet = await dbContext.Wallets.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (wallet == null) return (0, new());
+
+        var txs = await dbContext.WalletTransactions
+            .AsNoTracking()
+            .Where(x => x.WalletId == wallet.Id)
+            .OrderByDescending(x => x.CreatedAt)
+            .Take(transactionCount)
+            .Select(x => new Shared.Core.Interfaces.Management.WalletTransactionDto
+            {
+                Id = x.Id,
+                Type = x.Type.ToString(),
+                Amount = x.CoinAmount,
+                Description = x.Description,
+                CreatedAt = x.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        return (wallet.CoinBalance, txs);
+    }
+
+    public async Task<List<Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetUserUnlockedChaptersAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await dbContext.UserUnlockedChapters
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.UnlockedAt)
+            .Select(x => new Shared.Core.Interfaces.Management.UserPurchasedChapterDto
+            {
+                BookId = x.BookId,
+                ChapterId = x.ChapterId,
+                Price = x.PricePaid,
+                PurchasedAt = x.UnlockedAt
+            })
+            .ToListAsync(ct);
+    }
 }

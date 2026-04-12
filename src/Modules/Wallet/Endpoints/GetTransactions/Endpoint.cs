@@ -10,6 +10,7 @@ public record Request
 {
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
+    public string? Search { get; init; }
 }
 
 public record TransactionDto
@@ -21,6 +22,7 @@ public record TransactionDto
     public string Description { get; init; } = string.Empty;
     public DateTime CreatedAt { get; init; }
     public Guid? ReferenceId { get; init; }
+    public string? InvoiceFileUrl { get; init; }
 }
 
 public record Response
@@ -52,8 +54,17 @@ public class Endpoint(WalletDbContext dbContext) : Endpoint<Request, Result<Resp
 
         var query = dbContext.WalletTransactions
             .AsNoTracking()
-            .Where(t => t.UserId == userId)
-            .OrderByDescending(t => t.CreatedAt);
+            .Where(t => t.UserId == userId);
+
+        if (!string.IsNullOrWhiteSpace(req.Search))
+        {
+            var search = req.Search.ToLower();
+            query = query.Where(t => 
+                (t.Description != null && t.Description.ToLower().Contains(search)) ||
+                (t.Type.ToString().ToLower().Contains(search)));
+        }
+
+        query = query.OrderByDescending(t => t.CreatedAt);
 
         var total = await query.CountAsync(ct);
 
@@ -68,7 +79,10 @@ public class Endpoint(WalletDbContext dbContext) : Endpoint<Request, Result<Resp
                 Type = t.Type.ToString(),
                 Description = t.Description,
                 CreatedAt = t.CreatedAt,
-                ReferenceId = t.ReferenceId
+                ReferenceId = t.ReferenceId,
+                InvoiceFileUrl = (t.Type == TransactionType.Purchase || t.Type == TransactionType.Adjustment) 
+                    ? dbContext.CoinPurchaseOrders.Where(o => o.Id == t.ReferenceId).Select(o => o.InvoiceFileUrl).FirstOrDefault() 
+                    : null
             })
             .ToListAsync(ct);
 

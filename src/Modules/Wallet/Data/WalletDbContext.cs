@@ -10,8 +10,10 @@ public class WalletDbContext(DbContextOptions<WalletDbContext> options) : DbCont
     public DbSet<WalletTransaction> WalletTransactions => Set<WalletTransaction>();
     public DbSet<CoinPackage> CoinPackages => Set<CoinPackage>();
     public DbSet<CoinPurchaseOrder> CoinPurchaseOrders => Set<CoinPurchaseOrder>();
+    public DbSet<WithdrawRequest> WithdrawRequests => Set<WithdrawRequest>();
     public DbSet<UserUnlockedChapter> UserUnlockedChapters => Set<UserUnlockedChapter>();
     public DbSet<MonthlyRoyaltyReport> MonthlyRoyaltyReports => Set<MonthlyRoyaltyReport>();
+    public DbSet<SpendingCampaign> SpendingCampaigns => Set<SpendingCampaign>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -33,9 +35,14 @@ public class WalletDbContext(DbContextOptions<WalletDbContext> options) : DbCont
         modelBuilder.Entity<WalletTransaction>(b => b.ToTable("WalletTransactions"));
 
         modelBuilder.Entity<CoinPackage>(b => b.ToTable("CoinPackages"));
-        modelBuilder.Entity<CoinPurchaseOrder>(b => b.ToTable("CoinPurchaseOrders"));
+        modelBuilder.Entity<CoinPurchaseOrder>(b => {
+             b.ToTable("CoinPurchaseOrders");
+             b.Property(x => x.Version).IsRowVersion();
+        });
+        modelBuilder.Entity<WithdrawRequest>(b => b.ToTable("WithdrawRequests"));
         modelBuilder.Entity<UserUnlockedChapter>(b => b.ToTable("UserUnlockedChapters"));
         modelBuilder.Entity<MonthlyRoyaltyReport>(b => b.ToTable("MonthlyRoyaltyReports"));
+        modelBuilder.Entity<SpendingCampaign>(b => b.ToTable("SpendingCampaigns"));
 
         modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
              b.ToTable("OutboxMessages");

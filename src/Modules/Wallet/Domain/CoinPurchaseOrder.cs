@@ -7,7 +7,8 @@ public enum OrderStatus
     Pending,
     Paid,
     Failed,
-    Refunded
+    Refunded,
+    AwaitingRefund
 }
 
 public class CoinPurchaseOrder : IOwnable
@@ -28,11 +29,16 @@ public class CoinPurchaseOrder : IOwnable
     // Iyzico / Ödeme Bağlantısı
     public string IyzicoConversationId { get; set; } = string.Empty; // Checkout Form Başlatma veya Conversation ID
     public string IyzicoPaymentId { get; set; } = string.Empty; // İşlem bitince dolacak
+    public string IyzicoToken { get; set; } = string.Empty; // Başlatmada dönen Checkout Form Token'ı
+
+    // Concurrency (Eşzamanlılık) Kontrolü (PostgreSQL xmin'e map edilir)
+    public uint Version { get; set; }
 
     public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
     // Yöneticinin sisteme sonradan yükleyeceği resmi E-Fatura belgesi
-    public string? InvoiceFileUrl { get; set; }
+    public string? InvoiceFileUrl { get; set; } // Deprecated: GUID/Filename list
+    public Guid? InvoiceDocumentId { get; set; } // Compliance modülündeki SecureDocumentId
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? PaidAt { get; set; }

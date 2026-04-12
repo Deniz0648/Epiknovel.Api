@@ -1,12 +1,13 @@
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Modules.Books.Domain;
+using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Interfaces.Management;
 using Epiknovel.Shared.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Books.Services;
 
-public class ManagementBookProvider(BooksDbContext dbContext) : IManagementBookProvider
+public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvider userAccountProvider) : IManagementBookProvider
 {
     public async Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, CancellationToken ct = default)
     {
@@ -58,9 +59,33 @@ public class ManagementBookProvider(BooksDbContext dbContext) : IManagementBookP
                                 .Take(pageSize)
                                 .ToListAsync(ct);
 
-        var dtos = books.Select(b => new ManagementBookDto(
-            b.Id, b.Title, b.Slug, b.Type == BookType.Translation ? (b.OriginalAuthorName ?? "Unknown") : "Original Author",
-            b.Type.ToString(), b.IsHidden, b.IsEditorChoice, b.ViewCount)).ToList();
+        // Orijinal kitapların yazar isimlerini çek
+        var originalAuthorIds = books.Where(b => b.Type == BookType.Original).Select(b => b.AuthorId).Distinct().ToArray();
+        var authorNames = await userAccountProvider.GetDisplayNamesAsync(originalAuthorIds, ct);
+
+        var dtos = books.Select(b => {
+            string authorName = "Unknown";
+            if (b.Type == BookType.Translation)
+            {
+                authorName = b.OriginalAuthorName ?? "Unknown";
+            }
+            else
+            {
+                authorName = authorNames.GetValueOrDefault(b.AuthorId) ?? "Yazar";
+            }
+
+            return new ManagementBookDto(
+                b.Id, 
+                b.Title, 
+                b.Slug, 
+                authorName,
+                b.Type.ToString(), 
+                b.IsHidden, 
+                b.IsEditorChoice, 
+                b.ViewCount,
+                b.CoverImageUrl,
+                b.CreatedAt);
+        }).ToList();
 
         return Result<PagedResult<ManagementBookDto>>.Success(PagedResult<ManagementBookDto>.Create(dtos, totalCount, page, pageSize));
     }

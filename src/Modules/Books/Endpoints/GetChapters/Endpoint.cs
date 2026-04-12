@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using Epiknovel.Modules.Books.Data;
 using Epiknovel.Modules.Books.Domain;
 using Epiknovel.Shared.Core.Models;
+using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Books.Endpoints.GetChapters;
 
-public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Response>>
+public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccountProvider) : Endpoint<Request, Result<Response>>
 {
     private const int MaxPageSize = 250;
 
@@ -89,24 +90,45 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
         }
 
         // Sayfalama
-        var chapters = await query
+        var dbChapters = await query
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(x => new ChapterItem 
+            .Select(x => new 
             {
-                Id = x.Id,
-                Title = x.Title,
-                Slug = x.Slug,
-                Order = x.Order,
-                WordCount = x.WordCount,
-                IsFree = x.IsFree,
-                Price = x.Price,
-                Status = x.Status,
-                IsTitleSpoiler = x.IsTitleSpoiler,
-                PublishedAt = x.PublishedAt,
-                ViewCount = x.ViewCount
+                x.Id,
+                x.Title,
+                x.Slug,
+                x.Order,
+                x.WordCount,
+                x.IsFree,
+                x.Price,
+                x.Status,
+                x.IsTitleSpoiler,
+                x.PublishedAt,
+                x.ViewCount,
+                x.UserId
             })
             .ToListAsync(ct);
+
+        // Yazarları Getir (Modular Monolith Join Simülasyonu)
+        var userIds = dbChapters.Select(x => x.UserId).Distinct().ToArray();
+        var userDisplayNames = await userAccountProvider.GetDisplayNamesAsync(userIds, ct);
+
+        var chapters = dbChapters.Select(x => new ChapterItem 
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Slug = x.Slug,
+            Order = x.Order,
+            WordCount = x.WordCount,
+            IsFree = x.IsFree,
+            Price = x.Price,
+            Status = x.Status,
+            IsTitleSpoiler = x.IsTitleSpoiler,
+            PublishedAt = x.PublishedAt,
+            ViewCount = x.ViewCount,
+            AuthorName = userDisplayNames.TryGetValue(x.UserId, out var name) ? name : "Yazar"
+        }).ToList();
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

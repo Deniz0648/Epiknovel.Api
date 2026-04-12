@@ -14,7 +14,7 @@ public class MarkAllNotificationsAsReadHandler(InfrastructureDbContext dbContext
             .Where(n => n.UserId == request.UserId && !n.IsRead)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(p => p.IsRead, true)
-                .SetProperty(p => p.ReadAt, DateTime.UtcNow), ct);
+                .SetProperty(p => p.ReadAt, (DateTime?)DateTime.UtcNow), ct);
 
         return Result<string>.Success("Tüm bildirimler okundu olarak işaretlendi.");
     }

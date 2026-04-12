@@ -38,4 +38,5 @@ public class ChapterItem
     public bool IsTitleSpoiler { get; set; }
     public DateTime? PublishedAt { get; set; }
     public long ViewCount { get; set; }
+    public string AuthorName { get; set; } = string.Empty;
 }

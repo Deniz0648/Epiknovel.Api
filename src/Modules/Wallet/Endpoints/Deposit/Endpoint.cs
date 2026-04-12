@@ -4,6 +4,7 @@ using Epiknovel.Modules.Wallet.Data;
 using Epiknovel.Shared.Core.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Epiknovel.Modules.Wallet.Services;
 
 namespace Epiknovel.Modules.Wallet.Endpoints.Deposit;
 
@@ -12,7 +13,10 @@ public record Request
     public decimal Amount { get; init; }
 }
 
-public class Endpoint(WalletDbContext dbContext, IWebHostEnvironment env) : Endpoint<Request, Result<string>>
+public class Endpoint(
+    WalletDbContext dbContext, 
+    IWebHostEnvironment env,
+    ISystemSettingProvider settings) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -25,6 +29,13 @@ public class Endpoint(WalletDbContext dbContext, IWebHostEnvironment env) : Endp
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
+        // 🚀 API-LEVEL GUARD: Cüzdan ve Satın Alma kısıtlaması
+        if (!await settings.IsWalletEnabledAsync(ct) || !await settings.IsPurchasingEnabledAsync(ct))
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Satın alma ve bakiye yükleme işlemleri şu anda sistem genelinde geçici olarak durdurulmuştur."), 403, ct);
+            return;
+        }
+
         // Güvenlik: Sadece geliştirme ortamında çalışır. 
         if (!env.IsDevelopment())
         {

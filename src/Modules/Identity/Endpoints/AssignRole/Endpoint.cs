@@ -34,7 +34,7 @@ public class Endpoint(
         }
 
         // 2. Rolü merkezi hiyerarşi servisi üzerinden güncelle
-        var success = await managementUserProvider.UpdateUserRoleAsync(req.UserId, req.RoleName, ct);
+        var success = await managementUserProvider.UpdateUserRoleAsync(req.UserId, new[] { req.RoleName }, ct);
         if (!success)
         {
             await Send.ResponseAsync(Result<Response>.Failure("Rol güncellenemedi. Yetki hiyerarşisi veya kullanıcı durumu uygun değil."), 403, ct);

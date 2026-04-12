@@ -11,10 +11,17 @@ namespace Epiknovel.Modules.Wallet.Features.Purchases.Commands.PurchaseChapter;
 public class PurchaseChapterHandler(
     WalletDbContext dbContext, 
     IBookProvider bookProvider, 
-    ISystemSettingProvider settingsManager) : IRequestHandler<PurchaseChapterCommand, Result<string>>
+    ISystemSettingProvider settingsManager,
+    ICampaignService campaignService) : IRequestHandler<PurchaseChapterCommand, Result<string>>
 {
     public async Task<Result<string>> Handle(PurchaseChapterCommand request, CancellationToken ct)
     {
+        // 🚀 API-LEVEL GUARD: Cüzdan ve Satın Alma kısıtlaması
+        if (!await settingsManager.IsWalletEnabledAsync(ct))
+        {
+            return Result<string>.Failure("Cüzdan işlemleri şu anda sistem genelinde geçici olarak durdurulmuştur.");
+        }
+
         var strategy = dbContext.Database.CreateExecutionStrategy();
 
         return await strategy.ExecuteAsync(async () =>
@@ -47,12 +54,15 @@ public class PurchaseChapterHandler(
                 return Result<string>.Failure("Bu bölüm ücretsizdir, satın alma işlemi yapılamaz.");
             }
 
+            // --- CAMPAIGN RESOLUTION ---
+            var campaign = await campaignService.GetDiscountedPriceAsync(request.ChapterId, price, ct);
+            int finalUserPrice = campaign.DiscountedPrice;
+            int compensationBasePrice = campaign.CompensationBasePrice;
+            bool isDiscounted = campaign.IsActive && finalUserPrice < price;
+
             // 3. Financial Snapshots
             decimal authorShare = await settingsManager.GetAuthorSharePercentageAsync(ct);
             decimal coinParam = await settingsManager.GetCoinToCurrencyRateAsync(ct);
-
-            decimal grossFiatEarned = price * coinParam;
-            decimal netFiatToAuthor = grossFiatEarned * authorShare;
 
             // 4. ACID Transaction
             await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
@@ -62,26 +72,32 @@ public class PurchaseChapterHandler(
                 // --- USER WALLET ---
                 var userWallet = await dbContext.Wallets.FirstOrDefaultAsync(w => w.UserId == request.UserId, ct);
 
-                if (userWallet == null || userWallet.CoinBalance < price)
+                if (userWallet == null || userWallet.CoinBalance < finalUserPrice)
                 {
                     return Result<string>.Failure("Bakiye yetersiz.");
                 }
 
-                userWallet.CoinBalance -= price;
+                userWallet.CoinBalance -= finalUserPrice;
 
                 var userTx = new WalletTransaction
                 {
                     UserId = request.UserId,
                     Wallet = userWallet,
-                    CoinAmount = -price,
-                    FiatAmount = -grossFiatEarned,
+                    CoinAmount = -finalUserPrice,
+                    FiatAmount = -(finalUserPrice * coinParam),
                     AppliedAuthorShare = authorShare,
                     AppliedCoinPrice = coinParam,
                     Type = TransactionType.Unlock,
                     ReferenceId = request.ChapterId,
-                    Description = "Bölüm Kilidi Açma"
+                    Description = isDiscounted 
+                        ? $"Bölüm Kilidi Açma (Kampanyalı: %{campaign.DiscountPercentage} İndirim)" 
+                        : "Bölüm Kilidi Açma"
                 };
                 dbContext.WalletTransactions.Add(userTx);
+
+                // --- CALCULATION FOR AUTHOR ---
+                decimal netFiatToAuthor = compensationBasePrice * coinParam * authorShare;
+                decimal grossFiatEquivalent = compensationBasePrice * coinParam;
 
                 // --- AUTHOR WALLET ---
                 var authorWallet = await dbContext.Wallets.FirstOrDefaultAsync(w => w.UserId == authorId, ct);
@@ -105,13 +121,17 @@ public class PurchaseChapterHandler(
                 {
                     UserId = authorId,
                     Wallet = authorWallet,
-                    CoinAmount = price,
+                    CoinAmount = compensationBasePrice,
                     FiatAmount = netFiatToAuthor,
                     AppliedAuthorShare = authorShare,
                     AppliedCoinPrice = coinParam,
                     Type = TransactionType.Revenue,
                     ReferenceId = request.ChapterId,
-                    Description = "Bölüm Satış Geliri (Net TL)"
+                    Description = isDiscounted && campaign.SponsorType == CampaignSponsorType.Platform 
+                        ? $"Bölüm Satış Geliri (Platform Destekli İndirim: %{campaign.DiscountPercentage})" 
+                        : isDiscounted && campaign.SponsorType == CampaignSponsorType.Author
+                            ? $"Bölüm Satış Geliri (Yazar Destekli İndirim: %{campaign.DiscountPercentage})"
+                            : "Bölüm Satış Geliri (Net TL)"
                 };
                 dbContext.WalletTransactions.Add(authorTx);
 
@@ -120,8 +140,8 @@ public class PurchaseChapterHandler(
                 {
                     UserId = request.UserId,
                     ChapterId = request.ChapterId,
-                    BookId = Guid.Empty,
-                    PricePaid = price,
+                    BookId = Guid.Empty, // Will be filled via metadata if needed, but currently Guid.Empty in original
+                    PricePaid = finalUserPrice,
                     RevenueOwnerId = authorId
                 };
                 dbContext.UserUnlockedChapters.Add(unlockedLog);

@@ -5,15 +5,33 @@ using Microsoft.Extensions.Configuration;
 
 namespace Epiknovel.Modules.Wallet.Services;
 
-public class IyzicoService() : IIyzicoService
+public class IyzicoService(Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider settingProvider) : IIyzicoService
 {
-    private Options GetOptions()
+    private async Task<Options> GetOptionsAsync(CancellationToken ct = default)
     {
+        // 🚀 DATABASE SETTINGS (Priority 1)
+        var apiKey = await settingProvider.GetSettingValueAsync("POS_Iyzico_ApiKey", ct);
+        var secretKey = await settingProvider.GetSettingValueAsync("POS_Iyzico_SecretKey", ct);
+        var baseUrl = await settingProvider.GetSettingValueAsync("POS_Iyzico_BaseUrl", ct);
+
+        string source = "DATABASE";
+
+        // 🏗️ ENVIRONMENT SETTINGS (Priority 2 - Fallback)
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            apiKey = Environment.GetEnvironmentVariable("IYZICO_API_KEY") ?? "sandbox-xxxx";
+            secretKey = Environment.GetEnvironmentVariable("IYZICO_SECRET_KEY") ?? "sandbox-xxxx";
+            baseUrl = Environment.GetEnvironmentVariable("IYZICO_BASE_URL") ?? "https://sandbox-api.iyzipay.com";
+            source = "FALLBACK/ENV";
+        }
+
+        Console.WriteLine($"[IYZICO CONFIG] Keys loaded from {source}. BaseUrl: {baseUrl}");
+
         return new Options
         {
-            ApiKey = Environment.GetEnvironmentVariable("IYZICO_API_KEY") ?? "sandbox-xxxx",
-            SecretKey = Environment.GetEnvironmentVariable("IYZICO_SECRET_KEY") ?? "sandbox-xxxx",
-            BaseUrl = Environment.GetEnvironmentVariable("IYZICO_BASE_URL") ?? "https://sandbox-api.iyzipay.com"
+            ApiKey = apiKey,
+            SecretKey = secretKey,
+            BaseUrl = baseUrl
         };
     }
 
@@ -34,12 +52,18 @@ public class IyzicoService() : IIyzicoService
         string ipAddress,
         CancellationToken ct = default)
     {
+        var options = await GetOptionsAsync(ct);
+        
+        // 🔍 DIAGNOSTIC LOG
+        Console.WriteLine($"[IYZICO] Initializing checkout form. ConversationId: {conversationId}, Price: {price}");
+        Console.WriteLine($"[IYZICO] Using Key: {options.ApiKey.Substring(0, 5)}..., Secret: {options.SecretKey.Substring(0, 5)}..., BaseUrl: {options.BaseUrl}");
+
         var request = new CreateCheckoutFormInitializeRequest
         {
             Locale = Locale.TR.ToString(),
             ConversationId = conversationId,
-            Price = price.ToString("F2").Replace(",", "."),
-            PaidPrice = price.ToString("F2").Replace(",", "."), // Komisyonlar eklenirse değişebilir
+            Price = price.ToString("F2", global::System.Globalization.CultureInfo.InvariantCulture),
+            PaidPrice = price.ToString("F2", global::System.Globalization.CultureInfo.InvariantCulture),
             Currency = Currency.TRY.ToString(),
             BasketId = basketId,
             PaymentGroup = PaymentGroup.PRODUCT.ToString(),
@@ -82,21 +106,45 @@ public class IyzicoService() : IIyzicoService
                 Name = "Epiknovel Coin Paketi",
                 Category1 = "Digital-Coin",
                 ItemType = BasketItemType.VIRTUAL.ToString(),
-                Price = price.ToString("F2").Replace(",", ".")
+                Price = price.ToString("F2", global::System.Globalization.CultureInfo.InvariantCulture)
             }
         };
         request.BasketItems = basketItems;
 
-        return await Task.Run(() => CheckoutFormInitialize.Create(request, GetOptions()), ct);
+        var response = await Task.Run(() => CheckoutFormInitialize.Create(request, options), ct);
+
+        if (response.Status != "success")
+        {
+            Console.WriteLine($"[IYZICO ERROR] Status: {response.Status}, ErrorCode: {response.ErrorCode}, Message: {response.ErrorMessage}");
+        }
+
+        return response;
     }
 
     public async Task<CheckoutForm> RetrieveCheckoutFormResultAsync(string token, CancellationToken ct = default)
     {
+        var options = await GetOptionsAsync(ct);
         var request = new RetrieveCheckoutFormRequest
         {
             Token = token
         };
 
-        return await Task.Run(() => CheckoutForm.Retrieve(request, GetOptions()), ct);
+        return await Task.Run(() => CheckoutForm.Retrieve(request, options), ct);
+    }
+
+    public async Task<Refund> RefundAsync(string paymentTransactionId, decimal price, string conversationId, string ipAddress, CancellationToken ct = default)
+    {
+        var options = await GetOptionsAsync(ct);
+        var request = new CreateRefundRequest
+        {
+            PaymentTransactionId = paymentTransactionId,
+            Price = price.ToString("F2", global::System.Globalization.CultureInfo.InvariantCulture),
+            Ip = ipAddress,
+            ConversationId = conversationId,
+            Locale = Locale.TR.ToString(),
+            Currency = Currency.TRY.ToString()
+        };
+
+        return await Task.Run(() => Refund.Create(request, options), ct);
     }
 }

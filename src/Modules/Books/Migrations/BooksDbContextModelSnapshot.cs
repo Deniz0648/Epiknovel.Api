@@ -184,7 +184,7 @@ namespace Epiknovel.Modules.Books.Migrations
                     b.ToTable("Books", "books");
                 });
 
-            modelBuilder.Entity("Epiknovel.Modules.Books.Domain.BookAuthor", b =>
+            modelBuilder.Entity("Epiknovel.Modules.Books.Domain.BookMember", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -193,18 +193,40 @@ namespace Epiknovel.Modules.Books.Migrations
                     b.Property<Guid>("BookId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("JoinedAt")
                         .HasColumnType("timestamp without time zone");
 
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
                     b.Property<int>("Role")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("UserDisplayName")
+                        .IsRequired()
+                        .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BookId");
+                    b.HasIndex("BookId", "UserId");
 
                     b.ToTable("BookAuthors", "books");
                 });
@@ -524,10 +546,10 @@ namespace Epiknovel.Modules.Books.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Epiknovel.Modules.Books.Domain.BookAuthor", b =>
+            modelBuilder.Entity("Epiknovel.Modules.Books.Domain.BookMember", b =>
                 {
                     b.HasOne("Epiknovel.Modules.Books.Domain.Book", "Book")
-                        .WithMany()
+                        .WithMany("Members")
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -571,6 +593,8 @@ namespace Epiknovel.Modules.Books.Migrations
             modelBuilder.Entity("Epiknovel.Modules.Books.Domain.Book", b =>
                 {
                     b.Navigation("Chapters");
+
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Epiknovel.Modules.Books.Domain.Chapter", b =>

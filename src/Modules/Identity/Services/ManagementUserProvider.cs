@@ -17,7 +17,9 @@ public class ManagementUserProvider(
     IdentityDbContext identityDbContext,
     IHttpContextAccessor httpContextAccessor,
     IUserProvider userProvider,
-    IMediator mediator) : IManagementUserProvider
+    IMediator mediator,
+    Epiknovel.Shared.Core.Interfaces.Wallet.IWalletProvider walletProvider,
+    Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider) : IManagementUserProvider
 {
     private static readonly Dictionary<string, int> RoleRanks = new()
     {
@@ -34,13 +36,21 @@ public class ManagementUserProvider(
         if (context == null || context.User.Identity?.IsAuthenticated != true)
             return false;
 
-        var actorRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
-        var actorRank = actorRoles.Count > 0 ? actorRoles.Max(r => RoleRanks.GetValueOrDefault(r, 0)) : 0;
+        // 1. Self-modification is allowed
+        var actorIdStr = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (actorIdStr == targetUser.Id.ToString())
+            return true;
 
+        // 2. SuperAdmins can manage anyone
+        var actorRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+        if (actorRoles.Contains(RoleNames.SuperAdmin))
+            return true;
+
+        // 3. Regular admins/mods must outrank the target
+        var actorRank = actorRoles.Count > 0 ? actorRoles.Max(r => RoleRanks.GetValueOrDefault(r, 0)) : 0;
         var targetRoles = await userManager.GetRolesAsync(targetUser);
         var targetRank = targetRoles.Count > 0 ? targetRoles.Max(r => RoleRanks.GetValueOrDefault(r, 0)) : 0;
 
-        // An actor must strictly outrank the target
         return actorRank > targetRank;
     }
 
@@ -52,10 +62,10 @@ public class ManagementUserProvider(
         if (!await ValidateHierarchyAsync(targetUser))
             return false;
 
-        targetUser.LockoutEnd = DateTimeOffset.MaxValue; // Permanent ban basically, or a long date
+        targetUser.IsBanned = true;
+        targetUser.BanReason = reason;
+        targetUser.LockoutEnd = DateTimeOffset.MaxValue; 
         
-        // Storing reason in a custom claim or mapping to the AuditLog via interceptor.
-        // For now, Identity's Lockout works well. 
         var result = await userManager.UpdateAsync(targetUser);
         return result.Succeeded;
     }
@@ -68,20 +78,23 @@ public class ManagementUserProvider(
         if (!await ValidateHierarchyAsync(targetUser))
             return false;
 
+        targetUser.IsBanned = false;
+        targetUser.BanReason = null;
         targetUser.LockoutEnd = null;
         var result = await userManager.UpdateAsync(targetUser);
         return result.Succeeded;
     }
 
-    public async Task<bool> UpdateUserRoleAsync(Guid userId, string role, CancellationToken ct = default)
+    public async Task<bool> UpdateUserRoleAsync(Guid userId, IEnumerable<string> roles, CancellationToken ct = default)
     {
-        if (!RoleRanks.ContainsKey(role))
+        var roleList = roles.Distinct().ToList();
+        if (roleList.Any(r => !RoleRanks.ContainsKey(r)))
             return false;
 
         var targetUser = await userManager.FindByIdAsync(userId.ToString());
         if (targetUser == null) return false;
 
-        // Verify the actor outranks both the TARGET's current highest role, and the ROLE being assigned
+        // Verify the actor outranks both the TARGET's current highest role, and the NEW HIGHEST role being assigned
         var context = httpContextAccessor.HttpContext;
         if (context == null || context.User.Identity?.IsAuthenticated != true)
             return false;
@@ -89,15 +102,22 @@ public class ManagementUserProvider(
         var actorRoles = context.User.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
         var actorRank = actorRoles.Count > 0 ? actorRoles.Max(r => RoleRanks.GetValueOrDefault(r, 0)) : 0;
         
-        var assignmentRank = RoleRanks.GetValueOrDefault(role, 0);
-        if (actorRank <= assignmentRank)
-            return false; // Can't assign a role equal or higher than oneself
+        var assignmentRank = roleList.Count > 0 ? roleList.Max(r => RoleRanks.GetValueOrDefault(r, 0)) : 0;
+        if (actorRank <= assignmentRank && !actorRoles.Contains(RoleNames.SuperAdmin))
+            return false; // Can't assign a role equal or higher than oneself (unless SuperAdmin)
 
         if (!await ValidateHierarchyAsync(targetUser))
             return false; // Can't modify someone equal or higher than oneself
 
-        // Strip existing operational roles, except maybe User
-        var rolesToRemove = await userManager.GetRolesAsync(targetUser);
+        // Ensure User role is always present
+        if (!roleList.Contains(RoleNames.User))
+            roleList.Add(RoleNames.User);
+
+        var currentRoles = await userManager.GetRolesAsync(targetUser);
+        
+        var rolesToAdd = roleList.Except(currentRoles).ToList();
+        var rolesToRemove = currentRoles.Except(roleList).ToList();
+
         if (rolesToRemove.Any())
         {
             var removeResult = await userManager.RemoveFromRolesAsync(targetUser, rolesToRemove);
@@ -105,22 +125,20 @@ public class ManagementUserProvider(
                 return false;
         }
 
-        // Add the new role, plus User core role
-        var addUserResult = await userManager.AddToRoleAsync(targetUser, RoleNames.User);
-        if (!addUserResult.Succeeded)
-            return false;
-
-        if (role != RoleNames.User)
+        if (rolesToAdd.Any())
         {
-            var addRoleResult = await userManager.AddToRoleAsync(targetUser, role);
-            if (!addRoleResult.Succeeded)
+            var addResult = await userManager.AddToRolesAsync(targetUser, rolesToAdd);
+            if (!addResult.Succeeded)
                 return false;
         }
 
-        await userProvider.SetAuthorStatusAsync(targetUser.Id, string.Equals(role, RoleNames.Author, StringComparison.OrdinalIgnoreCase), ct);
+        // Update Author status (true if Author role exists now)
+        var isAuthor = roleList.Any(r => string.Equals(r, RoleNames.Author, StringComparison.OrdinalIgnoreCase));
+        await userProvider.SetAuthorStatusAsync(targetUser.Id, isAuthor, ct);
 
-        var description = BuildRoleChangeDescription(rolesToRemove, role);
-        await mediator.Publish(new UserRoleUpdatedEvent(targetUser.Id, role, description), ct);
+        // Notify
+        var description = $"Yetki seviyeleriniz güncellendi. Yeni roller: {string.Join(", ", roleList)}";
+        await mediator.Publish(new UserRoleUpdatedEvent(targetUser.Id, string.Join("|", roleList), description), ct);
 
         return true;
     }
@@ -189,7 +207,7 @@ public class ManagementUserProvider(
                 Email = u.Email ?? string.Empty,
                 DisplayName = u.DisplayName ?? string.Empty,
                 CreatedAt = u.CreatedAt,
-                IsBanned = u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow
+                IsBanned = u.IsBanned || (u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow)
             })
             .ToListAsync(ct);
 
@@ -199,6 +217,7 @@ public class ManagementUserProvider(
         }
 
         var userIds = users.Select(x => x.Id).ToList();
+        var slugs = await userProvider.GetSlugsByUserIdsAsync(userIds, ct);
 
         var userRoleRows = await (
             from userRole in identityDbContext.UserRoles.AsNoTracking()
@@ -221,9 +240,40 @@ public class ManagementUserProvider(
         foreach (var userDto in users)
         {
             userDto.Roles = rolesByUserId.TryGetValue(userDto.Id, out var roles) ? roles : [];
+            userDto.Slug = slugs.TryGetValue(userDto.Id, out var slug) ? slug : string.Empty;
         }
 
         return users;
+    }
+
+    public async Task<UserManagementDetailDto?> GetUserDetailsAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null) return null;
+
+        var roles = await userManager.GetRolesAsync(user);
+        var slugs = await userProvider.GetSlugsByUserIdsAsync(new[] { userId }, ct);
+        
+        var (balance, transactions) = await walletProvider.GetWalletSummaryAsync(userId, 10, ct);
+        var (books, totalChapters) = await bookProvider.GetAuthorBooksSummaryAsync(userId, ct);
+        var purchases = await walletProvider.GetUserUnlockedChaptersAsync(userId, ct);
+        var enrichedPurchases = await bookProvider.GetChapterTitlesByChaptersAsync(purchases, ct);
+
+        return new UserManagementDetailDto
+        {
+            Id = user.Id,
+            Email = user.Email ?? string.Empty,
+            DisplayName = user.DisplayName ?? string.Empty,
+            Slug = slugs.TryGetValue(userId, out var slug) ? slug : string.Empty,
+            CreatedAt = user.CreatedAt,
+            IsBanned = user.IsBanned || (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow),
+            Roles = roles.ToList(),
+            TokenBalance = balance,
+            RecentTransactions = transactions,
+            Books = books,
+            TotalChapters = totalChapters,
+            PurchasedChapters = enrichedPurchases
+        };
     }
 
     public async Task<Guid?> GetSuperAdminIdAsync(CancellationToken ct = default)

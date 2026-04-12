@@ -14,6 +14,7 @@ interface Chapter {
   isFree: boolean;
   price: number;
   slug: string;
+  authorName?: string;
 }
 
 interface ChapterReorderListProps {
@@ -136,6 +137,10 @@ export function ChapterReorderList({ bookId, bookSlug, initialChapters, onOrderS
                             {chapter.title}
                           </span>
                           <div className="flex items-center gap-2 mt-0.5">
+                            {chapter.authorName && (
+                              <span className="text-[10px] font-bold text-primary/70">{chapter.authorName}</span>
+                            )}
+                            {chapter.authorName && <span className="text-base-content/30 text-[10px]">|</span>}
                             <div className="badge badge-outline border-base-content/10 text-[9px] font-black uppercase tracking-widest text-base-content/40 h-5">
                                {index + 1}. Sıra
                             </div>

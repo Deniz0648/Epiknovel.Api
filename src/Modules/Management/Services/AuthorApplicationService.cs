@@ -4,9 +4,13 @@ using Epiknovel.Modules.Management.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Models;
 
+using Epiknovel.Shared.Core.Interfaces.Management;
+
 namespace Epiknovel.Modules.Management.Services;
 
-public class AuthorApplicationService(ManagementDbContext dbContext) : IAuthorApplicationService
+public class AuthorApplicationService(
+    ManagementDbContext dbContext,
+    ISystemSettingProvider settings) : IAuthorApplicationService
 {
     public async Task<Result<string>> SubmitAuthorApplicationAsync(
         Guid userId,
@@ -15,6 +19,13 @@ public class AuthorApplicationService(ManagementDbContext dbContext) : IAuthorAp
         string plannedWork,
         CancellationToken ct = default)
     {
+        // 🚀 GLOBAL SETTING CHECK
+        var allowApplications = await settings.GetSettingValueAsync<bool>("CONTENT_AllowAuthorApplications", ct);
+        if (!allowApplications)
+        {
+            return Result<string>.Failure("Şu anda yazarlık başvuruları geçici olarak kapalıdır.");
+        }
+
         var existing = await dbContext.AuthorApplications
             .AnyAsync(a => a.UserId == userId && a.Status == ApplicationStatus.Pending, ct);
 
@@ -46,6 +57,13 @@ public class AuthorApplicationService(ManagementDbContext dbContext) : IAuthorAp
         string bankName,
         CancellationToken ct = default)
     {
+        // 🚀 GLOBAL SETTING CHECK
+        var allowApplications = await settings.GetSettingValueAsync<bool>("CONTENT_AllowAuthorApplications", ct);
+        if (!allowApplications)
+        {
+            return Result<string>.Failure("Şu anda yazarlık başvuruları geçici olarak kapalıdır.");
+        }
+
         var existing = await dbContext.PaidAuthorApplications
             .AnyAsync(a => a.UserId == userId && a.Status == ApplicationStatus.Pending, ct);
 

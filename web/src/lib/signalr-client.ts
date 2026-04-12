@@ -185,13 +185,24 @@ export function connectHub(path: string, options: ConnectNotificationHubOptions)
     }
   };
 
+  const invoke = (target: string, ...args: unknown[]) => {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(`${JSON.stringify({ type: 1, target, arguments: args })}${RECORD_SEPARATOR}`);
+    } else {
+      console.warn(`Cannot invoke ${target}: Socket is not open.`);
+    }
+  };
+
   void start();
 
-  return () => {
-    disposed = true;
-    clearReconnectTimer();
-    negotiateAbortController?.abort();
-    socket?.close(1000, "dispose");
-    socket = null;
+  return {
+    invoke,
+    dispose: () => {
+      disposed = true;
+      clearReconnectTimer();
+      negotiateAbortController?.abort();
+      socket?.close(1000, "dispose");
+      socket = null;
+    }
   };
 }
