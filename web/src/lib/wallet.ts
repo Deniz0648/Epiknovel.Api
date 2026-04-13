@@ -286,3 +286,24 @@ export async function initializeCoinPurchase(packageId: string) {
     credentials: "include",
   });
 }
+
+export type WalletBalanceDto = {
+  coinBalance: number;
+  revenueBalance: number;
+};
+
+export async function getWalletBalance() {
+  return apiRequest<WalletBalanceDto>("/wallet/balance", {
+    method: "GET",
+    credentials: "include",
+  });
+}
+
+export async function purchaseChapter(chapterId: string) {
+  return apiRequest<string>("/wallet/purchase-chapter", {
+    method: "POST",
+    body: JSON.stringify({ chapterId }),
+    credentials: "include",
+  });
+}
+

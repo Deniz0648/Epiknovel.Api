@@ -1,5 +1,6 @@
 using Epiknovel.Shared.Core.Domain;
 using Epiknovel.Shared.Core.Interfaces;
+using Epiknovel.Shared.Core.Models;
 
 namespace Epiknovel.Modules.Management.Domain;
 

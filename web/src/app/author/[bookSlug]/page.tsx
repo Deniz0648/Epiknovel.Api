@@ -14,9 +14,9 @@ export default function ManageBookPage() {
   const params = useParams<{ bookSlug: string }>();
   const router = useRouter();
   const bookSlug = params?.bookSlug ?? "";
-  
+
   const { profile, isLoading: isAuthLoading } = useAuth();
-  
+
   const [book, setBook] = useState<MyBookListItem | null>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [deletedChapters, setDeletedChapters] = useState<any[]>([]);
@@ -27,9 +27,9 @@ export default function ManageBookPage() {
   useEffect(() => {
     // Oturum yuklenmeden veya slug gelmeden asla istek atma!
     if (isAuthLoading || !bookSlug) return;
-    
+
     let isMounted = true;
-    
+
     const loadData = async () => {
       try {
         setIsLoading(true);
@@ -46,7 +46,7 @@ export default function ManageBookPage() {
           if (isMounted) {
             setChapters(chaptersData.items || []);
           }
-          
+
           // 3. Silinen Bölümleri Çek
           const deletedChaptersData = await getMyChapters(bookSlug, { pageSize: 100, isDeleted: true });
           if (isMounted) {
@@ -127,13 +127,13 @@ export default function ManageBookPage() {
 
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             {/* 2:3 Kapak Gorseli */}
-            <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40 sm:w-32 md:w-36">
-                {book.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} className="h-full w-full object-cover" />
-                ) : (
-                    <div className="flex h-full items-center justify-center p-2 text-center text-[8px] font-black uppercase tracking-widest text-base-content/25">Gorsel Yok</div>
-                )}
+            <div className="relative aspect-2/3 w-28 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40 sm:w-32 md:w-36">
+              {book.coverImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center p-2 text-center text-[8px] font-black uppercase tracking-widest text-base-content/25">Gorsel Yok</div>
+              )}
             </div>
 
             <div className="flex flex-1 flex-col justify-center gap-4">
@@ -151,28 +151,28 @@ export default function ManageBookPage() {
                   {book.type === "Original" || Number(book.type) === 0 ? "Orijinal" : "Ceviri"}
                 </span>
                 <span className="rounded-full border border-success/20 bg-success/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-success shadow-sm">
-                   {book.status === "Ongoing" || Number(book.status) === 1 ? "Devam Ediyor" : book.status === "Completed" || Number(book.status) === 2 ? "Tamamlandi" : "Taslak"}
+                  {book.status === "Ongoing" || Number(book.status) === 1 ? "Devam Ediyor" : book.status === "Completed" || Number(book.status) === 2 ? "Tamamlandi" : "Taslak"}
                 </span>
                 <span className="rounded-full border border-base-content/10 bg-base-100/30 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-base-content/60 shadow-sm">
-                   {book.contentRating === "Mature" || Number(book.contentRating) === 2 ? "18+" : "Genel"}
+                  {book.contentRating === "Mature" || Number(book.contentRating) === 2 ? "18+" : "Genel"}
                 </span>
               </div>
 
               {/* Istatistikler */}
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Bolumler</span>
-                    <span className="text-sm font-bold text-base-content/85">{book.chapterCount}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Bolumler</span>
+                  <span className="text-sm font-bold text-base-content/85">{book.chapterCount}</span>
                 </div>
                 <div className="h-3 w-px bg-base-content/10 hidden sm:block" />
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Goruntulenme</span>
-                    <span className="text-sm font-bold text-base-content/85">{(book.viewCount ?? 0).toLocaleString("tr-TR")}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Goruntulenme</span>
+                  <span className="text-sm font-bold text-base-content/85">{(book.viewCount ?? 0).toLocaleString("tr-TR")}</span>
                 </div>
                 <div className="h-3 w-px bg-base-content/10 hidden sm:block" />
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Puan</span>
-                    <span className="text-sm font-bold text-base-content/85">{(book.averageRating ?? 0).toFixed(1)} <span className="text-[10px] text-base-content/40 ml-1">({book.voteCount ?? 0})</span></span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Puan</span>
+                  <span className="text-sm font-bold text-base-content/85">{(book.averageRating ?? 0).toFixed(1)} <span className="text-[10px] text-base-content/40 ml-1">({book.voteCount ?? 0})</span></span>
                 </div>
               </div>
 
@@ -208,50 +208,50 @@ export default function ManageBookPage() {
             {deletedChapters.length > 0 && (
               <div className="mt-12 space-y-4">
                 <div className="flex items-center gap-6 px-2">
-                   <h3 className="flex items-center gap-2 text-xl font-black text-error">
-                     <Trash2 className="h-5 w-5" /> Silinen Bölümler
-                   </h3>
-                   <div className="h-px flex-1 bg-gradient-to-r from-error/20 to-transparent" />
+                  <h3 className="flex items-center gap-2 text-xl font-black text-error">
+                    <Trash2 className="h-5 w-5" /> Silinen Bölümler
+                  </h3>
+                  <div className="h-px flex-1 bg-linear-to-r from-error/20 to-transparent" />
                 </div>
-                
+
                 <div className="grid gap-3">
                   {deletedChapters.map((chapter) => (
                     <div key={chapter.id} className="glass-frame flex items-center justify-between p-4 bg-error/5 border-error/10">
-                       <div className="min-w-0">
-                          <p className="font-bold text-sm truncate opacity-60 italic">{chapter.title}</p>
-                          {chapter.authorName && (
-                            <p className="text-[10px] font-bold text-primary/40 mt-0.5">{chapter.authorName}</p>
-                          )}
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-base-content/30 mt-1">Silindi</p>
-                       </div>
-                       <button 
-                         onClick={async () => {
-                            if (!confirm("Bölümü geri yüklemek istediğinize emin misiniz?")) return;
-                            try {
-                               setIsTrashLoading(true);
-                               const { restoreChapter, getMyChapters } = await import("@/lib/auth");
-                               await restoreChapter(chapter.id);
-                               
-                               // Verileri yenile
-                               const [updChapters, updDeleted] = await Promise.all([
-                                 getMyChapters(bookSlug, { pageSize: 100, isDeleted: false }),
-                                 getMyChapters(bookSlug, { pageSize: 100, isDeleted: true })
-                               ]);
-                               
-                               setChapters(updChapters.items || []);
-                               setDeletedChapters(updDeleted.items || []);
-                               alert("Bölüm başarıyla geri yüklendi.");
-                            } catch (e) {
-                               alert("Geri yükleme sırasında bir hata oluştu.");
-                            } finally {
-                               setIsTrashLoading(false);
-                            }
-                         }}
-                         className="btn btn-ghost btn-sm text-error hover:bg-error/10 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                         disabled={isTrashLoading}
-                       >
-                          Geri Getir
-                       </button>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm truncate opacity-60 italic">{chapter.title}</p>
+                        {chapter.authorName && (
+                          <p className="text-[10px] font-bold text-primary/40 mt-0.5">{chapter.authorName}</p>
+                        )}
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-base-content/30 mt-1">Silindi</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (!confirm("Bölümü geri yüklemek istediğinize emin misiniz?")) return;
+                          try {
+                            setIsTrashLoading(true);
+                            const { restoreChapter, getMyChapters } = await import("@/lib/auth");
+                            await restoreChapter(chapter.id);
+
+                            // Verileri yenile
+                            const [updChapters, updDeleted] = await Promise.all([
+                              getMyChapters(bookSlug, { pageSize: 100, isDeleted: false }),
+                              getMyChapters(bookSlug, { pageSize: 100, isDeleted: true })
+                            ]);
+
+                            setChapters(updChapters.items || []);
+                            setDeletedChapters(updDeleted.items || []);
+                            alert("Bölüm başarıyla geri yüklendi.");
+                          } catch (e) {
+                            alert("Geri yükleme sırasında bir hata oluştu.");
+                          } finally {
+                            setIsTrashLoading(false);
+                          }
+                        }}
+                        className="btn btn-ghost btn-sm text-error hover:bg-error/10 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                        disabled={isTrashLoading}
+                      >
+                        Geri Getir
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -264,7 +264,7 @@ export default function ManageBookPage() {
               <BarChart3 className="h-5 w-5 text-secondary" /> Performans
             </h3>
             <div className="glass-frame p-6 h-64 flex items-center justify-center border-dashed text-[10px] font-black uppercase tracking-widest text-base-content/30 italic">
-               Analiz Verileri Yakinda
+              Analiz Verileri Yakinda
             </div>
           </div>
         </section>

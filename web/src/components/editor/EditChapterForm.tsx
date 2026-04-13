@@ -7,7 +7,7 @@ import { showToast } from "@/lib/toast"
 import { Save, ChevronLeft, Type, Zap, Trash2, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { TiptapEditor, TiptapEditorRef, ParagraphData } from "./TiptapEditor"
-import { usePublicSettings } from "@/components/providers/realtime-provider"
+import { usePublicSettings } from "@/components/providers/settings-provider"
 import { useAuth } from "@/components/providers/auth-provider"
 import { slugify } from "@/lib/utils"
 import { ShareModal } from "@/components/ui/ShareModal"
@@ -37,8 +37,8 @@ interface EditChapterFormProps {
 
 export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, bookTitle, bookType, bookSlug }: EditChapterFormProps) {
   const { profile } = useAuth()
-  const { isEnableEconomy: siteEconomyEnabled } = usePublicSettings()
-  
+  const { isEnableEconomy: siteEconomyEnabled, settings } = usePublicSettings()
+
   const authorHasPaidPermission = profile?.permissions?.publishPaidChapters === true
   const canSetPrice = siteEconomyEnabled && authorHasPaidPermission
 
@@ -114,6 +114,23 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
       scheduledPublishDate: isScheduled && publishDate ? new Date(publishDate).toISOString() : null
     }
 
+    // 🚀 VALIDATION: Price Range Check (Frontend)
+    if (enableEconomy && !data.isFree) {
+      const minPrice = parseInt(settings?.["ECONOMY_MinChapterPrice"] || "1");
+      const maxPrice = parseInt(settings?.["ECONOMY_MaxChapterPrice"] || "1000");
+
+      if (data.price < minPrice) {
+        showToast({ title: "Fiyat Hatası", description: `Ücretli bölümler en az ${minPrice} jeton olmalıdır.`, tone: "error" });
+        setLoading(false);
+        return;
+      }
+      if (data.price > maxPrice) {
+        showToast({ title: "Fiyat Hatası", description: `Ücretli bölümler en fazla ${maxPrice} jeton olabilir.`, tone: "error" });
+        setLoading(false);
+        return;
+      }
+    }
+
     // 🛡️ Debug Log: Form Submission State
     console.log('Submitting Form:', { chapterId, isEdit: !!chapterId });
 
@@ -162,7 +179,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
   return (
     <>
       <form onSubmit={onSubmit} className="flex flex-col min-h-[80vh] gap-6 author-page-animate">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-100 p-4 rounded-3xl border border-base-200 sticky top-[84px] z-[50] shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-base-100 p-4 rounded-3xl border border-base-200 sticky top-[84px] z-50 shadow-sm">
           <div className="flex items-center gap-4">
             <Link href={`/author/${bookSlug}`} className="btn btn-ghost btn-circle">
               <ChevronLeft />
@@ -276,7 +293,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                     required
                   />
                 </div>
-                
+
                 <div className="space-y-4 mt-4 pt-4 border-t border-base-200">
                   <div className="form-control">
                     <label htmlFor="is-scheduled-checkbox" className="label cursor-pointer justify-start gap-3">
@@ -326,7 +343,7 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                 <div className={`mt-6 pt-6 border-t border-base-200 space-y-4 transition-all duration-300 ${!enableEconomy ? 'grayscale opacity-60' : ''}`}>
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold opacity-60 flex items-center gap-2">
-                       <Zap size={16} className="text-warning" /> EKONOMİ
+                      <Zap size={16} className="text-warning" /> EKONOMİ
                     </span>
                     {!enableEconomy && (
                       <div className="badge badge-error badge-xs py-2 px-2 text-[10px]">
@@ -367,12 +384,19 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
                         <Zap size={12} className="text-warning" />
                       </div>
                     </div>
+                    {enableEconomy && (settings?.["ECONOMY_MinChapterPrice"] || settings?.["ECONOMY_MaxChapterPrice"]) && (
+                      <p className="text-[10px] text-base-content/40 mt-1.5 ml-1 font-bold italic">
+                        * {settings["ECONOMY_MinChapterPrice"] && `Min ${settings["ECONOMY_MinChapterPrice"]}`}
+                        {settings["ECONOMY_MinChapterPrice"] && settings["ECONOMY_MaxChapterPrice"] && ", "}
+                        {settings["ECONOMY_MaxChapterPrice"] && `Max ${settings["ECONOMY_MaxChapterPrice"]}`} jeton sınırı mevcuttur.
+                      </p>
+                    )}
                   </div>
                   {!enableEconomy && (
                     <div className="bg-error/10 p-2 rounded-lg border border-error/20">
                       <p className="text-[10px] text-error leading-relaxed">
-                        {!siteEconomyEnabled 
-                          ? "Platform genelinde ücretli içerikler şu an devre dışı." 
+                        {!siteEconomyEnabled
+                          ? "Platform genelinde ücretli içerikler şu an devre dışı."
                           : "Ücretli içerik yayınlamak için 'Cüzdan Sistemi' yetkiniz yok."}
                       </p>
                     </div>

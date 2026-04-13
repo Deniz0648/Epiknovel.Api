@@ -233,6 +233,7 @@ public class Endpoint(
             BookTitle = chapter.BookTitle,
             BookSlug = chapter.BookSlug,
             BookId = chapter.BookId,
+            Slug = chapter.Slug,
             // TotalChapters, Next/Prev Slug alanları cache'lenmez, dinamik doldurulur
             PublishedAt = chapter.PublishedAt ?? DateTime.UtcNow,
             ScheduledPublishDate = chapter.ScheduledPublishDate.HasValue 

@@ -10,8 +10,70 @@ namespace Epiknovel.Modules.Management.Services;
 
 public class AuthorApplicationService(
     ManagementDbContext dbContext,
-    ISystemSettingProvider settings) : IAuthorApplicationService
+    ISystemSettingProvider settings,
+    IUserProvider userProvider) : IAuthorApplicationService
 {
+    // ... (existing Submit methods remain)
+    
+    public async Task<Result<List<AuthorApplicationDto>>> GetAuthorApplicationsAsync(ApplicationStatus? status = null, CancellationToken ct = default)
+    {
+        var query = dbContext.AuthorApplications.AsNoTracking();
+        
+        if (status.HasValue)
+            query = query.Where(x => x.Status == status.Value);
+            
+        var applications = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(ct);
+            
+        var userIds = applications.Select(a => a.UserId).Distinct();
+        var userNames = await userProvider.GetDisplayNamesByUserIdsAsync(userIds, ct);
+        
+        var dtos = applications.Select(a => new AuthorApplicationDto
+        {
+            Id = a.Id,
+            UserId = a.UserId,
+            UserName = userNames.GetValueOrDefault(a.UserId, "Bilinmeyen Kullanıcı"),
+            SampleContent = a.SampleContent,
+            Experience = a.Experience,
+            PlannedWork = a.PlannedWork,
+            Status = a.Status,
+            CreatedAt = a.CreatedAt
+        }).ToList();
+        
+        return Result<List<AuthorApplicationDto>>.Success(dtos);
+    }
+
+    public async Task<Result<List<PaidAuthorApplicationDto>>> GetPaidAuthorApplicationsAsync(ApplicationStatus? status = null, CancellationToken ct = default)
+    {
+        var query = dbContext.PaidAuthorApplications.AsNoTracking();
+        
+        if (status.HasValue)
+            query = query.Where(x => x.Status == status.Value);
+            
+        var applications = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync(ct);
+            
+        var userIds = applications.Select(a => a.UserId).Distinct();
+        var userNames = await userProvider.GetDisplayNamesByUserIdsAsync(userIds, ct);
+        
+        var dtos = applications.Select(a => new PaidAuthorApplicationDto
+        {
+            Id = a.Id,
+            UserId = a.UserId,
+            UserName = userNames.GetValueOrDefault(a.UserId, "Bilinmeyen Kullanıcı"),
+            BankName = a.BankName,
+            Iban = a.Iban,
+            BankDocumentUrl = a.BankAccountDocumentUrl,
+            GvkExemptionCertificateUrl = a.GvkExemptionCertificateUrl,
+            Status = a.Status,
+            CreatedAt = a.CreatedAt
+        }).ToList();
+        
+        return Result<List<PaidAuthorApplicationDto>>.Success(dtos);
+    }
+
     public async Task<Result<string>> SubmitAuthorApplicationAsync(
         Guid userId,
         string sampleContent,

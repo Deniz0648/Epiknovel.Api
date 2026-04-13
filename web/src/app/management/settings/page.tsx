@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Globe, 
-  Coins, 
-  CreditCard, 
-  Mail, 
-  FileText, 
-  Layout, 
+import {
+  Globe,
+  Coins,
+  CreditCard,
+  Mail,
+  FileText,
+  Layout,
   Gift,
   Save,
   Loader2,
@@ -76,23 +76,23 @@ const InputField = ({ label, value, onChange, placeholder, type = "text", descri
         <label className="text-xs font-black uppercase tracking-widest text-base-content/40 ml-1">{label}</label>
         {description && (
           <div className="group relative">
-             <AlertCircle className="h-3.5 w-3.5 text-base-content/20 cursor-help" />
-             <div className="absolute bottom-full right-0 mb-2 invisible group-hover:visible w-48 p-2 rounded-lg bg-base-content text-base-100 text-[10px] font-bold z-20 shadow-xl">
-               {description}
-             </div>
+            <AlertCircle className="h-3.5 w-3.5 text-base-content/20 cursor-help" />
+            <div className="absolute bottom-full right-0 mb-2 invisible group-hover:visible w-48 p-2 rounded-lg bg-base-content text-base-100 text-[10px] font-bold z-20 shadow-xl">
+              {description}
+            </div>
           </div>
         )}
       </div>
       <div className="relative">
-        <input 
+        <input
           type={isPassword && !showPassword ? "password" : "text"}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full h-12 rounded-xl bg-base-content/5 border border-base-content/10 px-4 text-sm font-bold focus:border-primary/40 focus:ring-4 focus:ring-primary/10 outline-none transition" 
+          className="w-full h-12 rounded-xl bg-base-content/5 border border-base-content/10 px-4 text-sm font-bold focus:border-primary/40 focus:ring-4 focus:ring-primary/10 outline-none transition"
         />
         {isPassword && (
-          <button 
+          <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/30 hover:text-base-content/60"
@@ -107,12 +107,12 @@ const InputField = ({ label, value, onChange, placeholder, type = "text", descri
 
 const ToggleField = ({ label, isChecked, onToggle, description }: { label: string, isChecked: boolean, onToggle: () => void, description: string }) => {
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl bg-base-content/5 border border-base-content/10 transition-all hover:bg-base-content/[0.08]">
+    <div className="flex items-center justify-between p-4 rounded-2xl bg-base-content/5 border border-base-content/10 transition-all hover:bg-base-content/8">
       <div className="flex flex-col gap-0.5">
         <label className="text-[11px] font-black uppercase tracking-widest text-base-content/60">{label}</label>
         <p className="text-[10px] font-bold text-base-content/40 leading-tight">{description}</p>
       </div>
-      <button 
+      <button
         onClick={onToggle}
         className={`relative h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-300 ${isChecked ? "bg-primary" : "bg-base-content/20"}`}
       >
@@ -142,7 +142,10 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
   }, [name, isLoading]);
 
   useEffect(() => {
-    if (editor && localSettings[bodyKey] !== editor.getHTML()) {
+    // 🛡️ RE-RENDER LOOP PROTECTION:
+    // Sadece kullanıcı editöre odaklanmamışsa (dışarıdan veri geliyorsa) içeriği güncelle.
+    // Kullanıcı yazarken (focused) içeriği ezmeye çalışmak sonsuz döngüye sebep olur.
+    if (editor && !editor.isFocused && localSettings[bodyKey] !== editor.getHTML()) {
       editor.commands.setContent(localSettings[bodyKey] || '');
     }
   }, [localSettings[bodyKey], editor]);
@@ -174,11 +177,11 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
       <div className="flex flex-col gap-3">
         <label className="text-[11px] font-black uppercase tracking-[0.2em] text-base-content/40 ml-1">E-Posta Konusu</label>
         <div className="relative group">
-          <input 
+          <input
             type="text"
             value={localSettings[subjectKey] || ""}
             onChange={(e) => handleInputChange(subjectKey, e.target.value)}
-            className="w-full h-14 rounded-2xl bg-base-content/5 border border-base-content/10 px-6 text-sm font-bold focus:border-primary/40 focus:ring-8 focus:ring-primary/5 outline-none transition group-hover:bg-base-content/[0.08]"
+            className="w-full h-14 rounded-2xl bg-base-content/5 border border-base-content/10 px-6 text-sm font-bold focus:border-primary/40 focus:ring-8 focus:ring-primary/5 outline-none transition group-hover:bg-base-content/8"
             placeholder="Mail başlığını giriniz..."
           />
           <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20 group-hover:opacity-40 transition">
@@ -189,10 +192,10 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 ml-1">
-           <label className="text-[11px] font-black uppercase tracking-[0.2em] text-base-content/40">E-Posta İçeriği (HTML)</label>
-           <span className="text-[9px] font-bold text-base-content/20 italic">Zengin metin editörü kullanılıyor</span>
+          <label className="text-[11px] font-black uppercase tracking-[0.2em] text-base-content/40">E-Posta İçeriği (HTML)</label>
+          <span className="text-[9px] font-bold text-base-content/20 italic">Zengin metin editörü kullanılıyor</span>
         </div>
-        
+
         <div className="rounded-[2.5rem] bg-base-content/5 border border-base-content/10 overflow-hidden focus-within:border-primary/40 focus-within:ring-8 focus-within:ring-primary/5 transition">
           <div className="flex flex-wrap items-center gap-1 p-2 border-b border-base-content/5 bg-base-content/2">
             <ToolbarButton onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive('bold')} icon={Bold} title="Kalın" />
@@ -224,17 +227,17 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
       </div>
 
       <div className="flex justify-end mt-4">
-         <button 
-           onClick={() => {
-             const keys = [bodyKey, subjectKey];
-             saveSettings(keys);
-           }}
-           disabled={isSaving}
-           className="flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-black text-primary-content shadow-2xl shadow-primary/40 transition hover:scale-105 active:scale-95 disabled:opacity-50"
-         >
-           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-           Şablon Değişikliklerini Kaydet
-         </button>
+        <button
+          onClick={() => {
+            const keys = [bodyKey, subjectKey];
+            saveSettings(keys);
+          }}
+          disabled={isSaving}
+          className="flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-black text-primary-content shadow-2xl shadow-primary/40 transition hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Şablon Değişikliklerini Kaydet
+        </button>
       </div>
     </div>
   );
@@ -244,10 +247,10 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  
+
   // URL'den aktif tabı çek, yoksa varsayılan 'site'
   const currentTab = (searchParams.get('tab') as TabType) || 'site';
-  
+
   const [activeTab, _setActiveTab] = useState<TabType>(currentTab);
   const [activeMailTab, setActiveMailTab] = useState('EmailConfirmation');
   const [settings, setSettings] = useState<SettingItem[]>([]);
@@ -279,7 +282,7 @@ export default function SettingsPage() {
     try {
       const data = await apiRequest<SettingItem[]>('/management/settings');
       setSettings(data);
-      
+
       const mapped: Record<string, string> = {};
       data.forEach(s => {
         mapped[s.key] = s.value;
@@ -290,6 +293,13 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const updateValue = (key: string, value: string) => {
+    // 🛠️ AUTO CONVERT: Virgülü noktaya çevir (0,25 -> 0.25)
+    // Özellikle kur ve komisyon gibi alanlarda hatalı girişi önler.
+    const normalizedValue = value.replace(',', '.');
+    handleInputChange(key, normalizedValue);
   };
 
   const handleInputChange = (key: string, value: string) => {
@@ -303,12 +313,12 @@ export default function SettingsPage() {
         key: k,
         value: localSettings[k] || ""
       }));
-      
+
       await apiRequest<boolean>('/management/settings/batch', {
         method: 'PUT',
         body: JSON.stringify(payload)
       });
-      
+
       toast.success({ description: "Ayarlar başarıyla kaydedildi." });
       fetchSettings();
     } catch (error) {
@@ -329,7 +339,7 @@ export default function SettingsPage() {
           <p className="text-sm font-medium text-base-content/50">{desc}</p>
         </div>
       </div>
-      <button 
+      <button
         onClick={() => {
           const keys = Object.keys(localSettings).filter(k => k.startsWith(activeTab.toUpperCase()));
           saveSettings(keys);
@@ -367,39 +377,25 @@ export default function SettingsPage() {
 
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-6">
-           <div className="glass-island inline-flex p-1.5 rounded-[2.2rem] gap-1 overflow-x-auto no-scrollbar max-w-full">
-              {TABS.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as TabType)}
-                    className={`flex items-center gap-2.5 rounded-[1.8rem] px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                      isActive 
-                        ? "bg-primary text-primary-content shadow-xl shadow-primary/20" 
-                        : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/70"
+          <div className="glass-island inline-flex p-1.5 rounded-[2.2rem] gap-1 overflow-x-auto no-scrollbar max-w-full">
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as TabType)}
+                  className={`flex items-center gap-2.5 rounded-[1.8rem] px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${isActive
+                      ? "bg-primary text-primary-content shadow-xl shadow-primary/20"
+                      : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/70"
                     }`}
-                  >
-                    <tab.icon className={`h-4 w-4 ${isActive ? "" : "opacity-40"}`} />
-                    {tab.label}
-                  </button>
-                );
-              })}
-           </div>
+                >
+                  <tab.icon className={`h-4 w-4 ${isActive ? "" : "opacity-40"}`} />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
 
-           <div className="glass-island rounded-[2.5rem] p-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent border-primary/5 max-w-3xl">
-              <div className="flex flex-col md:flex-row md:items-center gap-4">
-                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
-                  <Shield className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Sistem Durumu</h4>
-                  <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">
-                    Değişikliklerin çoğu gerçek zamanlı olarak tüm sunuculara yansıtılır. Kritik ayarları değiştirirken dikkatli olun.
-                  </p>
-                </div>
-              </div>
-           </div>
         </div>
 
         <div className="min-w-0">
@@ -415,15 +411,15 @@ export default function SettingsPage() {
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {renderSectionHeader("Site Ayarları", "Platformun temel kimlik bilgileri.", Globe)}
                     <div className="grid gap-6 md:grid-cols-2">
-                       <InputField label="Site Başlığı" value={localSettings["SITE_Name"] || ""} onChange={(v) => handleInputChange("SITE_Name", v)} placeholder="Epiknovel" description="Tarayıcı sekmesinde görünen başlık." />
-                       <InputField label="Site Sloganı" value={localSettings["SITE_Slogan"] || ""} onChange={(v) => handleInputChange("SITE_Slogan", v)} placeholder="En Epik Hikayeler Burada" />
-                       <InputField label="Site Logosu (URL)" value={localSettings["SITE_LogoUrl"] || ""} onChange={(v) => handleInputChange("SITE_LogoUrl", v)} placeholder="/images/logo.png" description="Sitenin sol üstünde görünen ana logo." />
-                       <InputField label="Favicon (URL)" value={localSettings["SITE_FaviconUrl"] || ""} onChange={(v) => handleInputChange("SITE_FaviconUrl", v)} placeholder="/favicon.ico" description="Tarayıcı sekmesindeki ikon." />
-                       <InputField label="Destek E-Postası" value={localSettings["SITE_SupportEmail"] || ""} onChange={(v) => handleInputChange("SITE_SupportEmail", v)} placeholder="destek@epiknovel.com" />
-                       <InputField label="Bakım Modu" value={localSettings["SITE_MaintenanceMode"] || ""} onChange={(v) => handleInputChange("SITE_MaintenanceMode", v)} placeholder="false" description="'true' yazılırsa site bakıma alınır." />
-                       <div className="md:col-span-2">
-                          <InputField label="Analiz Kodu (GTAG/GTM)" value={localSettings["SITE_AnalyticsId"] || ""} onChange={(v) => handleInputChange("SITE_AnalyticsId", v)} placeholder="G-XXXXXXXXXX" />
-                       </div>
+                      <InputField label="Site Başlığı" value={localSettings["SITE_Name"] || ""} onChange={(v) => handleInputChange("SITE_Name", v)} placeholder="Epiknovel" description="Tarayıcı sekmesinde görünen başlık." />
+                      <InputField label="Site Sloganı" value={localSettings["SITE_Slogan"] || ""} onChange={(v) => handleInputChange("SITE_Slogan", v)} placeholder="En Epik Hikayeler Burada" />
+                      <InputField label="Site Logosu (URL)" value={localSettings["SITE_LogoUrl"] || ""} onChange={(v) => handleInputChange("SITE_LogoUrl", v)} placeholder="/images/logo.png" description="Sitenin sol üstünde görünen ana logo." />
+                      <InputField label="Favicon (URL)" value={localSettings["SITE_FaviconUrl"] || ""} onChange={(v) => handleInputChange("SITE_FaviconUrl", v)} placeholder="/favicon.ico" description="Tarayıcı sekmesindeki ikon." />
+                      <InputField label="Destek E-Postası" value={localSettings["SITE_SupportEmail"] || ""} onChange={(v) => handleInputChange("SITE_SupportEmail", v)} placeholder="destek@epiknovel.com" />
+                      <InputField label="Bakım Modu" value={localSettings["SITE_MaintenanceMode"] || ""} onChange={(v) => handleInputChange("SITE_MaintenanceMode", v)} placeholder="false" description="'true' yazılırsa site bakıma alınır." />
+                      <div className="md:col-span-2">
+                        <InputField label="Analiz Kodu (GTAG/GTM)" value={localSettings["SITE_AnalyticsId"] || ""} onChange={(v) => handleInputChange("SITE_AnalyticsId", v)} placeholder="G-XXXXXXXXXX" />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -432,11 +428,11 @@ export default function SettingsPage() {
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {renderSectionHeader("Ekonomi Ayarları", "Platformun finansal dengesi buradan kurulur.", Coins)}
                     <div className="grid gap-6 md:grid-cols-2">
-                       <InputField label="Yazar Komisyon Oranı (%)" value={localSettings["ECONOMY_AuthorCommission"] || ""} onChange={(v) => handleInputChange("ECONOMY_AuthorCommission", v)} placeholder="70" description="Yazara ödenecek yüzde (0-100)." />
-                       <InputField label="Platform Komisyonu (%)" value={localSettings["ECONOMY_PlatformCommission"] || ""} onChange={(v) => handleInputChange("ECONOMY_PlatformCommission", v)} placeholder="30" />
-                       <InputField label="Minimum Çekim Tutarı (TL)" value={localSettings["ECONOMY_MinWithdrawal"] || ""} onChange={(v) => handleInputChange("ECONOMY_MinWithdrawal", v)} placeholder="100" />
-                       <InputField label="Bölüm Başına Minimum Jeton" value={localSettings["ECONOMY_MinChapterPrice"] || ""} onChange={(v) => handleInputChange("ECONOMY_MinChapterPrice", v)} placeholder="5" />
-                       <InputField label="100 Jeton Karşılığı (TL)" value={localSettings["ECONOMY_TokenValue"] || ""} onChange={(v) => handleInputChange("ECONOMY_TokenValue", v)} placeholder="10" description="100 token'ın yazara kazandırdığı TL karşılığı." />
+                      <InputField label="Yazar Komisyon Oranı (%)" value={localSettings["ECONOMY_AuthorSharePercentage"] || ""} onChange={(v) => handleInputChange("ECONOMY_AuthorSharePercentage", v)} placeholder="70" description="Yazara ödenecek yüzde (0-100)." />
+                      <InputField label="Minimum Çekim Tutarı (TL)" value={localSettings["ECONOMY_MinWithdrawal"] || ""} onChange={(v) => handleInputChange("ECONOMY_MinWithdrawal", v)} placeholder="100" />
+                      <InputField label="Bölüm Başına Minimum Jeton" value={localSettings["ECONOMY_MinChapterPrice"] || ""} onChange={(v) => handleInputChange("ECONOMY_MinChapterPrice", v)} placeholder="5" />
+                      <InputField label="Bölüm Başına Maksimum Jeton" value={localSettings["ECONOMY_MaxChapterPrice"] || ""} onChange={(v) => handleInputChange("ECONOMY_MaxChapterPrice", v)} placeholder="100" />
+                      <InputField label="Jeton Karşılığı (1 Adet / TL)" value={localSettings["ECONOMY_CoinToCurrencyRate"] || ""} onChange={(v) => handleInputChange("ECONOMY_CoinToCurrencyRate", v)} placeholder="0.25" description="1 adet jetonun yazara kazandırdığı net TL karşılığı." />
                     </div>
                   </div>
                 )}
@@ -445,11 +441,11 @@ export default function SettingsPage() {
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {renderSectionHeader("Sanal POS Ayarları", "Iyzico entegrasyonu ve ödeme parametreleri.", CreditCard)}
                     <div className="grid gap-6">
-                       <div className="grid gap-6 md:grid-cols-2">
-                          <InputField label="Iyzico API Key" value={localSettings["POS_Iyzico_ApiKey"] || ""} onChange={(v) => handleInputChange("POS_Iyzico_ApiKey", v)} type="password" placeholder="api_key_..." />
-                          <InputField label="Iyzico Secret Key" value={localSettings["POS_Iyzico_SecretKey"] || ""} onChange={(v) => handleInputChange("POS_Iyzico_SecretKey", v)} type="password" placeholder="secret_key_..." />
-                       </div>
-                       <InputField label="Iyzico Base URL" value={localSettings["POS_Iyzico_BaseUrl"] || ""} onChange={(v) => handleInputChange("POS_Iyzico_BaseUrl", v)} placeholder="https://api.iyzipay.com" />
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <InputField label="Iyzico API Key" value={localSettings["POS_Iyzico_ApiKey"] || ""} onChange={(v) => handleInputChange("POS_Iyzico_ApiKey", v)} type="password" placeholder="api_key_..." />
+                        <InputField label="Iyzico Secret Key" value={localSettings["POS_Iyzico_SecretKey"] || ""} onChange={(v) => handleInputChange("POS_Iyzico_SecretKey", v)} type="password" placeholder="secret_key_..." />
+                      </div>
+                      <InputField label="Iyzico Base URL" value={localSettings["POS_Iyzico_BaseUrl"] || ""} onChange={(v) => handleInputChange("POS_Iyzico_BaseUrl", v)} placeholder="https://api.iyzipay.com" />
                     </div>
                   </div>
                 )}
@@ -458,12 +454,12 @@ export default function SettingsPage() {
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {renderSectionHeader("SMTP Ayarları", "Sistem maillerini gönderen sunucu yapılandırması.", Mail)}
                     <div className="grid gap-6 md:grid-cols-2">
-                       <InputField label="SMTP Host" value={localSettings["SMTP_Host"] || ""} onChange={(v) => handleInputChange("SMTP_Host", v)} placeholder="smtp.gmail.com" />
-                       <InputField label="SMTP Port" value={localSettings["SMTP_Port"] || ""} onChange={(v) => handleInputChange("SMTP_Port", v)} placeholder="587" />
-                       <InputField label="Gönderen Adı" value={localSettings["SMTP_SenderName"] || ""} onChange={(v) => handleInputChange("SMTP_SenderName", v)} placeholder="Epiknovel" />
-                       <InputField label="Gönderen E-Posta" value={localSettings["SMTP_SenderEmail"] || ""} onChange={(v) => handleInputChange("SMTP_SenderEmail", v)} placeholder="noreply@epiknovel.com" />
-                       <InputField label="SMTP Kullanıcı" value={localSettings["SMTP_User"] || ""} onChange={(v) => handleInputChange("SMTP_User", v)} placeholder="username" />
-                       <InputField label="SMTP Şifre" value={localSettings["SMTP_Password"] || ""} onChange={(v) => handleInputChange("SMTP_Password", v)} type="password" placeholder="password" />
+                      <InputField label="SMTP Host" value={localSettings["SMTP_Host"] || ""} onChange={(v) => handleInputChange("SMTP_Host", v)} placeholder="smtp.gmail.com" />
+                      <InputField label="SMTP Port" value={localSettings["SMTP_Port"] || ""} onChange={(v) => handleInputChange("SMTP_Port", v)} placeholder="587" />
+                      <InputField label="Gönderen Adı" value={localSettings["SMTP_SenderName"] || ""} onChange={(v) => handleInputChange("SMTP_SenderName", v)} placeholder="Epiknovel" />
+                      <InputField label="Gönderen E-Posta" value={localSettings["SMTP_SenderEmail"] || ""} onChange={(v) => handleInputChange("SMTP_SenderEmail", v)} placeholder="noreply@epiknovel.com" />
+                      <InputField label="SMTP Kullanıcı" value={localSettings["SMTP_User"] || ""} onChange={(v) => handleInputChange("SMTP_User", v)} placeholder="username" />
+                      <InputField label="SMTP Şifre" value={localSettings["SMTP_Password"] || ""} onChange={(v) => handleInputChange("SMTP_Password", v)} type="password" placeholder="password" />
                     </div>
                   </div>
                 )}
@@ -472,54 +468,54 @@ export default function SettingsPage() {
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {renderSectionHeader("İçerik Ayarları", "Platformun ana servis yönetimi.", FileText)}
                     <div className="grid gap-6">
-                       <div className="grid gap-4 mt-4">
-                          <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary ml-1">Gelişmiş Servis Kontrolleri</h4>
-                          <div className="grid gap-4 md:grid-cols-2">
-                             <ToggleField label="Kitap Oluşturma" isChecked={localSettings["CONTENT_AllowNewBooks"] === "true"} onToggle={() => handleInputChange("CONTENT_AllowNewBooks", localSettings["CONTENT_AllowNewBooks"] === "true" ? "false" : "true")} description="Yeni kitap (çeviri hariç) oluşturulmasını açar/kapatır." />
-                             <ToggleField label="Ücretli Bölümler" isChecked={localSettings["CONTENT_AllowPaidChapters"] === "true"} onToggle={() => handleInputChange("CONTENT_AllowPaidChapters", localSettings["CONTENT_AllowPaidChapters"] === "true" ? "false" : "true")} description="Ücretli bölüm oluşturulmasını site genelinde yönetir." />
-                             <ToggleField label="Cüzdan ve Satın Alım" isChecked={localSettings["CONTENT_EnableWallet"] === "true"} onToggle={() => handleInputChange("CONTENT_EnableWallet", localSettings["CONTENT_EnableWallet"] === "true" ? "false" : "true")} description="Cüzdan işlemlerini ve paket alımlarını kapatır." />
-                             <ToggleField label="Yazarlık Başvurusu" isChecked={localSettings["CONTENT_AllowAuthorApplications"] === "true"} onToggle={() => handleInputChange("CONTENT_AllowAuthorApplications", localSettings["CONTENT_AllowAuthorApplications"] === "true" ? "false" : "true")} description="Yazarlık başvuru formunu aktif veya pasif yapar." />
-                          </div>
-                       </div>
+                      <div className="grid gap-4 mt-4">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary ml-1">Gelişmiş Servis Kontrolleri</h4>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <ToggleField label="Kitap Oluşturma" isChecked={localSettings["CONTENT_AllowNewBooks"] === "true"} onToggle={() => handleInputChange("CONTENT_AllowNewBooks", localSettings["CONTENT_AllowNewBooks"] === "true" ? "false" : "true")} description="Yeni kitap (çeviri hariç) oluşturulmasını açar/kapatır." />
+                          <ToggleField label="Ücretli Bölümler" isChecked={localSettings["CONTENT_AllowPaidChapters"] === "true"} onToggle={() => handleInputChange("CONTENT_AllowPaidChapters", localSettings["CONTENT_AllowPaidChapters"] === "true" ? "false" : "true")} description="Ücretli bölüm oluşturulmasını site genelinde yönetir." />
+                          <ToggleField label="Cüzdan ve Satın Alım" isChecked={localSettings["CONTENT_EnableWallet"] === "true"} onToggle={() => handleInputChange("CONTENT_EnableWallet", localSettings["CONTENT_EnableWallet"] === "true" ? "false" : "true")} description="Cüzdan işlemlerini ve paket alımlarını kapatır." />
+                          <ToggleField label="Yazarlık Başvurusu" isChecked={localSettings["CONTENT_AllowAuthorApplications"] === "true"} onToggle={() => handleInputChange("CONTENT_AllowAuthorApplications", localSettings["CONTENT_AllowAuthorApplications"] === "true" ? "false" : "true")} description="Yazarlık başvuru formunu aktif veya pasif yapar." />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'templates' && (
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
-                    <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-[2rem] bg-base-content/5 border border-base-content/10 w-fit">
-                       {[
-                         { id: 'ResetPassword', label: 'Şifre Sıfırlama', icon: Lock },
-                         { id: 'EmailConfirmation', label: 'E-posta Doğrulama', icon: CheckCircle2 },
-                         { id: 'AuthorApproval', label: 'Yazar Onayı', icon: Zap },
-                         { id: 'SupportResponse', label: 'Destek Yanıtı', icon: Mail },
-                         { id: 'PaymentReceipt', label: 'Ödeme Makbuzu', icon: CreditCard },
-                       ].map((mTab) => {
-                         const isMActive = activeMailTab === mTab.id;
-                         return (
-                           <button
-                             key={mTab.id}
-                             onClick={() => setActiveMailTab(mTab.id)}
-                             className={`flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${isMActive ? "bg-primary text-primary-content shadow-lg shadow-primary/20 scale-105" : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/60"}`}
-                           >
-                             <mTab.icon className="h-3.5 w-3.5" />
-                             {mTab.label}
-                           </button>
-                         );
-                       })}
+                    <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-4xl-base-content/5 border border-base-content/10 w-fit">
+                      {[
+                        { id: 'ResetPassword', label: 'Şifre Sıfırlama', icon: Lock },
+                        { id: 'EmailConfirmation', label: 'E-posta Doğrulama', icon: CheckCircle2 },
+                        { id: 'AuthorApproval', label: 'Yazar Onayı', icon: Zap },
+                        { id: 'SupportResponse', label: 'Destek Yanıtı', icon: Mail },
+                        { id: 'PaymentReceipt', label: 'Ödeme Makbuzu', icon: CreditCard },
+                      ].map((mTab) => {
+                        const isMActive = activeMailTab === mTab.id;
+                        return (
+                          <button
+                            key={mTab.id}
+                            onClick={() => setActiveMailTab(mTab.id)}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${isMActive ? "bg-primary text-primary-content shadow-lg shadow-primary/20 scale-105" : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/60"}`}
+                          >
+                            <mTab.icon className="h-3.5 w-3.5" />
+                            {mTab.label}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="glass-island rounded-[3.5rem] p-10 bg-base-content/[0.02]">
-                       <AdvancedTemplateEditor 
-                          label={activeMailTab} 
-                          name={activeMailTab} 
-                          variables={activeMailTab === 'ResetPassword' ? "{USER_NAME}, {RESET_LINK}, {RESET_URL}" : activeMailTab === 'EmailConfirmation' ? "{USER_NAME}, {CONFIRM_LINK}, {CONFIRM_URL}" : activeMailTab === 'AuthorApproval' ? "{AUTHOR_NAME}, {SETTINGS_LINK}" : activeMailTab === 'SupportResponse' ? "{USER_NAME}, {TICKET_TITLE}, {RESPONSE_MESSAGE}, {TICKET_LINK}" : "{USER_NAME}, {PACKAGE_NAME}, {AMOUNT}, {CURRENCY}, {ORDER_ID}, {DATE}"}
-                          placeholder="İçeriği düzenleyin..."
-                          localSettings={localSettings}
-                          handleInputChange={handleInputChange}
-                          saveSettings={saveSettings}
-                          isSaving={isSaving}
-                          isLoading={isLoading}
-                       />
+                    <div className="glass-island rounded-[3.5rem] p-10 bg-base-content/2">
+                      <AdvancedTemplateEditor
+                        label={activeMailTab}
+                        name={activeMailTab}
+                        variables={activeMailTab === 'ResetPassword' ? "{USER_NAME}, {RESET_LINK}, {RESET_URL}" : activeMailTab === 'EmailConfirmation' ? "{USER_NAME}, {CONFIRM_LINK}, {CONFIRM_URL}" : activeMailTab === 'AuthorApproval' ? "{AUTHOR_NAME}, {SETTINGS_LINK}" : activeMailTab === 'SupportResponse' ? "{USER_NAME}, {TICKET_TITLE}, {RESPONSE_MESSAGE}, {TICKET_LINK}" : "{USER_NAME}, {PACKAGE_NAME}, {AMOUNT}, {CURRENCY}, {ORDER_ID}, {DATE}"}
+                        placeholder="İçeriği düzenleyin..."
+                        localSettings={localSettings}
+                        handleInputChange={handleInputChange}
+                        saveSettings={saveSettings}
+                        isSaving={isSaving}
+                        isLoading={isLoading}
+                      />
                     </div>
                   </div>
                 )}
@@ -528,15 +524,15 @@ export default function SettingsPage() {
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                     {renderSectionHeader("Ödül Sistemi", "Kullanıcı etkileşimini artıracak ödüller.", Gift)}
                     <div className="grid gap-6">
-                       <div className="p-1 max-w-md">
-                          <ToggleField label="Ödül Sistmini Etkinleştir" isChecked={localSettings["REWARDS_EnableRewards"] === "true"} onToggle={() => handleInputChange("REWARDS_EnableRewards", localSettings["REWARDS_EnableRewards"] === "true" ? "false" : "true")} description="Site genelinde tüm ödül ve puan kazanım süreçlerini açar veya kapatır." />
-                       </div>
-                       <div className="grid gap-6 md:grid-cols-2 mt-4">
-                          <InputField label="Günlük Giriş Ödülü (Jeton)" value={localSettings["REWARDS_DailyLoginReward"] || ""} onChange={(v) => handleInputChange("REWARDS_DailyLoginReward", v)} placeholder="5" />
-                          <InputField label="Referans Ödülü (Jeton)" value={localSettings["REWARDS_ReferralReward"] || ""} onChange={(v) => handleInputChange("REWARDS_ReferralReward", v)} placeholder="50" />
-                          <InputField label="İlk Kayıt Bonusu (Jeton)" value={localSettings["REWARDS_FirstRegistrationBonus"] || ""} onChange={(v) => handleInputChange("REWARDS_FirstRegistrationBonus", v)} placeholder="100" />
-                          <InputField label="Yorum Yazma Ödülü (Jeton)" value={localSettings["REWARDS_CommentReward"] || ""} onChange={(v) => handleInputChange("REWARDS_CommentReward", v)} placeholder="2" />
-                       </div>
+                      <div className="p-1 max-w-md">
+                        <ToggleField label="Ödül Sistmini Etkinleştir" isChecked={localSettings["REWARDS_EnableRewards"] === "true"} onToggle={() => handleInputChange("REWARDS_EnableRewards", localSettings["REWARDS_EnableRewards"] === "true" ? "false" : "true")} description="Site genelinde tüm ödül ve puan kazanım süreçlerini açar veya kapatır." />
+                      </div>
+                      <div className="grid gap-6 md:grid-cols-2 mt-4">
+                        <InputField label="Günlük Giriş Ödülü (Jeton)" value={localSettings["REWARDS_DailyLoginReward"] || ""} onChange={(v) => handleInputChange("REWARDS_DailyLoginReward", v)} placeholder="5" />
+                        <InputField label="Referans Ödülü (Jeton)" value={localSettings["REWARDS_ReferralReward"] || ""} onChange={(v) => handleInputChange("REWARDS_ReferralReward", v)} placeholder="50" />
+                        <InputField label="İlk Kayıt Bonusu (Jeton)" value={localSettings["REWARDS_FirstRegistrationBonus"] || ""} onChange={(v) => handleInputChange("REWARDS_FirstRegistrationBonus", v)} placeholder="100" />
+                        <InputField label="Yorum Yazma Ödülü (Jeton)" value={localSettings["REWARDS_CommentReward"] || ""} onChange={(v) => handleInputChange("REWARDS_CommentReward", v)} placeholder="2" />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -545,6 +541,19 @@ export default function SettingsPage() {
             <div className="absolute top-0 right-0 p-12 opacity-[0.01] pointer-events-none select-none">
               <HardDrive className="h-96 w-96 -mr-20 -mt-20" />
             </div>
+          </div>
+        </div>
+      </div>
+      <div className="glass-island rounded-[2.5rem] p-6 bg-linear-to-br from-primary/5 via-transparent to-transparent border-primary/5 max-w-3xl mt-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+            <Shield className="h-5 w-5" />
+          </div>
+          <div>
+            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Sistem Durumu</h4>
+            <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">
+              Değişikliklerin çoğu gerçek zamanlı olarak tüm sunuculara yansıtılır. Kritik ayarları değiştirirken dikkatli olun.
+            </p>
           </div>
         </div>
       </div>

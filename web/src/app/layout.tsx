@@ -4,7 +4,6 @@ import { LayoutShell } from "@/components/layout/layout-shell";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { NotificationsProvider } from "@/components/providers/notifications-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
-import { RealtimeProvider } from "@/components/providers/realtime-provider";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { backendApiRequest } from "@/lib/backend-api";
 
@@ -65,15 +64,13 @@ export default function RootLayout({
       <body className="min-h-screen antialiased">
         <SettingsProvider>
           <ToastProvider>
-            <RealtimeProvider>
-              <AuthProvider>
-                <NotificationsProvider>
-                   <LayoutShell>
-                      {children}
-                   </LayoutShell>
-                </NotificationsProvider>
-              </AuthProvider>
-            </RealtimeProvider>
+            <AuthProvider>
+              <NotificationsProvider>
+                 <LayoutShell>
+                    {children}
+                 </LayoutShell>
+              </NotificationsProvider>
+            </AuthProvider>
           </ToastProvider>
         </SettingsProvider>
       </body>

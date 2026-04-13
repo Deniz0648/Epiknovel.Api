@@ -5,6 +5,9 @@ using Epiknovel.Shared.Core.Interfaces.Books;
 using Epiknovel.Modules.Wallet.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.AspNetCore.OutputCaching;
+
 
 namespace Epiknovel.Modules.Wallet.Features.Purchases.Commands.PurchaseChapter;
 
@@ -12,7 +15,10 @@ public class PurchaseChapterHandler(
     WalletDbContext dbContext, 
     IBookProvider bookProvider, 
     ISystemSettingProvider settingsManager,
-    ICampaignService campaignService) : IRequestHandler<PurchaseChapterCommand, Result<string>>
+    ICampaignService campaignService,
+    IDistributedCache cache,
+    IOutputCacheStore cacheStore) : IRequestHandler<PurchaseChapterCommand, Result<string>>
+
 {
     public async Task<Result<string>> Handle(PurchaseChapterCommand request, CancellationToken ct)
     {
@@ -121,19 +127,20 @@ public class PurchaseChapterHandler(
                 {
                     UserId = authorId,
                     Wallet = authorWallet,
-                    CoinAmount = compensationBasePrice,
+                    CoinAmount = 0, // Yazara Coin geçmiyor, doğrudan TL (Revenue) işleniyor
                     FiatAmount = netFiatToAuthor,
                     AppliedAuthorShare = authorShare,
                     AppliedCoinPrice = coinParam,
                     Type = TransactionType.Revenue,
                     ReferenceId = request.ChapterId,
                     Description = isDiscounted && campaign.SponsorType == CampaignSponsorType.Platform 
-                        ? $"Bölüm Satış Geliri (Platform Destekli İndirim: %{campaign.DiscountPercentage})" 
+                        ? $"Bölüm Satış Kazancı (Platform Destekli İndirim: %{campaign.DiscountPercentage * 100:0})" 
                         : isDiscounted && campaign.SponsorType == CampaignSponsorType.Author
-                            ? $"Bölüm Satış Geliri (Yazar Destekli İndirim: %{campaign.DiscountPercentage})"
-                            : "Bölüm Satış Geliri (Net TL)"
+                            ? $"Bölüm Satış Kazancı (Yazar Destekli İndirim: %{campaign.DiscountPercentage * 100:0})"
+                            : "Bölüm Satış Kazancı (Net TL)"
                 };
                 dbContext.WalletTransactions.Add(authorTx);
+
 
                 // --- UNLOCK LOG ---
                 var unlockedLog = new UserUnlockedChapter
@@ -149,7 +156,15 @@ public class PurchaseChapterHandler(
                 await dbContext.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
 
+                // 🚀 CACHE PURGE (Önemli: Satın alma sonrası GetChapter hemen doğru dönmeli)
+                var cacheKey = $"wallet_unlocked:{request.UserId}:{request.ChapterId}";
+                await cache.RemoveAsync(cacheKey, ct);
+                
+                // Evict OutputCache tag to ensure fresh response for GetChapter
+                await cacheStore.EvictByTagAsync("ChapterCache", ct);
+
                 return Result<string>.Success("Bölüm başarıyla satın alındı.");
+
             }
             catch (DbUpdateConcurrencyException)
             {

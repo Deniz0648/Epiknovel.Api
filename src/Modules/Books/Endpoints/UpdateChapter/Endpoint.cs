@@ -76,6 +76,22 @@ public class Endpoint(
                 await Send.ResponseAsync(Result<Response>.Failure("Bölümü ücretli yapmak için önce başvurup onay almalısınız."), 403, ct);
                 return;
             }
+
+            // 🚀 PRICE RANGE CHECK
+            var minPrice = await settings.GetSettingValueAsync<int>("ECONOMY_MinChapterPrice", ct);
+            var maxPrice = await settings.GetSettingValueAsync<int>("ECONOMY_MaxChapterPrice", ct);
+            if (maxPrice <= 0) maxPrice = 1000; // Emniyet kilidi
+
+            if (req.Price < minPrice)
+            {
+                await Send.ResponseAsync(Result<Response>.Failure($"Bölüm ücreti minimum {minPrice} jeton olmalıdır."), 400, ct);
+                return;
+            }
+            if (req.Price > maxPrice)
+            {
+                await Send.ResponseAsync(Result<Response>.Failure($"Bölüm ücreti maksimum {maxPrice} jeton olabilir."), 400, ct);
+                return;
+            }
         }
 
         bool isFirstTimePublished = req.Status == ChapterStatus.Published && chapter.PublishedAt == null;

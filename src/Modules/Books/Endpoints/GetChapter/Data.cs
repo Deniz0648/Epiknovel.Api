@@ -66,6 +66,8 @@ public class Response
     public long ViewCount { get; set; }
     [Key(20)]
     public DateTime? ScheduledPublishDate { get; set; }
+    [Key(21)]
+    public string Slug { get; set; } = string.Empty;
 }
 
 [MessagePackObject]
