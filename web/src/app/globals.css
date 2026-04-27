@@ -43,6 +43,14 @@
   color-scheme: light dark;
 }
 
+/* daisyUI 5 @property fix for percentage values */
+@property --radialprogress {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 0.001%;
+}
+
+
 body {
   margin: 0;
   overflow-x: hidden;
@@ -228,58 +236,52 @@ body {
 
 .comment-trigger {
   position: absolute;
-  top: 4px;
-  right: -42px;
+  top: 0;
+  right: -38px;
   opacity: 0;
-  transform: translateX(10px);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: scale(0.8) translateX(5px);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
   z-index: 20;
-  /* Pseudo-elementten yukarıda olmalı */
 }
-
 
 /* Masaüstü Hover Etkileşimi */
 .reader-paragraph-wrapper:hover .comment-trigger {
-  opacity: 0.45;
-  transform: translateX(0);
+  opacity: 0.6;
+  transform: scale(1) translateX(0);
   pointer-events: auto;
 }
 
 .comment-trigger:hover {
   opacity: 1 !important;
-  transform: scale(1.15) !important;
-  filter: drop-shadow(0 4px 12px color-mix(in oklab, var(--color-primary) 30%, transparent));
+  transform: scale(1.1) !important;
+  box-shadow: 0 10px 25px -5px color-mix(in oklab, var(--color-primary) 40%, transparent);
 }
 
 /* 📱 Mobil Optimizasyonu */
 @media (max-width: 1024px) {
   .comment-trigger {
-    right: -18px;
+    right: -12px;
+    top: -10px;
     opacity: 0;
-    transform: translateX(10px);
-    pointer-events: none;
-    background: color-mix(in oklab, var(--color-base-100) 80%, transparent);
-    backdrop-filter: blur(4px);
-    border-radius: 999px;
-    padding: 6px;
-    border: 1px solid color-mix(in oklab, var(--color-base-content) 10%, transparent);
+    transform: scale(0.5);
+    background: color-mix(in oklab, var(--color-primary) 90%, white);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   }
 
-  /* Tıklandığında Görünürlük */
   .is-focused .comment-trigger {
     opacity: 1;
-    transform: translateX(0);
+    transform: scale(1);
     pointer-events: auto;
   }
+}
 
 
-  .comment-trigger:active {
-    opacity: 1;
-    transform: scale(0.95);
-    background: var(--color-primary);
-    color: var(--color-primary-content);
-  }
+.comment-trigger:active {
+  opacity: 1;
+  transform: scale(0.95);
+  background: var(--color-primary);
+  color: var(--color-primary-content);
 }
 
 

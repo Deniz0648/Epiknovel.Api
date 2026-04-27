@@ -11,6 +11,7 @@ public record Request
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
     public string? Search { get; init; }
+    public string? Type { get; init; }
 }
 
 public record TransactionDto
@@ -62,6 +63,14 @@ public class Endpoint(WalletDbContext dbContext) : Endpoint<Request, Result<Resp
             query = query.Where(t => 
                 (t.Description != null && t.Description.ToLower().Contains(search)) ||
                 (t.Type.ToString().ToLower().Contains(search)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(req.Type))
+        {
+            if (Enum.TryParse<TransactionType>(req.Type, true, out var typeEnum))
+            {
+                query = query.Where(t => t.Type == typeEnum);
+            }
         }
 
         query = query.OrderByDescending(t => t.CreatedAt);

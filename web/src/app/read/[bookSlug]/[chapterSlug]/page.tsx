@@ -6,7 +6,8 @@ import {
   ChevronLeft, ChevronRight, Settings, MessageSquare,
   Minus, Plus, Pin, Maximize, Share2,
   Eye, EyeOff, BookOpen, Scaling,
-  Send, AlertCircle, Home, Heart, ShoppingCart, Lock, Coins, LogIn, Info
+  Send, AlertCircle, Home, Heart, ShoppingCart, Lock, Coins, LogIn, Info,
+  AlignLeft
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +15,7 @@ import { apiRequest } from "@/lib/api";
 import { useAuth } from "@/components/providers/auth-provider";
 import { getWalletBalance, purchaseChapter } from "@/lib/wallet";
 import { toast } from "sonner";
+import { CommentSection } from "@/components/social/comments/CommentSection";
 
 // --- TİPLER ---
 interface Paragraph { id: string; content: string; }
@@ -44,6 +46,7 @@ export default function ReaderPage() {
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [commentType, setCommentType] = useState<'chapter' | 'paragraph'>('chapter');
   const [activeParagraphId, setActiveParagraphId] = useState<string | null>(null);
+  const [paragraphCommentCounts, setParagraphCommentCounts] = useState<Record<string, number>>({});
   const [showHeader, setShowHeader] = useState(true);
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -109,6 +112,39 @@ export default function ReaderPage() {
     }
   }, [profile, chapters, params?.chapterSlug]);
 
+  const fetchParagraphCommentCounts = useCallback(async (chapterId: string) => {
+    try {
+      interface InlineCommentGroup {
+        paragraphId?: string;
+        ParagraphId?: string;
+        id?: string;
+        Id?: string;
+        commentCount?: number;
+        CommentCount?: number;
+        count?: number;
+        Count?: number;
+      }
+      const groups = await apiRequest<InlineCommentGroup[]>(`/social/inline-comments/chapter/${chapterId}`);
+      console.log(`[READER] fetched ${groups?.length || 0} inline comment groups for chapter ${chapterId}`);
+      if (groups && Array.isArray(groups)) {
+        const counts: Record<string, number> = {};
+        groups.forEach((group) => {
+          // Support both camelCase and PascalCase from API
+          const pId = group.paragraphId || group.ParagraphId || group.id || group.Id;
+          const count = group.commentCount ?? group.CommentCount ?? group.count ?? group.Count ?? 0;
+          
+          if (pId) {
+            const normalizedId = pId.toString().toLowerCase();
+            counts[normalizedId] = count;
+          }
+        });
+        setParagraphCommentCounts(prev => ({ ...prev, ...counts }));
+      }
+    } catch (err) {
+      console.error("Satır yorum sayıları alınamadı:", err);
+    }
+  }, []);
+
   useEffect(() => {
     async function loadFirstChapter() {
       if (isAuthLoading || !params?.chapterSlug) return;
@@ -118,6 +154,7 @@ export default function ReaderPage() {
         setIsLoading(true);
         const data = await apiRequest<ChapterDetail>(`/books/chapters/${params.chapterSlug}`);
         setChapters([data]);
+        void fetchParagraphCommentCounts(data.id);
 
         setTimeout(() => {
           const targetPId = searchParams.get('p');
@@ -159,11 +196,12 @@ export default function ReaderPage() {
       loadingRef.current = true;
       setIsNextLoading(true);
       const data = await apiRequest<ChapterDetail>(`/books/chapters/${lastChapter.nextChapterSlug}`);
-      
+
       skipNextUrlUpdate.current = true;
       window.history.replaceState(null, "", `/read/${data.bookSlug}/${data.slug}`);
-      
+
       setChapters(prev => [...prev, data]);
+      void fetchParagraphCommentCounts(data.id);
       void saveProgress(true);
     } catch (err) {
       console.error(err);
@@ -179,18 +217,19 @@ export default function ReaderPage() {
       setIsPurchasing(true);
       await purchaseChapter(chapterId);
       toast.success("Bölüm kilidi başarıyla açıldı!");
-      
+
       // Satın alınan bölümü en güncel haliyle çek
       const data = await apiRequest<ChapterDetail>(`/books/chapters/${chapterSlug}`);
-      
+
       // State içindeki ilgili bölümü güncelle (Diğer bölümleri bozmadan)
       setChapters(prev => prev.map(c => c.id === chapterId ? data : c));
-      
+
       // Bakiyeyi güncelle
       const balanceRes = await getWalletBalance();
       setCoinBalance(balanceRes.coinBalance);
-    } catch (err: any) {
-      toast.error(err.message || "Satın alma işlemi başarısız oldu.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Satın alma işlemi başarısız oldu.";
+      toast.error(message);
     } finally {
       setIsPurchasing(false);
     }
@@ -326,9 +365,21 @@ export default function ReaderPage() {
                       />
                       <button
                         onClick={() => { setIsCommentsOpen(true); setCommentType('paragraph'); setActiveParagraphId(p.id); }}
-                        className="comment-trigger flex items-center justify-center h-8 w-8 lg:h-10 lg:w-10 rounded-xl bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all group/icon"
+                        className="comment-trigger flex flex-col items-center justify-center w-7 h-7 rounded-md bg-primary text-primary-content shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all group/icon"
+                        title={`${paragraphCommentCounts[p.id.toLowerCase()] || 0} Yorum`}
                       >
-                        <MessageSquare size={18} className="group-hover/icon:scale-110 transition-transform" />
+                        <MessageSquare size={11} className="group-hover/icon:scale-110 transition-transform" />
+                        {(() => {
+                           const count = paragraphCommentCounts[p.id.toLowerCase()] || 0;
+                           if (count > 0) {
+                             return (
+                               <span className="text-[8px] font-black leading-none mt-0.5">
+                                 {count > 99 ? '99+' : count}
+                               </span>
+                             );
+                           }
+                           return null;
+                        })()}
                       </button>
                     </div>
                   ))}
@@ -349,8 +400,8 @@ export default function ReaderPage() {
                             {profile ? "Bu Bölümün Devamı İçin Kilitli" : "Okumaya Devam Etmek İçin Giriş Yapın"}
                           </h3>
                           <p className="text-sm font-medium text-base-content/60 leading-relaxed">
-                            {chapter.previewMessage || (profile 
-                              ? "Yazar bu bölümü ücretli olarak belirlemiş. Coinlerinizi kullanarak hemen erişim sağlayabilirsiniz." 
+                            {chapter.previewMessage || (profile
+                              ? "Yazar bu bölümü ücretli olarak belirlemiş. Coinlerinizi kullanarak hemen erişim sağlayabilirsiniz."
                               : "Bu bölümün tamamını okumak ve kütüphanenize eklemek için lütfen giriş yapın.")}
                           </p>
                         </div>
@@ -388,8 +439,8 @@ export default function ReaderPage() {
                           </div>
                         )}
                         <div className="mt-4 flex items-center gap-2 px-6 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full">
-                           <Info size={14} className="text-amber-600" />
-                           <span className="text-[10px] font-black uppercase text-amber-600 tracking-tighter italic">Bölümün %15'lik önizlemesini görmektesiniz.</span>
+                          <Info size={14} className="text-amber-600" />
+                          <span className="text-[10px] font-black uppercase text-amber-600 tracking-tighter italic">Bölümün %15'lik önizlemesini görmektesiniz.</span>
                         </div>
                       </div>
                     </div>
@@ -413,26 +464,23 @@ export default function ReaderPage() {
                 </div>
               )}
 
-              <div className="mt-16 pt-16 border-t border-base-content/5 w-full px-4 font-sans">
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><MessageSquare size={26} /></div>
-                  <div>
-                    <h4 className="text-xl font-black text-base-content/80 leading-tight">Yorumunuzu Yazın</h4>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 mt-1">DÜŞÜNCELERİNİZİ PAYLAŞIN</p>
-                  </div>
-                </div>
-                <div className="relative group overflow-hidden rounded-2xl bg-base-100 border border-base-content/10 focus-within:border-primary/40 transition-all shadow-inner">
-                  <textarea placeholder="Yorumunuzu buraya yazın..." className="w-full min-h-[140px] bg-transparent p-7 text-sm focus:outline-none resize-none" />
-                  <div className="absolute bottom-4 right-4 flex items-center justify-center">
-                    <button className="btn btn-ghost btn-circle bg-base-content/10 hover:bg-primary transition-all group border-none"><Send size={19} className="group-hover:text-white transition-all" /></button>
-                  </div>
-                </div>
-                <div className="mt-6 flex items-center justify-start gap-4 px-2">
-                  <button onClick={() => setIsSpoiler(!isSpoiler)} className="flex items-center gap-3 group">
-                    <div className={`h-5 w-5 rounded-lg border-2 transition-all flex items-center justify-center ${isSpoiler ? 'bg-amber-400 border-amber-400' : 'border-base-content/10 bg-transparent'}`}>{isSpoiler && <div className="h-2 w-2 rounded-full bg-white shadow-sm" />}</div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40 group-hover:text-amber-500 flex items-center gap-2 transition-colors"><AlertCircle size={14} /> SPOİLER İÇERİYOR MU?</span>
-                  </button>
-                </div>
+              <div className="mt-16 pt-16 border-t border-base-content/5 w-full px-4 font-sans text-left">
+                <CommentSection
+                  bookId={chapters[0]?.bookId}
+                  chapterId={chapters[0]?.id}
+                  authorName={chapters[0]?.bookTitle.split(' ').pop()}
+                  title="Bölüm Tartışması"
+                  hideList={true}
+                  onCommentAdded={(pId) => {
+                    if (pId) {
+                      const normalizedId = pId.toLowerCase();
+                      setParagraphCommentCounts(prev => ({
+                        ...prev,
+                        [normalizedId]: (prev[normalizedId] || 0) + 1
+                      }));
+                    }
+                  }}
+                />
               </div>
             </div>
           </section>
@@ -511,28 +559,57 @@ export default function ReaderPage() {
               transition={{ type: "spring", damping: 35, stiffness: 400 }}
               className="fixed top-0 z-80 h-full w-full max-w-[420px] bg-base-100 shadow-[-15px_0_70px_rgba(0,0,0,0.5)] flex flex-col font-sans subpixel-antialiased overflow-hidden"
             >
-              <div className="p-6 border-b border-base-content/5 flex items-center justify-between bg-base-200/50 backdrop-blur-xl">
+              <div className="p-6 border-b border-base-content/5 flex items-center justify-between bg-base-200/40 backdrop-blur-xl">
                 <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MessageSquare size={20} /></div>
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    {commentType === 'chapter' ? <MessageSquare size={20} /> : <AlignLeft size={20} />}
+                  </div>
                   <div>
-                    <h2 className="text-base font-black tracking-widest text-base-content uppercase">{commentType === 'chapter' ? 'Bölüm Yorumları' : 'Satır Yorumları'}</h2>
-                    <p className="text-[10px] font-black tracking-widest text-base-content/30 mt-0.5 uppercase">DÜŞÜNCELERİ KEŞFEDİN</p>
+                    <h2 className="text-sm font-black tracking-widest text-base-content uppercase leading-tight">
+                      {commentType === 'chapter' ? 'Bölüm Tartışması' : 'Satır Yorumu'}
+                    </h2>
+                    <p className="text-[10px] font-black tracking-widest text-base-content/30 mt-0.5 uppercase">
+                      {commentType === 'chapter' ? 'GENEL DÜŞÜNCELER' : 'BU SATIRA ÖZEL'}
+                    </p>
                   </div>
                 </div>
                 <button onClick={() => setIsCommentsOpen(false)} className="btn btn-ghost btn-sm btn-circle text-base-content/50 hover:text-base-content border border-base-content/10">✕</button>
               </div>
-              <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center justify-center text-center opacity-40">
-                <div className="h-20 w-20 rounded-full bg-base-content/5 flex items-center justify-center mb-6"><MessageSquare size={32} className="text-base-content/20" /></div>
-                <h3 className="text-lg font-black text-base-content/60 mb-2">Henüz yorum yok</h3>
-                <p className="text-xs font-bold text-base-content/30 max-w-[220px]">Bu {commentType === 'chapter' ? 'bölüm' : 'satır'} için ilk yorumu yapan siz olun!</p>
+
+              {/* Tabs for Separation */}
+              <div className="flex items-center px-6 pt-4 gap-6 bg-base-100 border-b border-base-content/5">
+                <button
+                  onClick={() => setCommentType('chapter')}
+                  className={`pb-3 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2 relative ${commentType === 'chapter' ? 'border-primary text-primary' : 'border-transparent text-base-content/40 hover:text-base-content/70'}`}
+                >
+                  BÖLÜM GENELİ
+                </button>
+                {activeParagraphId && (
+                  <button
+                    onClick={() => setCommentType('paragraph')}
+                    className={`pb-3 text-[10px] font-bold uppercase tracking-widest transition-all border-b-2 relative ${commentType === 'paragraph' ? 'border-primary text-primary' : 'border-transparent text-base-content/40 hover:text-base-content/70'}`}
+                  >
+                    BU SATIR
+                  </button>
+                )}
               </div>
-              <div className="p-5 border-t border-base-content/5 bg-base-200/30">
-                <div className="relative group overflow-hidden rounded-xl bg-base-100 border border-base-content/10 focus-within:border-primary/40 transition-all shadow-inner">
-                  <textarea placeholder="Yorumunuzu buraya yazın..." className="w-full min-h-[100px] bg-transparent p-5 text-sm focus:outline-none resize-none" />
-                  <div className="absolute bottom-3 right-3">
-                    <button className="btn btn-primary btn-sm btn-circle shadow-lg shadow-primary/20"><Send size={15} /></button>
-                  </div>
-                </div>
+              <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-base-content/10">
+                <CommentSection
+                  bookId={chapters[0]?.bookId}
+                  chapterId={chapters[0]?.id}
+                  paragraphId={commentType === 'paragraph' ? activeParagraphId || undefined : undefined}
+                  authorName={chapters.length > 0 ? chapters[0].bookTitle.split(' ').pop() : ""}
+                  title={commentType === 'chapter' ? 'Bölüm Yorumları' : 'Satır Yorumları'}
+                  onCommentAdded={(pId) => {
+                    if (pId) {
+                      const normalizedId = pId.toLowerCase();
+                      setParagraphCommentCounts(prev => ({
+                        ...prev,
+                        [normalizedId]: (prev[normalizedId] || 0) + 1
+                      }));
+                    }
+                  }}
+                />
               </div>
             </motion.div>
           </>

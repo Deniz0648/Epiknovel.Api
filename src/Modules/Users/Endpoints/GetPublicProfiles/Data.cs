@@ -6,6 +6,7 @@ public class Request
     public int PageSize { get; set; } = 20;
     public string? Query { get; set; }
     public bool? IsAuthor { get; set; }
+    public bool? FollowedByMe { get; set; }
     public string? SortBy { get; set; } = "joinedAt";
     public string? SortDirection { get; set; } = "desc";
 }

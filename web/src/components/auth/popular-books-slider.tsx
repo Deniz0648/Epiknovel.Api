@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { toBookSlug } from "@/lib/books";
+import { apiRequest, resolveMediaUrl } from "@/lib/api";
 
 const AUTO_MS = 7000;
 
@@ -16,51 +16,57 @@ type PopularBook = {
   image: string;
   rating: string;
   reads: string;
+  slug: string;
 };
-
-const BOOKS: PopularBook[] = [
-  {
-    id: "1",
-    title: "Kutsal Arsivlerin Son Koruyucusu",
-    category: "Fantastik",
-    description: "Kadim buyulerin uyandigi dunyada, son arsivci dengeyi korumak zorunda.",
-    image: "/hero-cover.svg",
-    rating: "4.9",
-    reads: "1.2M",
-  },
-  {
-    id: "2",
-    title: "Against the Gods",
-    category: "Aksiyon",
-    description: "Yikilan bir kaderin ardindan guc ve intikamla dolu uzun bir yukselis.",
-    image: "/hero-cover.svg",
-    rating: "4.8",
-    reads: "2.8M",
-  },
-  {
-    id: "3",
-    title: "Rebirth of the Thief Who Roamed the World",
-    category: "Macera",
-    description: "Gizli loncalar, tehlikeli antlasmalar ve tek bir hirsizin geri donusu.",
-    image: "/hero-cover.svg",
-    rating: "4.7",
-    reads: "980K",
-  },
-];
 
 export function PopularBooksSlider({ className = "" }: { className?: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [books, setBooks] = useState<PopularBook[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    async function loadPopularBooks() {
+      try {
+        const res = await apiRequest<{ items: any[] }>("/books?SortBy=ViewCount&SortDescending=true&PageSize=6");
+        const mappedBooks = (res.items || []).map((item: any) => ({
+          id: item.slug,
+          title: item.title,
+          category: item.categoryNames?.[0] || "Genel",
+          description: item.description,
+          image: resolveMediaUrl(item.coverImageUrl) || "/hero-cover.svg",
+          rating: item.averageRating.toFixed(1),
+          reads: item.viewCount >= 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : item.viewCount.toString(),
+          slug: item.slug
+        }));
+        setBooks(mappedBooks);
+      } catch (error) {
+        console.error("Popular books could not be loaded", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadPopularBooks();
+  }, []);
+
+  useEffect(() => {
+    if (books.length === 0) return;
     const timer = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % BOOKS.length);
+      setActiveIndex((prev) => (prev + 1) % books.length);
     }, AUTO_MS);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [books.length]);
 
-  const activeBook = useMemo(() => BOOKS[activeIndex] ?? BOOKS[0], [activeIndex]);
-  const href = `/Books/${toBookSlug(activeBook.title)}`;
+  const activeBook = useMemo(() => books[activeIndex], [activeIndex, books]);
+  const href = activeBook ? `/Books/${activeBook.slug}` : "#";
+
+  if (isLoading || books.length === 0) {
+    return (
+      <div className={`glass-frame flex h-full items-center justify-center ${className}`}>
+        <span className="loading loading-spinner loading-lg text-primary/40"></span>
+      </div>
+    );
+  }
 
   return (
     <section className={`glass-frame flex h-full flex-col p-6 sm:p-7 ${className}`}>
@@ -70,13 +76,13 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
       </div>
 
       <div className="mt-4 flex flex-1 flex-col items-center gap-4">
-        <Link href={href} className="glass-frame relative block aspect-[2/3] w-full max-w-[12.5rem] overflow-hidden p-1.5">
-          <div className="relative h-full w-full overflow-hidden rounded-[1rem]">
+        <Link href={href} className="glass-frame relative block aspect-2/3 w-full max-w-50 overflow-hidden p-1.5">
+          <div className="relative h-full w-full overflow-hidden rounded-2xl">
             <Image src={activeBook.image} alt={activeBook.title} fill className="object-cover" sizes="25vw" />
           </div>
         </Link>
 
-        <div className="flex w-full max-w-[22rem] flex-col items-center text-center">
+        <div className="flex w-full max-w-88 flex-col items-center text-center">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-base-content/60">
               {activeBook.category}
@@ -103,15 +109,14 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
 
       <div className="mt-5 flex items-center justify-between border-t border-base-content/12 pt-4">
         <div className="flex items-center gap-2">
-          {BOOKS.map((book, index) => (
+          {books.map((book, index) => (
             <button
               key={book.id}
               type="button"
               aria-label={`${index + 1}. kitap`}
               onClick={() => setActiveIndex(index)}
-              className={`h-2.5 rounded-full transition-all ${
-                index === activeIndex ? "w-7 bg-primary" : "w-2.5 bg-base-content/30"
-              }`}
+              className={`h-2.5 rounded-full transition-all ${index === activeIndex ? "w-7 bg-primary" : "w-2.5 bg-base-content/30"
+                }`}
             />
           ))}
         </div>
@@ -119,14 +124,14 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
           <button
             type="button"
             className="btn btn-xs rounded-full border border-base-content/20 bg-base-100/30"
-            onClick={() => setActiveIndex((prev) => (prev - 1 + BOOKS.length) % BOOKS.length)}
+            onClick={() => setActiveIndex((prev) => (prev - 1 + books.length) % books.length)}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             type="button"
             className="btn btn-xs rounded-full border border-base-content/20 bg-base-100/30"
-            onClick={() => setActiveIndex((prev) => (prev + 1) % BOOKS.length)}
+            onClick={() => setActiveIndex((prev) => (prev + 1) % books.length)}
           >
             <ChevronRight className="h-4 w-4" />
           </button>

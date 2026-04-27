@@ -19,4 +19,7 @@ public static class CacheTags
     // 🏷️ Kategori & Etiket Bazlı
     public const string AllCategories = "cat:all";
     public const string AllTags = "tag:all";
+    
+    // 🌐 Global Sistem Temizliği
+    public const string Global = "sys:global";
 }

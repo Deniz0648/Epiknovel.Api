@@ -6,24 +6,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  Flag,
-  Heart,
   Loader2,
   Lock,
   LockOpen,
   MessageSquareMore,
-  MessageCircle,
   Search,
-  Share2,
-  Send,
-  X,
 } from "lucide-react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { CommentSection } from "@/components/social/comments/CommentSection";
 
 type ChapterSort = "newest" | "oldest";
 type PageSize = 20 | 50 | 100 | 200;
-
-import Link from "next/link";
-import { useParams } from "next/navigation";
 
 export type BookChapterItem = {
   id: string;
@@ -37,30 +31,10 @@ export type BookChapterItem = {
   authorName?: string;
 };
 
-export type BookCommentItem = {
-  id: string;
-  author: string;
-  handle?: string;
-  timeLabel?: string;
-  likes: number;
-  rating: number;
-  body: string;
-  replies?: BookCommentReplyItem[];
-};
-
-export type BookCommentReplyItem = {
-  id: string;
-  author: string;
-  handle?: string;
-  timeLabel?: string;
-  body: string;
-  likes: number;
-  replies?: BookCommentReplyItem[];
-};
-
 type BookDetailPanelsProps = {
+  bookId: string;
+  authorName?: string;
   chapters: BookChapterItem[];
-  comments: BookCommentItem[];
   totalChaptersCount: number;
   activeFilters: {
     query: string;
@@ -88,81 +62,35 @@ function getVisiblePages(currentPage: number, totalPages: number) {
   return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2];
 }
 
-export function BookDetailPanels({ 
-  chapters, 
-  comments, 
-  totalChaptersCount, 
-  activeFilters, 
+export function BookDetailPanels({
+  bookId,
+  authorName,
+  chapters,
+  totalChaptersCount,
+  activeFilters,
   onFiltersChange,
-  isLoadingChapters 
+  isLoadingChapters
 }: BookDetailPanelsProps) {
-  const [commentDraft, setCommentDraft] = useState("");
-  const [likedCommentMap, setLikedCommentMap] = useState<Record<string, boolean>>({});
-  const [openReportId, setOpenReportId] = useState<string | null>(null);
-  const [reportDraftMap, setReportDraftMap] = useState<Record<string, string>>({});
-  const [commentPage, setCommentPage] = useState(1);
-  const commentsPageSize = 4;
+  const params = useParams<{ bookSlug: string }>();
+  const bookSlug = params?.bookSlug;
 
   const totalPages = Math.max(1, Math.ceil(totalChaptersCount / activeFilters.pageSize));
   const currentPage = activeFilters.page;
   const pageNumbers = getVisiblePages(currentPage, totalPages);
-  
-  const totalCommentPages = Math.max(1, Math.ceil(comments.length / commentsPageSize));
-  const currentCommentPage = Math.min(commentPage, totalCommentPages);
-  const commentStart = (currentCommentPage - 1) * commentsPageSize;
-  const visibleComments = comments.slice(commentStart, commentStart + commentsPageSize);
-  const commentPageNumbers = getVisiblePages(currentCommentPage, totalCommentPages);
 
   const updateFilters = (updates: Partial<typeof activeFilters>) => {
     onFiltersChange({ ...activeFilters, ...updates });
   };
 
-  const renderReplies = (replies: BookCommentReplyItem[], depth = 1) => {
-    return (
-      <div className="space-y-2.5 border-l border-base-content/15 pl-3">
-        {replies.map((reply) => (
-          <div
-            key={reply.id}
-            className={`rounded-xl border border-base-content/10 bg-base-100/20 px-3 py-2.5 ${
-              depth >= 3 ? "text-[13px]" : ""
-            }`}
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex min-w-0 items-start gap-2">
-                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary/18 text-[11px] font-black text-secondary">
-                  {reply.author.charAt(0).toUpperCase()}
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-bold">{reply.author}</p>
-                  <p className="text-[11px] text-base-content/55">
-                    {reply.handle ?? "@okur"} • {reply.timeLabel ?? "Az once"}
-                  </p>
-                </div>
-              </div>
-              <p className="text-[11px] font-semibold text-base-content/55">{reply.likes} begeni</p>
-            </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-base-content/75">{reply.body}</p>
-
-            {reply.replies && reply.replies.length > 0 ? (
-              <div className="mt-2.5">{renderReplies(reply.replies, depth + 1)}</div>
-            ) : null}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const params = useParams<{ bookSlug: string }>();
-  const bookSlug = params?.bookSlug;
-
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-      <article className="glass-frame flex min-h-[42rem] flex-col gap-4 p-5 sm:p-6">
+      {/* Chapters Column */}
+      <article className="glass-frame flex min-h-168 flex-col gap-4 p-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-xl font-black leading-tight">Bolumler</h2>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-base-content/55">
-              Toplam {chapters.length.toLocaleString("tr-TR")} bolum
+              Toplam {totalChaptersCount.toLocaleString("tr-TR")} bolum
             </p>
           </div>
         </div>
@@ -287,30 +215,16 @@ export function BookDetailPanels({
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <span
-                      className={`hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.08em] sm:inline-flex ${
-                        chapter.isPremium
+                      className={`hidden items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-black tracking-[0.08em] sm:inline-flex ${chapter.isPremium
                           ? "border-warning/35 bg-warning/10 text-warning"
                           : "border-success/35 bg-success/10 text-success"
-                      }`}
+                        }`}
                     >
                       {chapter.isPremium ? <Lock className="h-3 w-3" /> : <LockOpen className="h-3 w-3" />}
                       {chapter.isPremium ? "UCRETLI" : "UCRETSIZ"}
                     </span>
                     <span className="rounded-full border border-base-content/16 bg-base-100/30 px-3 py-1 text-xs font-bold text-base-content/75 transition group-hover:border-primary/45 group-hover:text-primary">
                       Oku
-                    </span>
-                    <span
-                      className={`inline-flex align-middle sm:hidden ${
-                        chapter.isPremium ? "text-warning" : "text-success"
-                      }`}
-                      aria-label={chapter.isPremium ? "Ucretli bolum" : "Ucretsiz bolum"}
-                      title={chapter.isPremium ? "Ucretli bolum" : "Ucretsiz bolum"}
-                    >
-                      {chapter.isPremium ? (
-                        <Lock className="h-3.5 w-3.5" />
-                      ) : (
-                        <LockOpen className="h-3.5 w-3.5" />
-                      )}
                     </span>
                   </div>
                 </div>
@@ -338,11 +252,10 @@ export function BookDetailPanels({
               <button
                 key={pageNumber}
                 type="button"
-                className={`btn btn-sm join-item border-base-content/20 ${
-                  pageNumber === currentPage
+                className={`btn btn-sm join-item border-base-content/20 ${pageNumber === currentPage
                     ? "btn-primary"
                     : "bg-base-100/28 text-base-content/80 hover:bg-base-100/40"
-                }`}
+                  }`}
                 onClick={() => updateFilters({ page: pageNumber })}
               >
                 {pageNumber}
@@ -360,200 +273,13 @@ export function BookDetailPanels({
         </div>
       </article>
 
-      <article className="glass-frame flex min-h-[42rem] flex-col gap-3.5 p-5 sm:p-6">
-        <div className="flex items-center gap-2">
-          <MessageSquareMore className="h-5 w-5 text-secondary" />
-          <h2 className="text-xl font-black leading-tight">Yorumlar</h2>
-        </div>
-
-        <div className="rounded-xl border border-base-content/14 bg-base-100/20 p-3.5">
-          <p className="mb-2 text-sm font-bold">Yorum ekle</p>
-          <textarea
-            value={commentDraft}
-            onChange={(event) => setCommentDraft(event.target.value)}
-            maxLength={5000}
-            rows={4}
-            placeholder="Dusunceni yaz..."
-            className="w-full resize-y rounded-xl border border-base-content/16 bg-base-100/28 px-3 py-2 text-sm outline-none transition focus:border-primary/60"
-          />
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="text-xs font-semibold text-base-content/60">{commentDraft.length}/5000</p>
-            <button
-              type="button"
-              className="btn btn-sm btn-primary rounded-full px-4"
-              disabled={commentDraft.trim().length === 0}
-            >
-              <Send className="h-4 w-4" />
-              Gonder
-            </button>
-          </div>
-        </div>
-
-        <div className="flex-1 space-y-3">
-          {visibleComments.map((comment) => (
-            <div
-              key={comment.id}
-              className="rounded-2xl border border-base-content/12 bg-base-100/18 p-3.5"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-start gap-2.5">
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-black text-primary">
-                    {comment.author.charAt(0).toUpperCase()}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">{comment.author}</p>
-                    <p className="text-xs text-base-content/58">
-                      {comment.handle ?? "@okuyucu"} • {comment.timeLabel ?? "Az once"}
-                    </p>
-                  </div>
-                </div>
-                <p className="text-xs font-semibold text-base-content/60">Kitap Incelemesi</p>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-xs font-semibold">
-                <span className="text-warning">{comment.rating.toFixed(1)} / 5.0</span>
-                <span className="text-base-content/60">
-                  {comment.likes + (likedCommentMap[comment.id] ? 1 : 0)} begeni
-                </span>
-              </div>
-              <p className="mt-2.5 text-sm leading-relaxed text-base-content/80">{comment.body}</p>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className={`btn btn-xs rounded-full px-3 ${
-                    likedCommentMap[comment.id]
-                      ? "btn-primary"
-                      : "border border-base-content/20 bg-base-100/28 text-base-content/75"
-                  }`}
-                  onClick={() =>
-                    setLikedCommentMap((prev) => ({
-                      ...prev,
-                      [comment.id]: !prev[comment.id],
-                    }))
-                  }
-                >
-                  <Heart className={`h-3.5 w-3.5 ${likedCommentMap[comment.id] ? "fill-current" : ""}`} />
-                  Begen
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-xs rounded-full border border-base-content/20 bg-base-100/28 px-3 text-base-content/75"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" />
-                  Yanitla
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-xs rounded-full border border-base-content/20 bg-base-100/28 px-3 text-base-content/75"
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                  Paylas
-                </button>
-
-                <button
-                  type="button"
-                  className={`btn btn-xs rounded-full border px-3 ${
-                    openReportId === comment.id
-                      ? "border-error/45 bg-error/12 text-error"
-                      : "border-base-content/20 bg-base-100/28 text-base-content/75"
-                  }`}
-                  onClick={() => setOpenReportId((prev) => (prev === comment.id ? null : comment.id))}
-                >
-                  <Flag className="h-3.5 w-3.5" />
-                  Sikayet Et
-                </button>
-              </div>
-
-              {openReportId === comment.id ? (
-                <div className="mt-2.5 rounded-xl border border-error/25 bg-error/5 p-2.5">
-                  <input
-                    type="text"
-                    value={reportDraftMap[comment.id] ?? ""}
-                    onChange={(event) =>
-                      setReportDraftMap((prev) => ({
-                        ...prev,
-                        [comment.id]: event.target.value,
-                      }))
-                    }
-                    maxLength={240}
-                    placeholder="Sikayet nedeni..."
-                    className="input input-bordered h-9 w-full border-error/30 bg-base-100/35 text-sm"
-                  />
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-[11px] font-semibold text-base-content/60">
-                      {(reportDraftMap[comment.id] ?? "").length}/240
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        className="btn btn-xs rounded-full border border-base-content/20 bg-base-100/28"
-                        onClick={() => setOpenReportId(null)}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                        Iptal
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-error rounded-full"
-                        disabled={(reportDraftMap[comment.id] ?? "").trim().length === 0}
-                        onClick={() => {
-                          setReportDraftMap((prev) => ({ ...prev, [comment.id]: "" }));
-                          setOpenReportId(null);
-                        }}
-                      >
-                        Gonder
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {comment.replies && comment.replies.length > 0 ? (
-                <div className="mt-3">{renderReplies(comment.replies)}</div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-base-content/12 pt-3">
-          <p className="text-xs font-semibold text-base-content/60">
-            {comments.length === 0
-              ? "Yorum yok"
-              : `${commentStart + 1}-${Math.min(commentStart + commentsPageSize, comments.length)} / ${comments.length}`}
-          </p>
-          <div className="join">
-            <button
-              type="button"
-              className="btn btn-sm join-item rounded-l-full border-base-content/20 bg-base-100/28"
-              onClick={() => setCommentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentCommentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            {commentPageNumbers.map((pageNumber) => (
-              <button
-                key={pageNumber}
-                type="button"
-                className={`btn btn-sm join-item border-base-content/20 ${
-                  pageNumber === currentCommentPage
-                    ? "btn-primary"
-                    : "bg-base-100/28 text-base-content/80 hover:bg-base-100/40"
-                }`}
-                onClick={() => setCommentPage(pageNumber)}
-              >
-                {pageNumber}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="btn btn-sm join-item rounded-r-full border-base-content/20 bg-base-100/28"
-              onClick={() => setCommentPage((prev) => Math.min(totalCommentPages, prev + 1))}
-              disabled={currentCommentPage === totalCommentPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+      {/* Comments Column */}
+      <article className="glass-frame flex min-h-168 flex-col gap-3.5 p-5 sm:p-6">
+        <CommentSection
+          bookId={bookId}
+          authorName={authorName}
+          title="Kitap Incelemeleri & Yorumlar"
+        />
       </article>
     </section>
   );

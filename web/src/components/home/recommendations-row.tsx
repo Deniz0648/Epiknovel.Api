@@ -18,79 +18,19 @@ type RecommendationBook = {
   blurDataURL: string;
 };
 
-const RECOMMENDATIONS: ReadonlyArray<RecommendationBook> = [
-  {
-    id: "r-1",
-    title: "Chronicles of the Lost Star",
-    category: "Fantasy",
-    rating: 4.8,
-    image: "/covers/cover-arsiv.svg",
-    imageAlt: "Chronicles of the Lost Star kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f6c886'/%3E%3Cstop offset='1' stop-color='%233d3968'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    id: "r-2",
-    title: "The Dragon Mark Oath",
-    category: "Action",
-    rating: 4.5,
-    image: "/covers/cover-golge.svg",
-    imageAlt: "The Dragon Mark Oath kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2381ddd0'/%3E%3Cstop offset='1' stop-color='%231a2436'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    id: "r-3",
-    title: "Abyss Academy Reborn",
-    category: "Dark Fantasy",
-    rating: 4.9,
-    image: "/covers/cover-muhur.svg",
-    imageAlt: "Abyss Academy Reborn kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f4b286'/%3E%3Cstop offset='1' stop-color='%23271f3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    id: "r-4",
-    title: "Crown of Silent Tempest",
-    category: "Epic",
-    rating: 4.4,
-    image: "/covers/cover-arsiv.svg",
-    imageAlt: "Crown of Silent Tempest kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f6c886'/%3E%3Cstop offset='1' stop-color='%233d3968'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    id: "r-5",
-    title: "Blade of Forgotten Code",
-    category: "Adventure",
-    rating: 4.7,
-    image: "/covers/cover-golge.svg",
-    imageAlt: "Blade of Forgotten Code kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2381ddd0'/%3E%3Cstop offset='1' stop-color='%231a2436'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    id: "r-6",
-    title: "Tower of Last Ember",
-    category: "Mystery",
-    rating: 4.3,
-    image: "/covers/cover-muhur.svg",
-    imageAlt: "Tower of Last Ember kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f4b286'/%3E%3Cstop offset='1' stop-color='%23271f3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-];
+// RECOMMENDATIONS statik dizisi props'a tasindi.
 
 function RecommendationCard({ book }: { book: RecommendationBook }) {
   const bookHref = `/Books/${toBookSlug(book.title)}`;
 
   return (
     <Link href={bookHref} className="glass-frame group block h-full p-3 sm:p-3.5">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl border border-base-content/12">
+      <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl border border-base-content/12">
         <Image
           src={book.image}
           alt={book.imageAlt}
           fill
+          unoptimized
           placeholder="blur"
           blurDataURL={book.blurDataURL}
           className="object-cover transition duration-300 group-hover:scale-[1.03]"
@@ -117,8 +57,7 @@ function RecommendationCard({ book }: { book: RecommendationBook }) {
   );
 }
 
-export function RecommendationsRow() {
-  const books = RECOMMENDATIONS;
+export function RecommendationsRow({ books }: { books: RecommendationBook[] }) {
   const [activeMobilePage, setActiveMobilePage] = useState(0);
   const [activeTabletPage, setActiveTabletPage] = useState(0);
   const mobileTouchStartXRef = useRef<number | null>(null);
@@ -277,9 +216,8 @@ export function RecommendationsRow() {
                 key={index}
                 type="button"
                 onClick={() => setActiveMobilePage(index)}
-                className={`h-2.5 rounded-full transition-all ${
-                  isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-                }`}
+                className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
+                  }`}
                 aria-label={`${index + 1}. oneriler sayfasi`}
                 aria-current={isActive ? "true" : "false"}
               />
@@ -318,9 +256,8 @@ export function RecommendationsRow() {
                 key={index}
                 type="button"
                 onClick={() => setActiveTabletPage(index)}
-                className={`h-2.5 rounded-full transition-all ${
-                  isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-                }`}
+                className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
+                  }`}
                 aria-label={`${index + 1}. tablet oneriler sayfasi`}
                 aria-current={isActive ? "true" : "false"}
               />

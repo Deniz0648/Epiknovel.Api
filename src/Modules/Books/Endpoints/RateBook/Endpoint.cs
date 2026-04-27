@@ -100,10 +100,13 @@ public class Endpoint(
             var userRatingKey = $"v2:user:{userId}:rating:{bookIdStr}";
             await db.StringSetAsync(userRatingKey, cappedValue.ToString(), TimeSpan.FromHours(1));
 
+            // 🚀 GERÇEK ZAMANLI PUANI HESAPLA VE DÖN (Overlay mantığı)
+            var (newAvg, totalCount) = Epiknovel.Modules.Books.Helpers.RatingMath.Calculate(book.AverageRating, book.VoteCount, ratingDelta, countDelta);
+
             await Send.ResponseAsync(Result<Response>.Success(new Response 
             {
-                NewAverageRating = book.AverageRating, 
-                TotalVotes = book.VoteCount
+                NewAverageRating = newAvg, 
+                TotalVotes = totalCount
             }), 200, ct);
         }
         catch (Exception ex)

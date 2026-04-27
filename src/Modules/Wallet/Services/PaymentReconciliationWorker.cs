@@ -164,6 +164,7 @@ public class PaymentReconciliationWorker(
 
         var pendingRefunds = await dbContext.CoinPurchaseOrders
             .Where(o => o.Status == OrderStatus.AwaitingRefund)
+            .OrderBy(o => o.CreatedAt)
             .Take(20)
             .ToListAsync(ct);
 

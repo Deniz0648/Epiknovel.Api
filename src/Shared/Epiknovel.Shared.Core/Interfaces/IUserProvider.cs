@@ -14,10 +14,14 @@ public interface IUserProvider
     Task<Dictionary<Guid, string>> GetSlugsByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
     Task<Dictionary<Guid, string>> GetDisplayNamesByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
 
+    Task<Dictionary<Guid, string?>> GetAvatarsByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
+
     /// <summary>
     /// Kullanıcı profil bilgilerini (BOLA uyumlu) modüller arası kullanım için getirir.
     /// </summary>
     Task<Result<MyProfileResponse>> GetProfileAsync(Guid userId, string? identityName, CancellationToken ct = default);
 
     Task<AddressDto?> GetBillingAddressAsync(Guid userId, CancellationToken ct = default);
+    
+    Guid? GetCurrentUserId();
 }

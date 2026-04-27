@@ -49,6 +49,31 @@ public interface IBookProvider
     /// </summary>
     Task<List<Guid>> GetCategoryIdsByBookIdAsync(Guid bookId, CancellationToken ct = default);
 
-    Task<(List<Epiknovel.Shared.Core.Interfaces.Management.UserBookDto> books, int totalChapters)> GetAuthorBooksSummaryAsync(Guid authorId, CancellationToken ct = default);
     Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetChapterTitlesByChaptersAsync(List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto> purchases, CancellationToken ct = default);
+    
+    /// <summary>
+    /// Kitabın ana sahibini (AuthorId) döndürür.
+    /// </summary>
+    Task<Guid?> GetBookOwnerIdAsync(Guid bookId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Verilen yazarın kitap özetlerini ve toplam bölüm sayısını döndürür.
+    /// </summary>
+    Task<(List<Epiknovel.Shared.Core.Interfaces.Management.UserBookDto> books, int totalChapters)> GetAuthorBooksSummaryAsync(Guid authorId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Kitap ID üzerinden Slug bilgisini döner.
+    /// </summary>
+    Task<string?> GetBookSlugAsync(Guid bookId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Bölüm ID üzerinden bağlı olduğu kitabın ve bölümün Slug bilgilerini döner.
+    /// </summary>
+    Task<(string? bookSlug, string? chapterSlug)> GetChapterSlugsAsync(Guid chapterId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Verilen kitap ID'leri için temel bilgileri (Başlık, Slug) toplu döner.
+    /// N+1 problemini önlemek için kullanılır.
+    /// </summary>
+    Task<Dictionary<Guid, (string Title, string Slug)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default);
 }

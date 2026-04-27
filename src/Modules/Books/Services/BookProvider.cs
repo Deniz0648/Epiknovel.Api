@@ -93,21 +93,26 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
                 Title = x.Title,
                 Status = x.Status.ToString(),
                 CreatedAt = x.CreatedAt,
-                ChapterCount = dbContext.Chapters.Count(c => c.BookId == x.Id),
-                Chapters = dbContext.Chapters
-                    .Where(c => c.BookId == x.Id)
-                    .OrderByDescending(c => c.Order)
-                    .Select(c => new Epiknovel.Shared.Core.Interfaces.Management.UserChapterDto
-                    {
-                        Id = c.Id,
-                        Title = c.Title,
-                        Price = c.Price,
-                        IsFree = c.IsFree,
-                        CreatedAt = c.CreatedAt
-                    })
-                    .ToList()
+                ChapterCount = x.Chapters.Count()
             })
             .ToListAsync(ct);
+
+        foreach (var book in books)
+        {
+            book.Chapters = await dbContext.Chapters
+                .AsNoTracking()
+                .Where(c => c.BookId == book.Id)
+                .OrderByDescending(c => c.Order)
+                .Select(c => new Epiknovel.Shared.Core.Interfaces.Management.UserChapterDto
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Price = c.Price,
+                    IsFree = c.IsFree,
+                    CreatedAt = c.CreatedAt
+                })
+                .ToListAsync(ct);
+        }
 
         var totalChapters = await dbContext.Chapters.CountAsync(x => x.UserId == authorId, ct);
 
@@ -165,5 +170,46 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
             .Where(b => b.Id == bookId)
             .SelectMany(b => b.Categories.Select(c => c.Id))
             .ToListAsync(ct);
+    }
+
+    public async Task<Guid?> GetBookOwnerIdAsync(Guid bookId, CancellationToken ct = default)
+    {
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(x => x.Id == bookId)
+            .Select(x => (Guid?)x.AuthorId)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<string?> GetBookSlugAsync(Guid bookId, CancellationToken ct = default)
+    {
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(x => x.Id == bookId)
+            .Select(x => x.Slug)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<(string? bookSlug, string? chapterSlug)> GetChapterSlugsAsync(Guid chapterId, CancellationToken ct = default)
+    {
+        var result = await dbContext.Chapters
+            .AsNoTracking()
+            .Where(x => x.Id == chapterId)
+            .Select(x => new { x.Slug, BookSlug = x.Book.Slug })
+            .FirstOrDefaultAsync(ct);
+
+        return (result?.BookSlug, result?.Slug);
+    }
+
+    public async Task<Dictionary<Guid, (string Title, string Slug)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default)
+    {
+        var bookIdList = bookIds.Distinct().ToList();
+        if (bookIdList.Count == 0) return new Dictionary<Guid, (string Title, string Slug)>();
+
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(b => bookIdList.Contains(b.Id))
+            .Select(b => new { b.Id, b.Title, b.Slug })
+            .ToDictionaryAsync(x => x.Id, x => (x.Title, x.Slug), ct);
     }
 }

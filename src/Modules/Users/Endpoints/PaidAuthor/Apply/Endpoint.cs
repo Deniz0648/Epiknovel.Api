@@ -10,8 +10,8 @@ namespace Epiknovel.Modules.Users.Endpoints.PaidAuthor.Apply;
 
 public record Request
 {
-    public IFormFile ExemptionCertificate { get; init; } = null!;
-    public IFormFile BankDocument { get; init; } = null!;
+    public Guid ExemptionCertificateId { get; init; }
+    public Guid BankDocumentId { get; init; }
     public string Iban { get; init; } = string.Empty;
     public string BankName { get; init; } = string.Empty;
 }
@@ -23,11 +23,10 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
     {
         Post("/paid-author/apply");
         Policies("BOLA");
-        AllowFileUploads();
         Throttle(3, 60);
         Summary(s => {
             s.Summary = "Ücretli yazarlık başvurusu yap.";
-            s.Description = "Gerekli evrakları (İstisna Belgesi, Banka Dekontu vb.) yükleyerek başvuru yapar. MediatR standardı uygulanmıştır.";
+            s.Description = "Compliance modülünden alınan belge ID'lerini kullanarak başvuru yapar.";
         });
     }
 
@@ -42,8 +41,8 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<string>>
 
         var result = await mediator.Send(new SubmitPaidAuthorApplicationCommand(
             userId,
-            req.ExemptionCertificate,
-            req.BankDocument,
+            req.ExemptionCertificateId,
+            req.BankDocumentId,
             req.Iban,
             req.BankName
         ), ct);

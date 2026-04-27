@@ -13,17 +13,14 @@ export async function GET(
     const queryParams = new URLSearchParams();
     queryParams.set("bookSlug", slug);
 
-    const pageNumber = searchParams.get("pageNumber");
-    if (pageNumber) queryParams.set("pageNumber", pageNumber);
-
-    const pageSize = searchParams.get("pageSize");
-    if (pageSize) queryParams.set("pageSize", pageSize);
-
-    const search = searchParams.get("search");
-    if (search) queryParams.set("search", search);
-
-    const status = searchParams.get("status");
-    if (status) queryParams.set("status", status);
+    // İzin verilen sorgu parametrelerini backend'e ileşlet
+    const allowedKeys = ["pageNumber", "pageSize", "search", "status", "onlyDeleted"];
+    for (const key of allowedKeys) {
+      const value = searchParams.get(key);
+      if (value?.trim()) {
+        queryParams.set(key, value.trim());
+      }
+    }
 
     const result = await performAuthenticatedIdentityRequest<any>(
       `/books/mine/${slug}/chapters?${queryParams.toString()}`,

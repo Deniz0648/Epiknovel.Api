@@ -14,7 +14,7 @@ public record Request
     public string DocumentType { get; init; } = string.Empty; // "Exemption" veya "Bank"
 }
 
-public class Endpoint(ManagementDbContext dbContext, IFileService fileService) : Endpoint<Request>
+public class Endpoint(ManagementDbContext dbContext) : Endpoint<Request>
 {
     public override void Configure()
     {
@@ -38,34 +38,18 @@ public class Endpoint(ManagementDbContext dbContext, IFileService fileService) :
             return;
         }
 
-        string fileName = req.DocumentType.Equals("Exemption", StringComparison.OrdinalIgnoreCase)
-            ? application.GvkExemptionCertificateUrl
-            : application.BankAccountDocumentUrl;
+        Guid documentId = req.DocumentType.Equals("Exemption", StringComparison.OrdinalIgnoreCase)
+            ? application.GvkExemptionCertificateId
+            : application.BankAccountDocumentId;
 
-        if (string.IsNullOrEmpty(fileName))
+        if (documentId == Guid.Empty)
         {
             await Send.ResponseAsync(Result<string>.Failure("Belge bulunamadı."), 404, ct);
             return;
         }
 
-        try
-        {
-            var stream = await fileService.GetSecureFileStreamAsync(fileName, "author_documents");
-            
-            // PDF varsayılan
-            var contentType = "application/pdf";
-            if (fileName.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase)) contentType = "image/jpeg";
-            if (fileName.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) contentType = "image/png";
-
-            await Send.StreamAsync(stream, fileName, stream.Length, contentType, cancellation: ct);
-        }
-        catch (FileNotFoundException)
-        {
-            await Send.ResponseAsync(Result<string>.Failure("Dosya sunucuda bulunamadı."), 404, ct);
-        }
-        catch (Exception ex)
-        {
-            await Send.ResponseAsync(Result<string>.Failure($"Hata: {ex.Message}"), 500, ct);
-        }
+        // Merkezi doküman indirme endpoint'ine yönlendir
+        // Bu endpoint BOLA ve Admin kontrollerini otomatik yapar.
+        await Send.RedirectAsync($"/compliance/documents/{documentId}/download", false, false);
     }
 }

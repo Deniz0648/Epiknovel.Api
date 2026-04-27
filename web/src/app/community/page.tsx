@@ -92,7 +92,7 @@ export default function CommunityPage() {
   return (
     <main className="relative overflow-hidden">
       <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-10 sm:pt-32">
-        <section className="glass-frame relative overflow-hidden border border-base-content/10 bg-gradient-to-br from-base-100/90 via-base-100/84 to-primary/8 p-4 sm:p-6">
+        <section className="glass-frame relative overflow-hidden border border-base-content/10 bg-linear-to-br from-base-100/90 via-base-100/84 to-primary/8 p-4 sm:p-6">
           <div className="pointer-events-none absolute -left-20 top-0 h-44 w-44 rounded-full bg-primary/14 blur-3xl opacity-40" />
           <div className="pointer-events-none absolute -right-12 bottom-0 h-36 w-36 rounded-full bg-secondary/12 blur-3xl opacity-40" />
 
@@ -104,7 +104,7 @@ export default function CommunityPage() {
                   <li className="text-base-content/40">Topluluk</li>
                 </ul>
               </div>
-              
+
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3 text-primary">
                   <Users className="h-7 w-7" strokeWidth={2.5} />
@@ -175,7 +175,7 @@ export default function CommunityPage() {
                 </label>
 
                 <div className="flex items-center justify-end px-2 text-[10px] font-black uppercase tracking-widest text-base-content/30 italic">
-                   {totalCount} Profil Bulundu
+                  {totalCount} Profil Bulundu
                 </div>
               </div>
             ) : null}
@@ -186,9 +186,9 @@ export default function CommunityPage() {
           <section className="glass-frame p-6">Yukleniyor...</section>
         ) : !profile ? (
           <section className="glass-frame border border-base-content/12 bg-base-100/22 p-6 sm:p-8">
-            <h2 className="text-2xl font-black">Toplulugu gormek icin giris gerekli</h2>
+            <h2 className="text-2xl font-black">Topluluğa katılmak için giriş yapın</h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-base-content/70">
-              Bu endpoint BOLA korumali oldugu icin profil listesini gormek icin oturum acman gerekiyor.
+              Profil listesini görüntülemek ve diğer okurlarla etkileşime geçmek için bir hesabınızın olması gerekiyor.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href="/login" className="btn btn-primary rounded-full px-6">
@@ -217,7 +217,7 @@ export default function CommunityPage() {
                 items.map((item) => (
                   <article
                     key={item.slug}
-                    className="glass-frame group relative overflow-hidden border border-base-content/12 bg-gradient-to-br from-base-100/28 via-base-100/20 to-primary/8 p-5 transition hover:border-primary/35 hover:shadow-xl hover:shadow-primary/10"
+                    className="glass-frame group relative overflow-hidden border border-base-content/12 bg-linear-to-br from-base-100/28 via-base-100/20 to-primary/8 p-5 transition hover:border-primary/35 hover:shadow-xl hover:shadow-primary/10"
                   >
                     <div className="pointer-events-none absolute -right-8 -top-8 h-20 w-20 rounded-full bg-primary/10 blur-2xl transition group-hover:bg-primary/20" />
                     <div className="flex items-start gap-3">
@@ -274,9 +274,8 @@ export default function CommunityPage() {
 
                     <div className="mt-3 flex items-center justify-between">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${
-                          item.isFollowing ? "bg-success/16 text-success" : "bg-base-100/34 text-base-content/74"
-                        }`}
+                        className={`rounded-full px-3 py-1 text-xs font-bold ${item.isFollowing ? "bg-success/16 text-success" : "bg-base-100/34 text-base-content/74"
+                          }`}
                       >
                         {item.isFollowing ? "Takiptesin" : "Takip etmiyorsun"}
                       </span>
@@ -339,7 +338,7 @@ export default function CommunityPage() {
                 <h2 className="mt-1 text-4xl font-black leading-[0.95]">{profile.displayName}</h2>
               </div>
 
-              <div className="rounded-2xl border border-primary/15 bg-gradient-to-r from-base-100/24 via-base-100/16 to-primary/8 p-4">
+              <div className="rounded-2xl border border-primary/15 bg-linear-to-r from-base-100/24 via-base-100/16 to-primary/8 p-4">
                 <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-base-content/48">
                   <Sparkles className="h-3.5 w-3.5 text-primary" />
                   Biyografi

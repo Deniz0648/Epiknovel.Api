@@ -13,13 +13,16 @@ public interface IAuthorApplicationService
 
     Task<Result<string>> SubmitPaidAuthorApplicationAsync(
         Guid userId,
-        string exemptionCertificateUrl,
-        string bankDocumentUrl,
+        Guid exemptionCertificateId,
+        Guid bankDocumentId,
         string iban,
         string bankName,
         CancellationToken ct = default);
     Task<Result<List<AuthorApplicationDto>>> GetAuthorApplicationsAsync(ApplicationStatus? status = null, CancellationToken ct = default);
     Task<Result<List<PaidAuthorApplicationDto>>> GetPaidAuthorApplicationsAsync(ApplicationStatus? status = null, CancellationToken ct = default);
+    Task<Result<AuthorApplicationDto?>> GetUserActiveApplicationAsync(Guid userId, CancellationToken ct = default);
+    Task<Result<PaidAuthorApplicationDto?>> GetUserActivePaidAuthorApplicationAsync(Guid userId, CancellationToken ct = default);
+    Task<Result<string>> ProcessAuthorApplicationAsync(Guid applicationId, bool approve, string? reason = null, CancellationToken ct = default);
 }
 
 public class AuthorApplicationDto
@@ -41,9 +44,12 @@ public class PaidAuthorApplicationDto
     public string UserName { get; set; } = string.Empty;
     public string BankName { get; set; } = string.Empty;
     public string Iban { get; set; } = string.Empty;
-    public string BankDocumentUrl { get; set; } = string.Empty;
-    public string GvkExemptionCertificateUrl { get; set; } = string.Empty;
+    public Guid BankDocumentId { get; set; }
+    public string? BankDocumentUrl { get; set; }
+    public Guid GvkExemptionCertificateId { get; set; }
+    public string? GvkExemptionCertificateUrl { get; set; }
     public ApplicationStatus Status { get; set; }
+    public string? AdminNote { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 

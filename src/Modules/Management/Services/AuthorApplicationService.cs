@@ -65,13 +65,102 @@ public class AuthorApplicationService(
             UserName = userNames.GetValueOrDefault(a.UserId, "Bilinmeyen Kullanıcı"),
             BankName = a.BankName,
             Iban = a.Iban,
-            BankDocumentUrl = a.BankAccountDocumentUrl,
-            GvkExemptionCertificateUrl = a.GvkExemptionCertificateUrl,
+            BankDocumentId = a.BankAccountDocumentId,
+            BankDocumentUrl = $"/api/compliance/documents/{a.BankAccountDocumentId}/download",
+            GvkExemptionCertificateId = a.GvkExemptionCertificateId,
+            GvkExemptionCertificateUrl = $"/api/compliance/documents/{a.GvkExemptionCertificateId}/download",
             Status = a.Status,
+            AdminNote = a.AdminNote,
             CreatedAt = a.CreatedAt
         }).ToList();
         
         return Result<List<PaidAuthorApplicationDto>>.Success(dtos);
+    }
+
+    public async Task<Result<AuthorApplicationDto?>> GetUserActiveApplicationAsync(Guid userId, CancellationToken ct = default)
+    {
+        var application = await dbContext.AuthorApplications
+            .AsNoTracking()
+            .Where(a => a.UserId == userId && a.Status == ApplicationStatus.Pending)
+            .FirstOrDefaultAsync(ct);
+
+        if (application == null)
+            return Result<AuthorApplicationDto?>.Success(null);
+
+        var userNames = await userProvider.GetDisplayNamesByUserIdsAsync(new[] { userId }, ct);
+
+        var dto = new AuthorApplicationDto
+        {
+            Id = application.Id,
+            UserId = application.UserId,
+            UserName = userNames.GetValueOrDefault(application.UserId, "Bilinmeyen Kullanıcı"),
+            SampleContent = application.SampleContent,
+            Experience = application.Experience,
+            PlannedWork = application.PlannedWork,
+            Status = application.Status,
+            CreatedAt = application.CreatedAt
+        };
+
+        return Result<AuthorApplicationDto?>.Success(dto);
+    }
+
+    public async Task<Result<PaidAuthorApplicationDto?>> GetUserActivePaidAuthorApplicationAsync(Guid userId, CancellationToken ct = default)
+    {
+        var application = await dbContext.PaidAuthorApplications
+            .AsNoTracking()
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (application == null)
+            return Result<PaidAuthorApplicationDto?>.Success(null);
+
+        var userNames = await userProvider.GetDisplayNamesByUserIdsAsync(new[] { userId }, ct);
+
+        var dto = new PaidAuthorApplicationDto
+        {
+            Id = application.Id,
+            UserId = application.UserId,
+            UserName = userNames.GetValueOrDefault(application.UserId, "Bilinmeyen Kullanıcı"),
+            BankName = application.BankName,
+            Iban = application.Iban,
+            BankDocumentId = application.BankAccountDocumentId,
+            BankDocumentUrl = $"/api/compliance/documents/{application.BankAccountDocumentId}/download",
+            GvkExemptionCertificateId = application.GvkExemptionCertificateId,
+            GvkExemptionCertificateUrl = $"/api/compliance/documents/{application.GvkExemptionCertificateId}/download",
+            Status = application.Status,
+            AdminNote = application.AdminNote,
+            CreatedAt = application.CreatedAt
+        };
+
+        return Result<PaidAuthorApplicationDto?>.Success(dto);
+    }
+
+    public async Task<Result<string>> ProcessAuthorApplicationAsync(Guid applicationId, bool approve, string? reason = null, CancellationToken ct = default)
+    {
+        var application = await dbContext.AuthorApplications
+            .FirstOrDefaultAsync(a => a.Id == applicationId, ct);
+
+        if (application == null)
+            return Result<string>.Failure("Başvuru bulunamadı.");
+
+        if (application.Status != ApplicationStatus.Pending)
+            return Result<string>.Failure("Bu başvuru zaten işlenmiş.");
+
+        if (approve)
+        {
+            application.Status = ApplicationStatus.Approved;
+            await userProvider.SetAuthorStatusAsync(application.UserId, true, ct);
+        }
+        else
+        {
+            application.Status = ApplicationStatus.Rejected;
+            // Not: Domain modelinde RejectionReason alanı yoksa sadece status güncellenir.
+            // Eğer isterseniz domain modeline bu alanı ekleyebiliriz.
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return Result<string>.Success(approve ? "Başvuru onaylandı ve kullanıcı yazar yapıldı." : "Başvuru reddedildi.");
     }
 
     public async Task<Result<string>> SubmitAuthorApplicationAsync(
@@ -113,8 +202,8 @@ public class AuthorApplicationService(
 
     public async Task<Result<string>> SubmitPaidAuthorApplicationAsync(
         Guid userId,
-        string exemptionCertificateUrl,
-        string bankDocumentUrl,
+        Guid exemptionCertificateId,
+        Guid bankDocumentId,
         string iban,
         string bankName,
         CancellationToken ct = default)
@@ -137,8 +226,8 @@ public class AuthorApplicationService(
         var application = new PaidAuthorApplication
         {
             UserId = userId,
-            GvkExemptionCertificateUrl = exemptionCertificateUrl,
-            BankAccountDocumentUrl = bankDocumentUrl,
+            GvkExemptionCertificateId = exemptionCertificateId,
+            BankAccountDocumentId = bankDocumentId,
             Iban = iban,
             BankName = bankName,
             Status = ApplicationStatus.Pending

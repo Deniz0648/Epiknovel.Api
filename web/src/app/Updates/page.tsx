@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowDown, BookText, Clock, History, Home, Search, Sparkles } from "lucide-react";
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { apiRequest, resolveMediaUrl } from "@/lib/api";
+import { apiRequest, resolveMediaUrl, COVER_DEFAULT } from "@/lib/api";
 
 type UpdateItem = {
   chapterId: string;
@@ -57,13 +57,13 @@ export default function UpdatesPage() {
       if (search) url += `&Search=${encodeURIComponent(search)}`;
 
       const data = await apiRequest<ApiResponse>(url);
-      
+
       if (isLoadMore) {
         setUpdates(prev => [...prev, ...data.updates]);
       } else {
         setUpdates(data.updates);
       }
-      
+
       setTotalCount(data.totalCount);
       setHasNextPage(data.hasNextPage);
       setError(null);
@@ -90,7 +90,7 @@ export default function UpdatesPage() {
     void fetchUpdates(nextPage, searchQuery, true);
   };
 
-  const COVER_DEFAULT = "/covers/cover-golge.svg";
+
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -105,7 +105,7 @@ export default function UpdatesPage() {
                   <li className="text-base-content/40">Guncellemeler</li>
                 </ul>
               </div>
-              
+
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-3 text-primary">
                   <History className="h-7 w-7" strokeWidth={2.5} />
@@ -126,7 +126,7 @@ export default function UpdatesPage() {
 
           <div className="flex items-center justify-between border-b border-base-content/5 pb-2">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-base-content/40 italic">
-               Toplam {totalCount} guncelleme bulundu
+              Toplam {totalCount} guncelleme bulundu
             </p>
           </div>
 
@@ -135,59 +135,59 @@ export default function UpdatesPage() {
 
           {/* Content Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-             {updates.map((update, idx) => (
-               <div key={`${update.chapterId}-${idx}`} 
-                    className="group relative flex gap-4 overflow-hidden rounded-2xl border border-base-content/10 bg-base-100/32 p-3 transition-all duration-300 hover:border-primary/30 hover:bg-base-100/45 hover:translate-y-[-2px]">
-                 
-                 {/* Mini Cover */}
-                 <div className="relative aspect-[3/4] h-24 shrink-0 overflow-hidden rounded-xl border border-base-content/10">
-                    <Image src={resolveMediaUrl(update.bookCoverImageUrl) || COVER_DEFAULT} alt={update.bookTitle} fill className="object-cover transition duration-300 group-hover:scale-[1.05]" />
-                 </div>
+            {updates.map((update, idx) => (
+              <div key={`${update.chapterId}-${idx}`}
+                className="group relative flex gap-4 overflow-hidden rounded-2xl border border-base-content/10 bg-base-100/32 p-3 transition-all duration-300 hover:border-primary/30 hover:bg-base-100/45 hover:translate-y-[-2px]">
 
-                 <div className="flex flex-col justify-between py-1 flex-1 min-w-0">
-                    <div className="space-y-1.5">
-                       <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[9px] font-bold uppercase tracking-wider text-primary">{update.bookCategories[0] || "Genel"}</span>
-                          <span className="whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black uppercase text-primary">YENI</span>
-                       </div>
-                       <Link href={`/Books/${update.bookSlug}`} className="line-clamp-1 block text-sm font-bold hover:text-primary transition-colors">{update.bookTitle}</Link>
-                       <Link href={`/read/${update.bookSlug}/${update.chapterSlug}`} className="flex items-center gap-1.5 text-base-content/70 hover:text-primary transition-colors">
-                          <BookText className="h-3.5 w-3.5 shrink-0" />
-                          <p className="truncate text-xs font-semibold">Bolum {update.order}: {update.chapterTitle}</p>
-                       </Link>
-                    </div>
+                {/* Mini Cover */}
+                <div className="relative aspect-3/4 h-24 shrink-0 overflow-hidden rounded-xl border border-base-content/10">
+                  <Image src={resolveMediaUrl(update.bookCoverImageUrl) || COVER_DEFAULT} alt={update.bookTitle} fill unoptimized className="object-cover transition duration-300 group-hover:scale-[1.05]" />
+                </div>
 
-                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-base-content/40 uppercase">
-                       <Clock className="h-3 w-3" />
-                       <time>{getRelativeTime(update.publishedAt)}</time>
+                <div className="flex flex-col justify-between py-1 flex-1 min-w-0">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-[9px] font-bold uppercase tracking-wider text-primary">{update.bookCategories[0] || "Genel"}</span>
+                      <span className="whitespace-nowrap rounded-md bg-primary/10 px-1.5 py-0.5 text-[9px] font-black uppercase text-primary">YENI</span>
                     </div>
-                 </div>
-               </div>
-             ))}
+                    <Link href={`/Books/${update.bookSlug}`} className="line-clamp-1 block text-sm font-bold hover:text-primary transition-colors">{update.bookTitle}</Link>
+                    <Link href={`/read/${update.bookSlug}/${update.chapterSlug}`} className="flex items-center gap-1.5 text-base-content/70 hover:text-primary transition-colors">
+                      <BookText className="h-3.5 w-3.5 shrink-0" />
+                      <p className="truncate text-xs font-semibold">Bolum {update.order}: {update.chapterTitle}</p>
+                    </Link>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-base-content/40 uppercase">
+                    <Clock className="h-3 w-3" />
+                    <time>{getRelativeTime(update.publishedAt)}</time>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Empty State */}
           {!isLoading && updates.length === 0 && (
             <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-base-content/15 bg-base-100/10 py-24 text-center">
-               <History className="h-10 w-10 opacity-20" />
-               <p className="text-sm font-semibold text-base-content/50 italic">Aradiginiz kriterlere uygun guncelleme bulunamadi.</p>
+              <History className="h-10 w-10 opacity-20" />
+              <p className="text-sm font-semibold text-base-content/50 italic">Aradiginiz kriterlere uygun guncelleme bulunamadi.</p>
             </div>
           )}
 
           {/* Loading Animation (Bottom) */}
           {isLoading && (
             <div className="flex justify-center py-10">
-               <span className="loading loading-spinner loading-md text-primary"></span>
+              <span className="loading loading-spinner loading-md text-primary"></span>
             </div>
           )}
 
           {/* Load More Action */}
           {!isLoading && hasNextPage && (
             <div className="flex items-center justify-center border-t border-base-content/5 pt-8">
-               <button onClick={handleLoadMore} className="group btn btn-ghost btn-sm h-11 rounded-full border border-base-content/10 bg-base-100/20 px-10 text-xs font-bold transition-all hover:bg-primary hover:text-primary-content hover:border-primary active:scale-95">
-                 <ArrowDown className="mr-2 h-4 w-4 transition-transform group-hover:translate-y-0.5" />
-                 + Daha Fazla Getir
-               </button>
+              <button onClick={handleLoadMore} className="group btn btn-ghost btn-sm h-11 rounded-full border border-base-content/10 bg-base-100/20 px-10 text-xs font-bold transition-all hover:bg-primary hover:text-primary-content hover:border-primary active:scale-95">
+                <ArrowDown className="mr-2 h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+                + Daha Fazla Getir
+              </button>
             </div>
           )}
         </section>

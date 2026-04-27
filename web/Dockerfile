@@ -19,8 +19,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 
 # Enable build cache for Next.js build
-RUN --mount=type=cache,target=/app/.next/cache \
-    npm run build -- --webpack
+RUN npm run build -- --webpack
 
 # --- RUNNER ---
 FROM node:22-alpine AS runner

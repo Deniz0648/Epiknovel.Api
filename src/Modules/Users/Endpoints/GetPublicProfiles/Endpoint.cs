@@ -42,6 +42,23 @@ public class Endpoint(UsersDbContext dbContext, IFileService fileService, IBookP
             query = query.Where(x => x.IsAuthor == req.IsAuthor.Value);
         }
 
+        var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        Guid currentUserId = Guid.Empty;
+        if (!string.IsNullOrWhiteSpace(currentUserIdStr))
+        {
+            Guid.TryParse(currentUserIdStr, out currentUserId);
+        }
+
+        if (req.FollowedByMe == true && currentUserId != Guid.Empty)
+        {
+            var followedUserIds = await dbContext.Follows
+                .Where(f => f.FollowerId == currentUserId)
+                .Select(f => f.FollowingId)
+                .ToListAsync(ct);
+            
+            query = query.Where(x => followedUserIds.Contains(x.UserId));
+        }
+
         var sortBy = (req.SortBy ?? "joinedAt").Trim().ToLowerInvariant();
         var sortDirection = (req.SortDirection ?? "desc").Trim().ToLowerInvariant();
         var isAscending = sortDirection == "asc";
@@ -82,9 +99,8 @@ public class Endpoint(UsersDbContext dbContext, IFileService fileService, IBookP
         var profileUserIds = profiles.Select(x => x.UserId).Distinct().ToList();
         var booksCountByAuthor = await bookProvider.GetPublishedBookCountsByAuthorIdsAsync(profileUserIds, ct);
 
-        var currentUserIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var followingIds = new HashSet<Guid>();
-        if (!string.IsNullOrWhiteSpace(currentUserIdStr) && Guid.TryParse(currentUserIdStr, out var currentUserId))
+        if (currentUserId != Guid.Empty)
         {
             var targetUserIds = profiles.Select(x => x.UserId).ToList();
             followingIds = await dbContext.Follows

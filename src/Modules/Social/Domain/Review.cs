@@ -19,6 +19,7 @@ public class Review : BaseEntity, ISoftDelete, IOwnable
     public bool IsEditorChoice { get; set; }
 
     public bool IsHidden { get; set; }
+    public bool IsSpoiler { get; set; }
 
     public override void UndoDelete()
     {

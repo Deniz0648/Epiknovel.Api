@@ -70,8 +70,13 @@ public class RefreshTokenHandler(
                 RefreshToken = newRefreshToken,
                 AccessTokenJti = jti,
                 ExpiryDate = DateTime.UtcNow.AddDays(7),
-                IpAddress = string.IsNullOrWhiteSpace(request.IpAddress) || request.IpAddress == "unknown" ? session.IpAddress : request.IpAddress,
-                UserAgent = string.IsNullOrWhiteSpace(request.UserAgent) ? session.UserAgent : request.UserAgent
+                // Eğer istekte yeni bilgiler yoksa eski oturumun bilgilerini koru (Bilinmeyen OS hatasını önler)
+                IpAddress = string.IsNullOrWhiteSpace(request.IpAddress) || request.IpAddress == "unknown" || request.IpAddress == "::1" 
+                    ? session.IpAddress 
+                    : request.IpAddress,
+                UserAgent = string.IsNullOrWhiteSpace(request.UserAgent) 
+                    ? session.UserAgent 
+                    : request.UserAgent
             };
 
             dbContext.UserSessions.Add(newSession);

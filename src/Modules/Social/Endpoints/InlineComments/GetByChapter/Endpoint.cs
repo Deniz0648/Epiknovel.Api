@@ -13,17 +13,8 @@ public record Request
 
 public record InlineCommentGroup
 {
-    public Guid ParagraphId { get; init; }
+    public string ParagraphId { get; init; } = string.Empty;
     public int CommentCount { get; init; }
-    public List<InlineCommentResponse> Comments { get; init; } = new();
-}
-
-public record InlineCommentResponse
-{
-    public Guid Id { get; init; }
-    public Guid UserId { get; init; }
-    public string Content { get; init; } = string.Empty;
-    public DateTime CreatedAt { get; init; }
 }
 
 public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<List<InlineCommentGroup>>>
@@ -41,27 +32,18 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<List
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         // Bölüme ait tüm satır yorumlarını çekip paragraf bazlı grupla
-        var inlineComments = await dbContext.InlineComments
-            .Where(c => c.ChapterId == req.ChapterId && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync(ct);
-
-        var grouped = inlineComments
+        // Not: Yeni yapıda yorumlar 'Comments' tablosunda tutuluyor.
+        var counts = await dbContext.Comments
+            .AsNoTracking()
+            .Where(c => c.ChapterId == req.ChapterId && c.ParagraphId != null && !c.IsDeleted && !c.IsHidden)
             .GroupBy(c => c.ParagraphId)
             .Select(g => new InlineCommentGroup
             {
-                ParagraphId = g.Key,
-                CommentCount = g.Count(),
-                Comments = g.Select(c => new InlineCommentResponse
-                {
-                    Id = c.Id,
-                    UserId = c.UserId,
-                    Content = c.Content,
-                    CreatedAt = c.CreatedAt
-                }).ToList()
+                ParagraphId = g.Key!,
+                CommentCount = g.Count()
             })
-            .ToList();
+            .ToListAsync(ct);
 
-        await Send.ResponseAsync(Result<List<InlineCommentGroup>>.Success(grouped), 200, ct);
+        await Send.ResponseAsync(Result<List<InlineCommentGroup>>.Success(counts), 200, ct);
     }
 }

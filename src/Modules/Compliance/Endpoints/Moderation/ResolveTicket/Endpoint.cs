@@ -22,6 +22,7 @@ public class Endpoint(
     public override void Configure()
     {
         Post("/compliance/moderation/tickets/{ticketId}/resolve");
+        Policies(Epiknovel.Shared.Core.Constants.PolicyNames.ModAccess);
         Summary(s => {
             s.Summary = "Şikayet biletini karara bağlar.";
             s.Description = "Action tipleri: Ignore, DeleteContent, WarnUser. 'WarnUser' gönderildiğinde 3 uyarı (strike) limiti kontrol edilir ve aşılmışsa Identity sistemine Ban Event'i gönderilir. DeleteReplies true ise alt yorumlar da silinir.";

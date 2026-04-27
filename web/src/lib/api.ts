@@ -41,6 +41,45 @@ type RequestOptions = RequestInit & {
   token?: string | null;
 };
 
+let isRefreshing = false;
+let refreshSubscribers: ((success: boolean) => void)[] = [];
+let sharedRefreshPromise: Promise<boolean> | null = null;
+
+function notifySubscribers(success: boolean) {
+  refreshSubscribers.forEach((cb) => cb(success));
+  refreshSubscribers = [];
+}
+
+async function performTokenRefresh(): Promise<boolean> {
+  if (sharedRefreshPromise) {
+    return sharedRefreshPromise;
+  }
+
+  sharedRefreshPromise = (async () => {
+    try {
+      console.log("[API] Attempting token refresh via shared promise...");
+      const refreshResponse = await fetch(`${API_BASE_URL}/auth/refresh-token`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (refreshResponse.ok) {
+        console.log("[API] Token refreshed sucessfully.");
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error("[API] Automatic refresh failed:", err);
+      return false;
+    } finally {
+      sharedRefreshPromise = null;
+    }
+  })();
+
+  return sharedRefreshPromise;
+}
+
 export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const { token, headers, ...rest } = options;
   const method = rest.method?.toUpperCase() || "GET";
@@ -48,24 +87,83 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   const body = rest.body === undefined && isWriteMethod ? JSON.stringify({}) : rest.body;
   const hasJsonBody = typeof body !== "undefined" && !(body instanceof FormData);
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...rest,
-    method,
-    body,
-    cache: "no-store",
-    credentials: rest.credentials ?? "include", // Oturum çerezlerini (cookies) iletmek için kritik
-    headers: {
-      ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-  });
+  // Özel Durum: Refresh token isteği gelirse onu deduplicate olan paylaşılan fonksiyona yönlendir.
+  // Bu sayede AuthProvider ile API interceptor aynı anda refresh yapmaya kalktığında çakışma yaşanmaz.
+  if (path === "/auth/refresh-token") {
+    const success = await performTokenRefresh();
+    if (!success) {
+      throw new ApiError("Token refresh failed.", 401);
+    }
+    // refreshToken payload'ı bekleyen fonksiyonlar için temsili bir dönüş yapabiliriz, genelde cookie ile çözülüyor
+    return {} as T;
+  }
+
+  const makeRequest = async (currentOptions: RequestOptions) => {
+    return fetch(`${API_BASE_URL}${path}`, {
+      ...rest,
+      method,
+      body,
+      cache: "no-store",
+      credentials: rest.credentials ?? "include",
+      headers: {
+        ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
+        ...(currentOptions.token ? { Authorization: `Bearer ${currentOptions.token}` } : {}),
+        ...headers,
+      },
+    });
+  };
+
+  // İyileştirme: Eğer arka planda aktif bir token yenileme işlemi varsa bekle.
+  if (typeof window !== "undefined" && path !== "/auth/refresh-token" && path !== "/auth/login") {
+    let waitLoops = 0;
+    const checkLock = () => {
+      const raw = window.localStorage.getItem("epiknovel.auth.refresh.lock");
+      if (!raw) return false;
+      try {
+        const lock = JSON.parse(raw);
+        return lock.expiresAt && lock.expiresAt > Date.now();
+      } catch { return false; }
+    };
+
+    while (checkLock() && waitLoops < 30) {
+      await new Promise(r => window.setTimeout(r, 100)); 
+      waitLoops++;
+    }
+  }
+
+  let response = await makeRequest(options);
+
+  // 🛡️ 401 Interceptor: Revoke durumlarında token tazelemeyi dene ve eşzamanlı istekleri beklet
+  if (response.status === 401 && path !== "/auth/login") {
+    if (isRefreshing) {
+      // Hali hazırda bir yenileme işlemi var, kuyruğa gir ve bitmesini bekle
+      const success = await new Promise<boolean>((resolve) => {
+        refreshSubscribers.push(resolve);
+      });
+      // Yenileme başarılıysa tekrar dene (Cookie üzerinden otomatik gidecektir)
+      if (success) {
+        response = await makeRequest(options);
+      }
+    } else {
+      isRefreshing = true;
+      try {
+        const success = await performTokenRefresh();
+        notifySubscribers(success);
+        
+        if (success) {
+          console.log(`[API] Retrying queued request for ${path}...`);
+          response = await makeRequest(options);
+        }
+      } finally {
+        isRefreshing = false;
+      }
+    }
+  }
 
   const contentType = response.headers.get("content-type");
   const isJson = contentType?.includes("application/json");
   const text = await response.text();
 
-  // Eğer yanıt JSON DEĞİLSE ve başarılıysa, ham veriyi döndürelim
   if (!isJson && response.ok) {
     return text as T;
   }
@@ -75,7 +173,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     try {
       payload = JSON.parse(text) as ApiResult<T>;
     } catch {
-      throw new ApiError("API yanıtı geçersiz JSON döndü.", response.status);
+      throw new ApiError("API yaniti gecersiz JSON dondu.", response.status);
     }
   }
 
@@ -93,7 +191,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok || !result) {
     throw new ApiError(
-      msg ?? "API istegi basarisiz oldu.",
+      msg || "API istegi basarisiz oldu.",
       response.status,
       formattedErrs
     );
@@ -106,29 +204,56 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   return resData as T;
 }
 
+export const COVER_DEFAULT = "/covers/cover-golge.svg";
+
 /**
  * Medya URL'lerini frontend'in erişebileceği hale getirir.
- * Eğer URL 'epiknovel_api' (docker dâhili host) içeriyorsa, bunu 'localhost:8080' ile değiştirir.
- * Eğer URL '/' ile başlıyorsa, bunu backend origin'i ile tamamlar (veya Next.js rewrite mekanizmasına bırakır).
  */
-export function resolveMediaUrl(url?: string | null): string {
+export function resolveMediaUrl(url?: string | null, category: string = "covers"): string {
   if (!url) return "";
 
-  // 1. Eğer URL bizim proxy adresimizse, doğrudan içindeki yolu alalım.
-  // Bu hem URL'yi kısaltır hem de Next.js'in /uploads rewrite mekanizmasını kullanmasını sağlar.
-  if (url.includes("/api/media/file?path=")) {
-    const parts = url.split("/api/media/file?path=");
-    if (parts.length > 1) {
-      // Decode the path if it's encoded in the query
-      try {
-        return decodeURIComponent(parts[1]);
-      } catch {
-        return parts[1];
-      }
-    }
+  // 1. Base64 veya Zaten Proxy'lenmiş URL ise dokunma
+  if (url.startsWith("data:") || url.includes("/api/media/file?path=")) {
+    return url;
   }
 
-  // 2. Docker internal host'u browser'ın anlayacağı hale getir (Fallback)
+  // 2. Agresif Yakalama: URL içinde '/uploads/' (çoğul) veya '/upload/' (tekil) geçiyorsa
+  // veya doğrudan epiknovel.com üzerinden bir görsel geliyorsa proxy üzerinden geçiri
+  if (url.includes("/uploads/") || url.includes("/upload/") || url.includes("epiknovel.com")) {
+    let assetPath = "";
+    if (url.includes("/uploads/")) {
+      assetPath = "/uploads/" + url.split("/uploads/")[1];
+    } else if (url.includes("/upload/")) {
+      assetPath = "/upload/" + url.split("/upload/")[1];
+    } else if (url.includes("epiknovel.com")) {
+      // https://epiknovel.com/something.png -> /something.png
+      try {
+        const parsed = new URL(url);
+        assetPath = parsed.pathname;
+      } catch {
+        assetPath = url;
+      }
+    }
+    
+    // Eğer favicon ise doğrudan public dizinine güvenebiliriz, değilse proxy'ye at
+    if (assetPath === "/favicon.ico") return "/favicon.svg";
+    
+    // 🚀 OPTİMİZASYON: Eğer yol zaten /uploads/ ile başlıyorsa, 
+    // next.config.ts'deki rewrite kuralı (source: "/uploads/:path*") bunu otomatik çözer.
+    if (assetPath.startsWith("/uploads/")) {
+      return assetPath;
+    }
+    
+    return `/api/media/file?path=${encodeURIComponent(assetPath)}`;
+  }
+
+  // 2.5 GUID.webp gibi ham dosya isimlerini yakala (Genellikle kapak fotoğraflarıdır)
+  // Pattern: 32 karakterlik hex Guid + .webp
+  if (/^[0-9a-f]{32}\.webp$/i.test(url)) {
+    return `/uploads/${category}/${url}`;
+  }
+
+  // 3. Fallback: Eski klasik çözümleme (Eğer /uploads/ geçmiyorsa ama host temizliği gerekiyorsa)
   if (url.includes("epiknovel_api:8080")) {
     return url.replace("epiknovel_api:8080", "localhost:8080");
   }

@@ -8,5 +8,7 @@ public record AddCommentCommand(
     Guid? BookId,
     Guid? ChapterId,
     Guid? ParentCommentId,
-    string Content
+    string Content,
+    bool IsSpoiler = false,
+    string? ParagraphId = null
 ) : IRequest<Result<Guid>>;

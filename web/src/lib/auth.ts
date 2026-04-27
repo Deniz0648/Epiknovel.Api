@@ -143,6 +143,7 @@ export type MyBookListItem = {
   originalAuthorName: string | null;
   type: "Original" | "Translation" | number;
   isHidden: boolean;
+  isDeleted: boolean;
   authorId: string;
   categories: BookCategoryItem[];
   tags: string[];
@@ -535,7 +536,7 @@ export async function getMyBooks(request?: {
   search?: string;
   status?: string;
   type?: string | number;
-  isDeleted?: boolean;
+  OnlyDeleted?: boolean;
   sortBy?: string;
   sortDescending?: boolean;
 }) {
@@ -552,8 +553,8 @@ export async function getMyBooks(request?: {
   if (request?.status?.trim()) {
     searchParams.set("status", request.status.trim());
   }
-  if (request?.isDeleted !== undefined) {
-    searchParams.set("isDeleted", String(request.isDeleted));
+  if (request?.OnlyDeleted !== undefined) {
+    searchParams.set("onlyDeleted", String(request.OnlyDeleted));
   }
   if (request?.type !== undefined && request.type !== "") {
     searchParams.set("type", String(request.type));
@@ -618,7 +619,7 @@ export async function deleteBook(id: string) {
 
 export async function getMyChapters(
   bookSlug: string,
-  request?: { pageNumber?: number; pageSize?: number; search?: string; status?: string; isDeleted?: boolean },
+  request?: { pageNumber?: number; pageSize?: number; search?: string; status?: string; OnlyDeleted?: boolean },
 ) {
   const searchParams = new URLSearchParams();
 
@@ -634,8 +635,8 @@ export async function getMyChapters(
   if (request?.status?.trim()) {
     searchParams.set("status", request.status.trim());
   }
-  if (request?.isDeleted !== undefined) {
-    searchParams.set("isDeleted", String(request.isDeleted));
+  if (request?.OnlyDeleted !== undefined) {
+    searchParams.set("onlyDeleted", String(request.OnlyDeleted));
   }
 
   return apiRequest<MyChapterPagedResponse>(`/books/mine/${bookSlug}/chapters?${searchParams.toString()}`, {

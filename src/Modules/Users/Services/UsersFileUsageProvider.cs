@@ -10,6 +10,7 @@ public class UsersFileUsageProvider(UsersDbContext dbContext) : IFileUsageProvid
     {
         // Kullanıcı profillerindeki aktif avatarları al
         return await dbContext.UserProfiles
+            .IgnoreQueryFilters()
             .Where(p => !string.IsNullOrEmpty(p.AvatarUrl))
             .Select(p => p.AvatarUrl!)
             .ToListAsync();

@@ -10,6 +10,7 @@ public class GetManagementBooksRequest
 {
     public string? Type { get; set; }
     public bool? IsHidden { get; set; }
+    public bool? IsEditorChoice { get; set; }
     public string? Search { get; set; }
     public int Page { get; set; } = 1;
     public int Take { get; set; } = 25;
@@ -26,7 +27,7 @@ public class GetManagementBooksEndpoint(IManagementBookProvider bookProvider) : 
 
     public override async Task HandleAsync(GetManagementBooksRequest req, CancellationToken ct)
     {
-        var result = await bookProvider.GetBooksAsync(req.Type, req.IsHidden, req.Search, req.Page, req.Take, ct);
+        var result = await bookProvider.GetBooksAsync(req.Type, req.IsHidden, req.IsEditorChoice, req.Search, req.Page, req.Take, ct);
         await Send.ResponseAsync(result, 200, ct);
     }
 }

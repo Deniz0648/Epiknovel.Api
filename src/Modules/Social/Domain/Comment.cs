@@ -13,11 +13,20 @@ public class Comment : BaseEntity, ISoftDelete, IOwnable
     
     // Üst yorum (Eğer yanıtsa)
     public Guid? ParentCommentId { get; set; }
+    public string? ParagraphId { get; set; } // Satır seviyesi yorumlar için
 
     public string Content { get; set; } = string.Empty;
+    public string? ContentHash { get; set; } // Spam kontrolü için
+    
     public int LikeCount { get; set; }
+    public int ReplyCount { get; set; } // Hızlı listeleme için
 
     public bool IsHidden { get; set; }
+    public bool IsSpoiler { get; set; }
+    public bool IsPinned { get; set; }
+    public bool IsEditorChoice { get; set; }
+    public bool IsAuthorComment { get; set; } // Yazar rozeti için
+    public bool IsEdited { get; set; }
 
     public override void UndoDelete()
     {

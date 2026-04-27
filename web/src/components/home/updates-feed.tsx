@@ -2,65 +2,27 @@ import { BellRing, BookText, Megaphone } from "lucide-react";
 import Link from "next/link";
 import { toBookSlug } from "@/lib/books";
 
-const CHAPTER_UPDATES = [
-  {
-    book: "Kutsal Arsivlerin Son Koruyucusu",
-    chapter: "Bolum 149 yuklendi",
-    time: "12 dk once",
-  },
-  {
-    book: "Against the Gods",
-    chapter: "Bolum 813 yuklendi",
-    time: "34 dk once",
-  },
-  {
-    book: "Rebirth of the Thief Who Roamed the World",
-    chapter: "Bolum 308 yuklendi",
-    time: "1 saat once",
-  },
-  {
-    book: "Golge Loncasinin Kayip Haritasi",
-    chapter: "Bolum 90 yuklendi",
-    time: "2 saat once",
-  },
-  {
-    book: "Sonsuz Muhurun Ucuncu Anahtari",
-    chapter: "Bolum 204 yuklendi",
-    time: "3 saat once",
-  },
-  {
-    book: "Kuzey Kapisindaki Buyucu",
-    chapter: "Bolum 57 yuklendi",
-    time: "5 saat once",
-  },
-] as const;
+// CHAPTER_UPDATES ve ANNOUNCEMENTS statik dizileri props'a tasindi.
 
-const ANNOUNCEMENTS = [
-  {
-    title: "Sunucu Bakimi",
-    description: "Cumartesi 02:00 - 03:00 arasinda kisa sureli bakim olacak.",
-    date: "31 Mart",
-  },
-  {
-    title: "Yeni Etiket Sistemi",
-    description: "Romanlarda filtreleme deneyimini iyilestiren yeni etiketler acildi.",
-    date: "30 Mart",
-  },
-  {
-    title: "Yazar Etkinligi",
-    description: "Bu hafta sonu canli soru-cevap etkinligi duzenleniyor.",
-    date: "29 Mart",
-  },
-  {
-    title: "Mobil Iyilestirmeler",
-    description: "Kaydirma performansi ve bolum gecisleri guncellendi.",
-    date: "28 Mart",
-  },
-] as const;
+export type UpdateItem = {
+  book: string;
+  chapter: string;
+  time: string;
+};
 
-export function UpdatesFeed() {
-  const chapterUpdates = CHAPTER_UPDATES.slice(0, 6);
-  const announcements = ANNOUNCEMENTS.slice(0, 4);
+export type AnnouncementItem = {
+  title: string;
+  description: string;
+  date: string;
+};
+
+export function UpdatesFeed({ 
+  updates, 
+  announcements 
+}: { 
+  updates: UpdateItem[], 
+  announcements: AnnouncementItem[] 
+}) {
 
   return (
     <section className="grid gap-4 xl:grid-cols-2">
@@ -71,7 +33,7 @@ export function UpdatesFeed() {
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-6 xl:gap-2.5">
-          {chapterUpdates.map((item) => (
+          {updates.map((item) => (
             <Link
               href={`/Books/${toBookSlug(item.book)}`}
               key={`${item.book}-${item.chapter}`}

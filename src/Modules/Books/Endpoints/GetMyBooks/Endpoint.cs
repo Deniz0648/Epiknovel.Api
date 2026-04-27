@@ -31,10 +31,10 @@ public class Endpoint(
             return;
         }
 
-        var pageNumber = req.PageNumber < 1 ? 1 : req.PageNumber;
-        var pageSize = req.PageSize < 1 ? 12 : Math.Min(req.PageSize, 48);
+        var pageNumber = req.PageNumber;
+        var pageSize = req.PageSize;
 
-        bool filterIsDeleted = req.isDeleted ?? (HttpContext.Request.Query.TryGetValue("isDeleted", out var values) && values.ToString().Equals("true", StringComparison.OrdinalIgnoreCase));
+        bool filterIsDeleted = req.OnlyDeleted;
         
         var query = dbContext.Books
             .IgnoreQueryFilters()
@@ -75,6 +75,7 @@ public class Endpoint(
             .Select(x => new Response
             {
                 Id = x.Id,
+                IsDeleted = x.IsDeleted,
                 Title = x.Title,
                 Slug = x.Slug,
                 Description = x.Description,

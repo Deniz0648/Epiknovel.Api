@@ -14,6 +14,7 @@ public class Request
     public string? ImageUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsPinned { get; set; }
+    public DateTime? PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
 }
 
@@ -46,6 +47,7 @@ public class Endpoint(InfrastructureDbContext dbContext) : Endpoint<Request, Res
             ImageUrl = string.IsNullOrWhiteSpace(req.ImageUrl) ? null : req.ImageUrl.Trim(),
             IsActive = req.IsActive,
             IsPinned = req.IsPinned,
+            PublishedAt = req.PublishedAt ?? DateTime.UtcNow,
             ExpiresAt = req.ExpiresAt
         };
 

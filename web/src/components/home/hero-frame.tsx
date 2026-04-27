@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { AddToLibraryButton } from "@/components/book/add-to-library-button";
 import {
   type CSSProperties,
   type TouchEvent,
@@ -27,6 +28,7 @@ type BookSlide = {
   imageAlt: string;
   blurDataURL: string;
   stats: ReadonlyArray<{ value: string; label: string }>;
+  status: string;
 };
 
 function getHeadlineScaleStyle(text: string): CSSProperties {
@@ -43,56 +45,7 @@ function getHeadlineScaleStyle(text: string): CSSProperties {
   return { fontSize: "clamp(2rem, 6vw, 3.75rem)" };
 }
 
-const EDITOR_CHOICE_SLIDES: ReadonlyArray<BookSlide> = [
-  {
-    id: "kutsal-arsivler",
-    badge: "EDITORUN SECIMI",
-    title: "Kutsal Arsivlerin Son Koruyucusu",
-    description:
-      "Binlerce yillik sessizlik bozuldu. Kadim buyulerin uyandigi bir dunyada, sadece bir arsivcinin sirlari hayat ile olum arasindaki dengeyi koruyabilir.",
-    image: "/hero-cover.svg",
-    imageAlt: "Kutsal Arsivlerin Son Koruyucusu kitap kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f7c584'/%3E%3Cstop offset='1' stop-color='%233f3566'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-    stats: [
-      { value: "12.4K", label: "Okunma" },
-      { value: "500+", label: "Bolum" },
-      { value: "4.9", label: "Puan" },
-    ],
-  },
-  {
-    id: "golge-lonca",
-    badge: "EDITORUN SECIMI",
-    title: "Against the Gods",
-    description:
-      "Yedi kralligin unuttugu bir harita, genc bir izsurucuyu buz saraylarindan yasak kutuphanelere uzanan bir avin merkezine surukler.",
-    image: "/hero-cover.svg",
-    imageAlt: "Golge Loncasinin Kayip Haritasi kitap kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2386d9d4'/%3E%3Cstop offset='1' stop-color='%231b2641'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-    stats: [
-      { value: "9.8K", label: "Okunma" },
-      { value: "312", label: "Bolum" },
-      { value: "4.8", label: "Puan" },
-    ],
-  },
-  {
-    id: "sonsuz-muhur",
-    badge: "EDITORUN SECIMI",
-    title: "Rebirth of the Thief Who Roamed the World",
-    description:
-      "Imparatorluk duvarlarinin altinda saklanan anahtarlar acildikca, bir muhafizin karari tum buyu duzenini degistirecek bir savasi baslatir.",
-    image: "/hero-cover.svg",
-    imageAlt: "Sonsuz Muhurun Ucuncu Anahtari kitap kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f6b17f'/%3E%3Cstop offset='1' stop-color='%232a1f43'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-    stats: [
-      { value: "15.2K", label: "Okunma" },
-      { value: "421", label: "Bolum" },
-      { value: "4.9", label: "Puan" },
-    ],
-  },
-];
+// EDITOR_CHOICE_SLIDES statik dizisi props'a tasindi.
 
 function CoverPanel({
   slide,
@@ -105,7 +58,7 @@ function CoverPanel({
 
   return (
     <Link href={bookHref} className={className}>
-      <div className="glass-frame relative mx-auto aspect-[2/3] w-full overflow-hidden p-1.5">
+      <div className="glass-frame relative mx-auto aspect-2/3 w-full overflow-hidden p-1.5">
         <div className="relative h-full w-full overflow-hidden rounded-[1.2rem]">
           <Image
             src={slide.image}
@@ -117,24 +70,28 @@ function CoverPanel({
             className="object-cover"
             sizes="(max-width: 640px) 36vw, (max-width: 1024px) 28vw, 30vw"
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-base-100/35 via-transparent to-transparent" />
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-base-100/35 via-transparent to-transparent" />
         </div>
       </div>
     </Link>
   );
 }
 
-export function HeroFrame() {
+export function HeroFrame({ slides }: { slides: BookSlide[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<SlideDirection>("next");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
-  const totalSlides = EDITOR_CHOICE_SLIDES.length;
+  const totalSlides = slides.length;
+
+  if (totalSlides === 0) {
+    return null;
+  }
 
   const activeSlide = useMemo(
-    () => EDITOR_CHOICE_SLIDES[activeIndex] ?? EDITOR_CHOICE_SLIDES[0],
-    [activeIndex],
+    () => slides[activeIndex] ?? slides[0],
+    [activeIndex, slides],
   );
   const activeBookHref = `/Books/${toBookSlug(activeSlide.title)}`;
   const titleScaleStyle = getHeadlineScaleStyle(activeSlide.title);
@@ -247,7 +204,7 @@ export function HeroFrame() {
                 {activeSlide.badge}
               </p>
 
-              <div className="flex h-[7.2rem] items-center py-0.5 sm:h-[8rem] lg:h-[8.8rem]">
+              <div className="flex h-[7.2rem] items-center py-0.5 sm:h-32 lg:h-[8.8rem]">
                 <h1
                   className="hero-title-gradient line-clamp-3 text-balance pb-[0.06em] font-black leading-[1.05] tracking-tight"
                   style={titleScaleStyle}
@@ -256,14 +213,14 @@ export function HeroFrame() {
                 </h1>
               </div>
 
-              <p className="max-w-xl text-pretty text-base leading-relaxed text-base-content/75 sm:text-[1.05rem]">
+              <p className="line-clamp-3 max-w-xl text-pretty text-base leading-relaxed text-base-content/75 sm:text-[1.05rem]">
                 {activeSlide.description}
               </p>
             </div>
 
             <CoverPanel
               slide={activeSlide}
-              className="w-[7.8rem] shrink-0 sm:w-[9rem] lg:hidden"
+              className="w-[7.8rem] shrink-0 sm:w-36 lg:hidden"
             />
           </div>
 
@@ -275,9 +232,11 @@ export function HeroFrame() {
               <Play className="h-4 w-4 fill-current" aria-hidden="true" />
               Simdi Oku
             </Link>
-            <button className="btn rounded-full border border-base-content/20 bg-base-100/30 px-7 backdrop-blur-sm hover:bg-base-100/45">
-              Kutuphaneye Ekle
-            </button>
+            <AddToLibraryButton
+              bookId={activeSlide.id}
+              bookStatus={activeSlide.status}
+              className="w-auto min-w-48"
+            />
           </div>
 
           <div className="grid w-full max-w-md grid-cols-3 gap-2.5 pt-1 sm:gap-3">
@@ -296,7 +255,7 @@ export function HeroFrame() {
 
         <CoverPanel
           slide={activeSlide}
-          className="mx-auto hidden w-full max-w-[20.5rem] lg:justify-self-end lg:block"
+          className="mx-auto hidden w-full max-w-82 lg:justify-self-end lg:block"
         />
       </div>
 
@@ -310,16 +269,15 @@ export function HeroFrame() {
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        {EDITOR_CHOICE_SLIDES.map((slide, index) => {
+        {slides.map((slide, index) => {
           const isActive = index === activeIndex;
           return (
             <button
               key={slide.id}
               type="button"
               onClick={() => goToSlide(index)}
-              className={`h-2.5 rounded-full transition-all ${
-                isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-              }`}
+              className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
+                }`}
               aria-label={`${index + 1}. kitap: ${slide.title}`}
               aria-current={isActive ? "true" : "false"}
             />

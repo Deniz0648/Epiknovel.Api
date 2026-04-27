@@ -79,12 +79,13 @@ export type MyOrdersResponse = {
   totalCount: number;
 };
 
-export async function getWalletTransactions(page: number = 1, pageSize: number = 20, search?: string) {
+export async function getWalletTransactions(page: number = 1, pageSize: number = 20, search?: string, type?: string) {
   const query = new URLSearchParams({
     page: page.toString(),
     pageSize: pageSize.toString(),
   });
   if (search) query.set("search", search);
+  if (type) query.set("type", type);
 
   return apiRequest<TransactionResponse>(`/wallet/transactions?${query.toString()}`, {
     method: "GET",

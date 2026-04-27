@@ -32,6 +32,7 @@ public class Response
     public bool IsEditorChoice { get; set; }
     public long ViewCount { get; set; }
     public double AverageRating { get; set; }
+    public int VoteCount { get; set; }
     public int ChapterCount { get; set; }
     public List<string> CategoryNames { get; set; } = new();
 }

@@ -17,6 +17,7 @@ public class AnnouncementDto
     public string Content { get; set; } = string.Empty;
     public string? ImageUrl { get; set; }
     public bool IsPinned { get; set; }
+    public DateTime? PublishedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -40,9 +41,11 @@ public class Endpoint(InfrastructureDbContext dbContext) : EndpointWithoutReques
 
         var items = await dbContext.Announcements
             .AsNoTracking()
-            .Where(x => !x.IsDeleted && x.IsActive && (!x.ExpiresAt.HasValue || x.ExpiresAt > now))
+            .Where(x => !x.IsDeleted && x.IsActive 
+                && (x.PublishedAt == null || x.PublishedAt <= now)
+                && (x.ExpiresAt == null || x.ExpiresAt > now))
             .OrderByDescending(x => x.IsPinned)
-            .ThenByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.PublishedAt ?? x.CreatedAt)
             .Take(100)
             .Select(x => new AnnouncementDto
             {
@@ -51,6 +54,7 @@ public class Endpoint(InfrastructureDbContext dbContext) : EndpointWithoutReques
                 Content = x.Content,
                 ImageUrl = x.ImageUrl,
                 IsPinned = x.IsPinned,
+                PublishedAt = x.PublishedAt,
                 CreatedAt = x.CreatedAt
             })
             .ToListAsync(ct);

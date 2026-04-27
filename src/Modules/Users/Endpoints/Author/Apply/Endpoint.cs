@@ -14,17 +14,18 @@ public record Request
     public string PlannedWork { get; init; } = string.Empty;
 }
 
-public class Endpoint(IAuthorApplicationService authorApplicationService, ISystemSettingProvider settings) : Endpoint<Request, Result<string>>
+public class Endpoint(IAuthorApplicationService authorApplicationService, ISystemSettingProvider settings) : Endpoint<Request, Result<object>>
 {
     public override void Configure()
     {
         Post("/author/apply");
+        Get("/author/apply");
         Policies("BOLA");
         Throttle(5, 60);
         Summary(s =>
         {
-            s.Summary = "Yazarlık başvurusu yap.";
-            s.Description = "Kullanıcının yazarlık başvurusunu oluşturur.";
+            s.Summary = "Yazarlık başvurusu işlemleri.";
+            s.Description = "Yazarlık başvurusu yapar veya mevcut başvuru durumunu sorgular.";
         });
     }
 
@@ -33,7 +34,14 @@ public class Endpoint(IAuthorApplicationService authorApplicationService, ISyste
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (!Guid.TryParse(userIdString, out var userId))
         {
-            await Send.ResponseAsync(Result<string>.Failure("Unauthorized"), 401, ct);
+            await Send.ResponseAsync(Result<object>.Failure("Unauthorized"), 401, ct);
+            return;
+        }
+
+        if (HttpContext.Request.Method == "GET")
+        {
+            var statusResult = await authorApplicationService.GetUserActiveApplicationAsync(userId, ct);
+            await Send.ResponseAsync(Result<object>.Success(statusResult.Data ?? (object)new { }), 200, ct);
             return;
         }
 
@@ -43,7 +51,7 @@ public class Endpoint(IAuthorApplicationService authorApplicationService, ISyste
             var allowApplications = await settings.GetSettingValueAsync<string>("CONTENT_AllowAuthorApplications", ct);
             if (allowApplications == "false")
             {
-                await Send.ResponseAsync(Result<string>.Failure("Şu anda yazarlık başvuruları geçici olarak kapalıdır."), 403, ct);
+                await Send.ResponseAsync(Result<object>.Failure("Şu anda yazarlık başvuruları geçici olarak kapalıdır."), 403, ct);
                 return;
             }
         }
@@ -57,11 +65,11 @@ public class Endpoint(IAuthorApplicationService authorApplicationService, ISyste
 
         if (!result.IsSuccess)
         {
-            await Send.ResponseAsync(result, 400, ct);
+            await Send.ResponseAsync(Result<object>.Failure(result.Message), 400, ct);
             return;
         }
 
-        await Send.ResponseAsync(result, 200, ct);
+        await Send.ResponseAsync(Result<object>.Success(result.Data ?? (object)new { }), 200, ct);
     }
 }
 

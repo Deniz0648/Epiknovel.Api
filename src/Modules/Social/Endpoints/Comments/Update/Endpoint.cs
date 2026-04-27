@@ -4,6 +4,9 @@ using Epiknovel.Modules.Social.Data;
 using Epiknovel.Modules.Social.Domain;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
+using Epiknovel.Shared.Core.Attributes;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Builder;
 
 namespace Epiknovel.Modules.Social.Endpoints.Comments.Update;
 
@@ -18,6 +21,7 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<stri
     public override void Configure()
     {
         Put("/social/comments/{commentId}");
+        Options(x => x.WithMetadata(new IdempotencyAttribute())); // 🛡️ Idempotency
         Summary(s => {
             s.Summary = "Yorumu güncelle.";
             s.Description = "Kullanıcının kendi yaptığı bir yorumun içeriğini değiştirmesini sağlar.";
@@ -55,7 +59,18 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<stri
             return;
         }
 
-        comment.Content = req.Content;
+        // 🛡️ 30 Dakika Düzenleme Penceresi Kontrolü
+        if ((DateTime.UtcNow - comment.CreatedAt).TotalMinutes > 30)
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Yorum düzenleme süresi (30 dk) doldu."), 400, ct);
+            return;
+        }
+
+        // 🧹 Sanitization
+        var sanitizer = new Ganss.Xss.HtmlSanitizer();
+        comment.Content = sanitizer.Sanitize(req.Content);
+        
+        comment.IsEdited = true;
         comment.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(ct);

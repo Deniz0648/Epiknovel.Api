@@ -8,6 +8,7 @@ import {
   Star,
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   type CSSProperties,
   type TouchEvent,
@@ -26,53 +27,26 @@ type SlideDirection = "next" | "prev";
 type ReaderExperience = {
   id: string;
   editorName: string;
+  avatarUrl?: string;
   likes: number;
   bookTitle: string;
   rating: number;
   review: string;
 };
 
-const EXPERIENCES: ReadonlyArray<ReaderExperience> = [
-  {
-    id: "exp-1",
-    editorName: "Epik Admin",
-    likes: 6,
-    bookTitle: "Against The Gods",
-    rating: 5.0,
-    review:
-      "\"Eger ana karakterin 'ezik' kalmasindan sikildiysaniz, Yun Che ile tanisma vaktiniz gelmis demektir! ATG, her bolumuyle ters kose yapan, dovus sahneleriyle nefes kesen bir saheser. Jasmine ile olan o usta-cirak iliskisinden dogan devasa guc ve Yun Che'nin dusmanlarina karsi acimasizligi tek kelimeyle efsane. Kan, gozyasi ve bitmek bilmeyen bir hirs... Bu romani okurken kendinizi 'Gokyuzu Zehir Sedefini' kontrol ediyormus gibi hissedeceksiniz. Kemerlerinizi baglayin, bu yolculuk cok sarsintili olacak!\"",
-  },
-  {
-    id: "exp-2",
-    editorName: "Epik Admin",
-    likes: 9,
-    bookTitle: "Rebirth of the Thief Who Roamed the World",
-    rating: 4.9,
-    review:
-      "\"Hiz, strateji ve intikam hissi cok guclu. Nie Yan'in her hamlesi bir satranc oyunu gibi, ustune bir de lonca savaslari eklenince roman birakilmaz hale geliyor. Ozellikle guc dengesinin adim adim kurulmasi cok tatmin edici.\"",
-  },
-  {
-    id: "exp-3",
-    editorName: "Epik Admin",
-    likes: 7,
-    bookTitle: "Kutsal Arsivlerin Son Koruyucusu",
-    rating: 4.8,
-    review:
-      "\"Dunya kurulumundaki katmanlar ve buyu sistemi cok olgun bir sekilde ilerliyor. Karakter gelisimi aceleye getirilmeden veriliyor, bu da bolumler ilerledikce bag kurmayi kolaylastiriyor. Finaldeki ritim ise tam dozunda.\"",
-  },
-];
+// EXPERIENCES statik dizisi props'a tasindi.
 
-export function ReaderExperiencesRow() {
+export function ReaderExperiencesRow({ experiences }: { experiences: ReaderExperience[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<SlideDirection>("next");
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
-  const totalSlides = EXPERIENCES.length;
+  const totalSlides = experiences.length;
 
   const activeExperience = useMemo(
-    () => EXPERIENCES[activeIndex] ?? EXPERIENCES[0],
-    [activeIndex],
+    () => experiences[activeIndex] ?? experiences[0],
+    [activeIndex, experiences],
   );
 
   const clearAutoTimer = useCallback(() => {
@@ -188,50 +162,111 @@ export function ReaderExperiencesRow() {
 
         <div
           key={activeExperience.id}
-          className="hero-slide-enter relative z-10 space-y-5"
+          className="hero-slide-enter relative z-10 flex flex-col gap-6"
           style={slideAnimationStyle}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Header: User Info & Book Info */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            {/* Reviewer */}
             <div className="flex items-center gap-3">
-              <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-base-content/12 bg-base-100/35 text-sm font-black tracking-wide">
-                EA
+              <div className="relative">
+                <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-primary/10 text-sm font-black text-primary shadow-inner">
+                  {activeExperience.avatarUrl ? (
+                    <Image
+                      src={activeExperience.avatarUrl}
+                      alt={activeExperience.editorName}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    activeExperience.editorName?.charAt(0).toUpperCase() || "U"
+                  )}
+                </div>
+                <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-lg bg-base-100 p-0.5 shadow-sm">
+                  <MessageSquareQuote className="h-3 w-3 text-primary" />
+                </div>
               </div>
               <div>
-                <p className="text-sm font-semibold text-base-content/70">
+                <h4 className="text-sm font-black uppercase tracking-widest text-base-content/90">
                   {activeExperience.editorName}
-                </p>
-                <p className="text-base font-bold">{activeExperience.editorName}</p>
+                </h4>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-full border border-base-content/12 bg-base-100/30 px-3 py-1.5 text-sm">
-              <Heart className="h-4 w-4 text-secondary" />
-              <span className="font-semibold">{activeExperience.likes} Begeni</span>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <p className="badge badge-soft border-none px-3 py-3 text-xs font-semibold tracking-wide">
-              <Link href={`/Books/${toBookSlug(activeExperience.bookTitle)}`}>
-                {activeExperience.bookTitle}
-              </Link>
-            </p>
-            <div className="flex items-end gap-2">
-              <div className="flex items-center gap-1 text-warning">
-                <Star className="h-4 w-4 fill-current" />
-                <span className="text-xl font-black leading-none">
-                  {activeExperience.rating.toFixed(1)}
-                </span>
+            {/* Book Source */}
+            <div className="flex items-center gap-3 rounded-2xl border border-base-content/5 bg-base-content/3 p-2 pr-4 transition-colors hover:bg-base-content/6">
+              <div className="flex h-10 w-8 items-center justify-center rounded-md bg-base-content/10 text-[8px] font-black uppercase text-base-content/40">
+                KİTAP
               </div>
-              <p className="pb-0.5 text-xs font-semibold uppercase tracking-[0.15em] text-base-content/60">
-                / 5.0 Puan
-              </p>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-black uppercase tracking-widest text-base-content/30">Hakkında Yazdı</span>
+                <Link
+                  href={`/Books/${toBookSlug(activeExperience.bookTitle)}`}
+                  className="text-xs font-black uppercase tracking-tight text-primary transition-colors hover:text-primary-focus"
+                >
+                  {activeExperience.bookTitle}
+                </Link>
+              </div>
             </div>
           </div>
 
-          <blockquote className="rounded-2xl border border-base-content/12 bg-base-100/22 px-4 py-4 text-sm leading-relaxed text-base-content/82 sm:px-5 sm:text-base">
-            {activeExperience.review}
-          </blockquote>
+          {/* Content: Review & Rating */}
+          <div className="relative">
+            <div className="absolute -left-2 -top-4 text-6xl font-serif text-primary/10 select-none">“</div>
+            <div
+              className="prose prose-sm prose-invert max-w-none relative z-10 pl-2 text-base font-medium leading-relaxed text-base-content/80 prose-p:my-1 prose-strong:text-primary"
+              dangerouslySetInnerHTML={{
+                __html: activeExperience.review
+                  ?.replace(/&lt;/g, '<')
+                  ?.replace(/&gt;/g, '>')
+                  ?.replace(/&quot;/g, '"')
+                  ?.replace(/&#39;/g, "'")
+                  ?.replace(/&amp;/g, '&') || ""
+              }}
+            />
+          </div>
+
+          {/* Footer: Rating */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-base-content/5 pt-6">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-5 w-5 ${i < Math.floor(activeExperience.rating) ? 'fill-warning text-warning' : 'text-base-content/20'}`}
+                    />
+                  ))}
+                  <span className="ml-1 text-lg font-black text-warning">
+                    {activeExperience.rating.toFixed(1)}
+                  </span>
+                  <span className="text-xs font-bold text-base-content/30 uppercase tracking-widest mt-0.5">/ 5.0</span>
+                </div>
+              </div>
+              
+              <button 
+                onClick={async (e) => {
+                  e.preventDefault();
+                  try {
+                    const res = await fetch(`/api/social/comments/${activeExperience.id}/like`, { method: 'POST' });
+                    if (res.ok) {
+                      const heart = e.currentTarget.querySelector('svg');
+                      if (heart) {
+                        heart.classList.toggle('fill-secondary');
+                        heart.classList.toggle('text-secondary');
+                      }
+                    }
+                  } catch (err) {
+                    console.error("Like error:", err);
+                  }
+                }}
+                className="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-secondary/10 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-secondary transition-all hover:bg-secondary/20 hover:shadow-xl hover:shadow-secondary/10 active:scale-95 active:shadow-inner shadow-lg shadow-secondary/5"
+              >
+                <div className="absolute inset-0 bg-linear-to-tr from-secondary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                <Heart className="relative z-10 h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="relative z-10">{activeExperience.likes} Etkileşim</span>
+              </button>
+            </div>
         </div>
       </article>
 
@@ -245,16 +280,15 @@ export function ReaderExperiencesRow() {
           <ChevronLeft className="h-4 w-4" />
         </button>
 
-        {EXPERIENCES.map((item, index) => {
+        {experiences.map((item, index) => {
           const isActive = index === activeIndex;
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => goToSlide(index)}
-              className={`h-2.5 rounded-full transition-all ${
-                isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-              }`}
+              className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
+                }`}
               aria-label={`${index + 1}. deneyim: ${item.bookTitle}`}
               aria-current={isActive ? "true" : "false"}
             />

@@ -29,12 +29,13 @@ public class Endpoint(BooksDbContext dbContext) : Endpoint<Request, Result<Respo
 
         var slug = req.Slug.ToLower().Trim();
         var book = await dbContext.Books
+            .IgnoreQueryFilters()
             .Include(x => x.Categories)
             .Include(x => x.Tags)
             .Include(x => x.Chapters)
             .AsNoTracking()
             .AsSplitQuery()
-            .FirstOrDefaultAsync(x => x.Slug.ToLower() == slug && !x.IsDeleted, ct);
+            .FirstOrDefaultAsync(x => x.Slug.ToLower() == slug, ct);
 
         if (book == null)
         {

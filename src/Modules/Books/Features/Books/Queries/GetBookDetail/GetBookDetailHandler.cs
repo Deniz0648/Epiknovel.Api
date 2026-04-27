@@ -107,13 +107,12 @@ public class GetBookDetailHandler(
                 double currentAvg = response.AverageRating;
                 int currentCount = response.VoteCount;
 
-                double totalSum = (currentAvg * currentCount) + deltaSum;
-                int totalCount = currentCount + (int)deltaCount;
+                var (newAvg, totalCount) = Epiknovel.Modules.Books.Helpers.RatingMath.Calculate(response.AverageRating, response.VoteCount, (int)deltaSum, (int)deltaCount);
 
                 if (totalCount > 0)
                 {
                     response = response with { 
-                        AverageRating = Math.Min(5.0, Math.Round(totalSum / totalCount, 1)), 
+                        AverageRating = newAvg, 
                         VoteCount = totalCount 
                     };
                 }

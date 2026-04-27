@@ -8,8 +8,9 @@ public record ManagementSimpleDto(Guid Id, string Name, string Slug, string? Des
 public interface IManagementBookProvider
 {
     Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, CancellationToken ct = default);
+    Task<bool> ToggleEditorChoiceAsync(Guid bookId, bool isEditorChoice, CancellationToken ct = default);
     Task<bool> DeleteBookAsync(Guid bookId, CancellationToken ct = default);
-    Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, string? searchTerm, int page, int pageSize, CancellationToken ct = default);
+    Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, bool? isEditorChoice, string? searchTerm, int page, int pageSize, CancellationToken ct = default);
     
     // Categories
     Task<List<ManagementSimpleDto>> GetCategoriesAsync(CancellationToken ct = default);

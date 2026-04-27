@@ -140,13 +140,11 @@ public class ChapterStatsSyncWorker(
                     var book = await dbContext.Books.FirstOrDefaultAsync(x => x.Id == bookId, ct);
                     if (book != null)
                     {
-                        double oldSum = book.AverageRating * book.VoteCount;
-                        double newSum = oldSum + deltaSum;
-                        int newCount = book.VoteCount + (int)deltaCount;
+                        var (newAvg, newCount) = Epiknovel.Modules.Books.Helpers.RatingMath.Calculate(book.AverageRating, book.VoteCount, (int)deltaSum, (int)deltaCount);
 
                         if (newCount > 0)
                         {
-                            book.AverageRating = Math.Round(newSum / newCount, 1);
+                            book.AverageRating = newAvg;
                             book.VoteCount = newCount;
                             book.UpdatedAt = DateTime.UtcNow;
                         }

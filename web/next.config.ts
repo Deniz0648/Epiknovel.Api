@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
         port: "8080",
         pathname: "/uploads/**",
       },
+      {
+        protocol: "http",
+        hostname: "epiknovel_api",
+        port: "8080",
+        pathname: "/uploads/**",
+      },
+      {
+        protocol: "https",
+        hostname: "epiknovel.com",
+        pathname: "/**",
+      },
     ],
   },
   async rewrites() {
@@ -23,6 +34,10 @@ const nextConfig: NextConfig = {
       {
         source: "/hubs/:path*",
         destination: "http://epiknovel_api:8080/hubs/:path*",
+      },
+      {
+        source: "/api/:path*",
+        destination: "http://epiknovel_api:8080/api/:path*",
       },
     ];
   },

@@ -6,7 +6,7 @@ import DropCursor from '@tiptap/extension-dropcursor'
 import { CustomParagraph, CustomHeading, CustomBlockquote, CustomCodeBlock, CustomBulletList, CustomOrderedList, CustomListItem, BlockUUIDManager } from './ParagraphWithUUID'
 import Underline from '@tiptap/extension-underline'
 import { EditorToolbar } from './EditorToolbar'
-import { useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useCallback, forwardRef, useImperativeHandle, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { DOMSerializer } from '@tiptap/pm/model'
 import TextAlign from '@tiptap/extension-text-align'
@@ -39,6 +39,8 @@ interface TiptapEditorProps {
 
 export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
     ({ initialContent, initialParagraphs, onChange, onWordCountChange, placeholder, stickyOffset = "top-16", isSimple = false, minHeight = "500px" }, ref) => {
+        const [isEditorEmpty, setIsEditorEmpty] = useState(true);
+
         const getInitialHTML = useCallback(() => {
             if (initialParagraphs && initialParagraphs.length > 0) {
                 return initialParagraphs
@@ -114,6 +116,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
             },
             onUpdate: ({ editor }) => {
                 const html = editor.getHTML()
+                setIsEditorEmpty(editor.isEmpty || html === '<p></p>' || html === '<p><br></p>');
                 onChange?.(html)
                 const text = editor.getText()
                 const wordCount = text.trim().split(/\s+/).filter(w => w).length
@@ -190,7 +193,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
                 </div>
                 <div className="relative bg-base-100 rounded-b-[32px]">
                     <EditorContent editor={editor} />
-                    {editor.isEmpty && placeholder && (
+                    {isEditorEmpty && placeholder && (
                         <div className={`absolute top-6 ${isSimple ? 'left-6' : 'left-12'} text-gray-400 pointer-events-none font-serif text-lg`}>
                             {placeholder}
                         </div>

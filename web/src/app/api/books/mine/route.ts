@@ -26,7 +26,7 @@ type BackendMyBookPagedResult = {
 export async function GET(request: NextRequest) {
   try {
     const params = new URLSearchParams();
-    const allowedKeys = ["pageNumber", "pageSize", "search", "status", "sortBy", "sortDescending", "type"];
+    const allowedKeys = ["pageNumber", "pageSize", "search", "status", "sortBy", "sortDescending", "type", "onlyDeleted"];
 
     for (const key of allowedKeys) {
       const value = request.nextUrl.searchParams.get(key);

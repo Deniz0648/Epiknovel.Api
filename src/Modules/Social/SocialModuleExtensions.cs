@@ -20,6 +20,9 @@ public static class SocialModuleExtensions
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.ILibraryProvider, Services.LibraryProvider>(); // ✨ Bildirimler için eklendi
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.Management.IManagementSocialProvider, Services.ManagementSocialProvider>();
 
+        // MediatR Handlers
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(SocialModuleExtensions).Assembly));
+
         return services;
     }
 }

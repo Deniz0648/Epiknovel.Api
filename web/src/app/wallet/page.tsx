@@ -41,9 +41,9 @@ export default function WalletPage() {
     }
 
     if (!profile?.billingAddress) {
-      toast.error({ 
-        title: "Fatura Bilgileri Eksik", 
-        description: "Ödeme yapabilmek için profilinizden fatura adresinizi doldurmalısınız." 
+      toast.error({
+        title: "Fatura Bilgileri Eksik",
+        description: "Ödeme yapabilmek için profilinizden fatura adresinizi doldurmalısınız."
       });
       router.push("/profile#billing");
       return;
@@ -101,7 +101,7 @@ export default function WalletPage() {
 
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = checkoutHtml;
-    
+
     const scripts = tempDiv.getElementsByTagName("script");
     const scriptArray = Array.from(scripts);
 
@@ -144,7 +144,7 @@ export default function WalletPage() {
 
   if (!profile) return (
     <div className="flex min-h-[60vh] items-center justify-center px-4">
-      <div className="glass-frame max-w-md rounded-[2rem] p-10 text-center">
+      <div className="glass-frame max-w-md rounded-4xl p-10 text-center">
         <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-base-content/5">
           <ShieldCheck className="h-10 w-10 text-base-content/20" />
         </div>
@@ -161,7 +161,7 @@ export default function WalletPage() {
     <main className="relative overflow-hidden">
       <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
         <section className="glass-frame space-y-10 p-4 sm:p-6">
-          
+
           {/* Header Row */}
           <div className="space-y-4">
             <div className="breadcrumbs text-xs font-semibold text-base-content/50 mb-1">
@@ -170,7 +170,7 @@ export default function WalletPage() {
                 <li className="text-base-content/40 italic">Cüzdan</li>
               </ul>
             </div>
-            
+
             <div className="flex items-center gap-3 text-primary">
               <Coins className="h-7 w-7" strokeWidth={2.5} />
               <h1 className="hero-title-gradient text-3xl font-black tracking-tight sm:text-4xl uppercase italic">Cüzdanım</h1>
@@ -181,7 +181,7 @@ export default function WalletPage() {
           {/* Top Row: Balance & History */}
           <div className="grid gap-8 lg:grid-cols-3 items-stretch">
             {/* Balance Card */}
-            <div className="lg:col-span-2 rounded-[2rem] border border-base-content/12 bg-base-100/24 p-8 sm:p-12 flex flex-col justify-center">
+            <div className="lg:col-span-2 rounded-4xl border border-base-content/12 bg-base-100/24 p-8 sm:p-12 flex flex-col justify-center">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-12">
                 <div className="text-center sm:text-left">
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-base-content/30 italic mb-2">Güncel Bakiye</p>
@@ -189,13 +189,13 @@ export default function WalletPage() {
                     <span className="text-6xl font-black italic tracking-tighter text-base-content">{profile.tokenBalance.toLocaleString()}</span>
                     <span className="text-sm font-black uppercase tracking-widest text-primary italic">Jeton</span>
                   </div>
-                  
+
                   <div className="mt-10 flex flex-wrap gap-3 justify-center sm:justify-start">
                     <Link href="/profile#wallet" className="btn btn-ghost btn-sm rounded-xl border-base-content/15 bg-base-100/32 font-bold px-6 h-12">
                       <History className="h-4 w-4 mr-2" />
                       İşlem Geçmişi
                     </Link>
-                    <button 
+                    <button
                       onClick={() => setIsHelpModalOpen(true)}
                       className="btn btn-ghost btn-sm rounded-xl border border-warning/25 bg-warning/8 font-bold text-warning px-6 h-12 hover:bg-warning/15"
                     >
@@ -216,11 +216,11 @@ export default function WalletPage() {
             </div>
 
             {/* History Card */}
-            <div className="rounded-[2rem] border border-base-content/12 bg-base-100/24 p-6 flex flex-col">
+            <div className="rounded-4xl border border-base-content/12 bg-base-100/24 p-6 flex flex-col">
               <div className="mb-5 flex items-center justify-between px-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40 italic">Son İşlemler</p>
               </div>
-              
+
               <div className="space-y-3 flex-1">
                 {isHistoryLoading ? (
                   Array.from({ length: 7 }).map((_, i) => (
@@ -243,9 +243,9 @@ export default function WalletPage() {
                           {item.amount > 0 ? `+${item.amount}` : item.amount}
                         </p>
                         {(item.invoiceDocumentId || item.invoiceFileUrl) && (
-                          <a 
-                            href={item.invoiceDocumentId ? `/api/compliance/documents/${item.invoiceDocumentId}/download` : item.invoiceFileUrl!} 
-                            target="_blank" 
+                          <a
+                            href={item.invoiceDocumentId ? `/api/compliance/documents/${item.invoiceDocumentId}/download` : item.invoiceFileUrl!}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="p-1 rounded-md bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                             title="Faturayı İndir"
@@ -278,7 +278,7 @@ export default function WalletPage() {
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {isPackagesLoading ? (
-                 Array.from({ length: 4 }).map((_, i) => (
+                Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="h-96 w-full animate-pulse rounded-[3rem] bg-base-content/5" />
                 ))
               ) : packages.filter(p => p.isActive).map((pkg) => {
@@ -290,27 +290,26 @@ export default function WalletPage() {
                   <div
                     key={pkg.id}
                     onClick={() => setSelectedPackage(pkg.id)}
-                    className={`group relative cursor-pointer overflow-hidden rounded-[3rem] border-2 transition-all duration-500 hover:-translate-y-4 ${
-                      isSelected 
-                        ? "border-primary bg-primary/[0.08] shadow-[0_30px_60px_-15px_rgba(var(--color-primary-rgb),0.3)]" 
-                        : "border-base-content/5 bg-base-200/40 hover:border-primary/30"
-                    }`}
+                    className={`group relative cursor-pointer overflow-hidden rounded-[3rem] border-2 transition-all duration-500 hover:-translate-y-4 ${isSelected
+                      ? "border-primary bg-primary/8 shadow-[0_30px_60px_-15px_rgba(var(--color-primary-rgb),0.3)]"
+                      : "border-base-content/5 bg-base-200/40 hover:border-primary/30"
+                      }`}
                   >
                     {/* Hover Glow Effect */}
                     <div className="absolute -inset-24 bg-primary/10 blur-[100px] opacity-0 transition-opacity duration-700 group-hover:opacity-100 pointer-events-none" />
-                    
+
                     {/* Decorative Background Pattern */}
-                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-                         style={{ backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`, backgroundSize: '24px 24px' }} />
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                      style={{ backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`, backgroundSize: '24px 24px' }} />
 
                     {pkg.popular && (
-                      <div className="absolute -right-16 top-10 w-56 rotate-45 bg-gradient-to-r from-primary to-secondary px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary-content shadow-xl z-20 text-center">
+                      <div className="absolute -right-16 top-10 w-56 rotate-45 bg-linear-to-r from-primary to-secondary px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary-content shadow-xl z-20 text-center">
                         Popüler
                       </div>
                     )}
-                    
+
                     {pkg.bestValue && (
-                      <div className="absolute -right-16 top-10 w-56 rotate-45 bg-gradient-to-r from-success to-emerald-500 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-success-content shadow-xl z-20 text-center">
+                      <div className="absolute -right-16 top-10 w-56 rotate-45 bg-linear-to-r from-success to-emerald-500 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-success-content shadow-xl z-20 text-center">
                         Fırsat
                       </div>
                     )}
@@ -319,7 +318,7 @@ export default function WalletPage() {
                       {/* Icon Container with Neon Glow */}
                       <div className="relative mb-10 inline-block">
                         <div className={`absolute -inset-3 blur-2xl opacity-40 transition-opacity group-hover:opacity-100 ${style.color} ${style.bg}`} />
-                        <div className={`relative flex h-20 w-20 items-center justify-center rounded-[1.5rem] shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 ${style.bg} ${style.color} ${isSelected ? 'ring-2 ring-primary/50' : ''}`}>
+                        <div className={`relative flex h-20 w-20 items-center justify-center rounded-3xl shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 ${style.bg} ${style.color} ${isSelected ? 'ring-2 ring-primary/50' : ''}`}>
                           <Icon className="h-10 w-10" />
                         </div>
                       </div>
@@ -329,9 +328,9 @@ export default function WalletPage() {
                           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-base-content/30 italic">{pkg.name}</p>
                           {pkg.popular && <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
                         </div>
-                        
+
                         <div className="flex items-baseline gap-3">
-                          <span className="text-5xl font-black italic tracking-tighter bg-gradient-to-br from-base-content to-base-content/60 bg-clip-text text-transparent">{pkg.tokens}</span>
+                          <span className="text-5xl font-black italic tracking-tighter bg-linear-to-br from-base-content to-base-content/60 bg-clip-text text-transparent">{pkg.tokens}</span>
                           <span className="text-sm font-black text-primary/40 uppercase italic tracking-widest">Jeton</span>
                         </div>
 
@@ -349,9 +348,9 @@ export default function WalletPage() {
                             <span className="block text-[10px] font-black uppercase tracking-widest text-base-content/20 italic">Toplam Ücret</span>
                             <span className="text-3xl font-black italic tracking-tight">₺{pkg.price}</span>
                           </div>
-                          
+
                           <div className={`flex h-10 w-10 items-center justify-center rounded-xl border transition-all ${isSelected ? 'bg-primary text-primary-content border-primary' : 'bg-base-content/5 border-base-content/10 group-hover:border-primary/50 text-base-content/20 group-hover:text-primary'}`}>
-                             <ArrowRight className="h-5 w-5" />
+                            <ArrowRight className="h-5 w-5" />
                           </div>
                         </div>
 
@@ -361,11 +360,10 @@ export default function WalletPage() {
                             handlePurchase(pkg.id);
                           }}
                           disabled={isPurchasing}
-                          className={`w-full rounded-2xl py-5 text-sm font-black uppercase italic tracking-[0.1em] transition-all duration-300 active:scale-95 disabled:opacity-50 ${
-                            isSelected 
-                              ? "bg-gradient-to-r from-primary to-primary/80 text-primary-content shadow-[0_15px_30px_-5px_rgba(var(--color-primary-rgb),0.4)]" 
-                              : "bg-base-content/5 hover:bg-base-content/10 border border-base-content/5 group-hover:bg-primary group-hover:text-primary-content transition-colors"
-                          }`}
+                          className={`w-full rounded-2xl py-5 text-sm font-black uppercase italic tracking-widest transition-all duration-300 active:scale-95 disabled:opacity-50 ${isSelected
+                            ? "bg-linear-to-r from-primary to-primary/80 text-primary-content shadow-[0_15px_30px_-5px_rgba(var(--color-primary-rgb),0.4)]"
+                            : "bg-base-content/5 hover:bg-base-content/10 border border-base-content/5 group-hover:bg-primary group-hover:text-primary-content transition-colors"
+                            }`}
                         >
                           {isPurchasing && selectedPackage === pkg.id ? (
                             <span className="loading loading-spinner loading-sm"></span>
@@ -385,9 +383,9 @@ export default function WalletPage() {
 
       {/* Help Modal */}
       {isHelpModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-base-300/80 backdrop-blur-md" onClick={() => setIsHelpModalOpen(false)} />
-          <div className="glass-frame relative w-full max-w-xl overflow-hidden p-0 shadow-2xl">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-base-300/80 backdrop-blur-xl" onClick={() => setIsHelpModalOpen(false)} />
+          <div className="relative w-full h-full sm:h-auto sm:max-w-xl overflow-hidden bg-base-100 sm:rounded-[3rem] shadow-2xl flex flex-col border border-white/5">
             <div className="flex items-center justify-between border-b border-base-content/5 p-6">
               <div className="flex items-center gap-3">
                 <HelpCircle className="h-5 w-5 text-primary" />
@@ -395,7 +393,7 @@ export default function WalletPage() {
               </div>
               <button onClick={() => setIsHelpModalOpen(false)} className="btn btn-ghost btn-circle btn-sm"><X className="h-5 w-5" /></button>
             </div>
-            
+
             <div className="max-h-[60vh] overflow-y-auto p-6 md:p-8 custom-scrollbar">
               <div className="space-y-8">
                 <section className="space-y-3">
@@ -409,11 +407,11 @@ export default function WalletPage() {
                 </section>
 
                 <section className="space-y-3">
-                   <h3 className="text-sm font-black uppercase tracking-widest text-primary italic flex items-center gap-2">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-primary italic flex items-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                     Ödeme Güvenliği
                   </h3>
-                   <p className="text-sm font-semibold text-base-content/60 leading-relaxed italic pl-3.5">
+                  <p className="text-sm font-semibold text-base-content/60 leading-relaxed italic pl-3.5">
                     Ödemeleriniz iyzico alt yapısı ile 256-bit şifrelenmiş SSL sertifikalı sayfalarda güvenle gerçekleştirilir. Kart bilgileriniz asla sunucularımızda saklanmaz.
                   </p>
                 </section>
@@ -435,25 +433,46 @@ export default function WalletPage() {
       )}
       {/* Iyzico Checkout Modal */}
       {checkoutHtml && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-0 sm:p-4">
-          <div className="absolute inset-0 bg-base-300/90 backdrop-blur-xl" onClick={() => setCheckoutHtml(null)} />
-          <div className="glass-frame relative w-full h-full sm:h-auto sm:max-w-4xl overflow-hidden p-0 shadow-2xl flex flex-col">
-            <div className="flex items-center justify-between border-b border-base-content/5 p-6 bg-base-100/50">
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-base-300/95 backdrop-blur-xl" onClick={() => setCheckoutHtml(null)} />
+          <div className="relative w-full h-full sm:h-auto sm:max-w-lg overflow-hidden bg-white sm:rounded-[2.5rem] shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] flex flex-col transition-all duration-500 scale-in-center">
+
+            {/* Minimal Header */}
+            <div className="flex items-center justify-between border-b border-base-content/5 p-5 bg-base-100/50">
               <div className="flex items-center gap-3">
-                <ShieldCheck className="h-5 w-5 text-success" />
-                <h2 className="text-xl font-black uppercase italic tracking-tight">Güvenli Ödeme</h2>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success">
+                  <ShieldCheck className="h-4 w-4" />
+                </div>
+                <h2 className="text-sm font-black uppercase italic tracking-widest text-base-content/70">Güvenli Ödeme Bölgesi</h2>
               </div>
-              <button onClick={() => setCheckoutHtml(null)} className="btn btn-ghost btn-circle btn-sm"><X className="h-5 w-5" /></button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-white min-h-[500px]">
-               {/* Bu div iyzico formunun yerleştirileceği yer */}
-               <div id="iyzico-checkout-form-wrapper" className="responsive" dangerouslySetInnerHTML={{ __html: checkoutHtml }} />
+              <button
+                onClick={() => { setCheckoutHtml(null); setIsPurchasing(false); }}
+                className="h-8 w-8 flex items-center justify-center rounded-full hover:bg-base-content/10 transition-colors"
+                title="Kapat"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="p-4 bg-base-100/50 border-t border-base-content/5 flex items-center justify-between">
-               <p className="text-[10px] font-bold text-base-content/40 uppercase italic">256-bit SSL Koruma</p>
-               <button onClick={() => { setCheckoutHtml(null); setIsPurchasing(false); }} className="btn btn-ghost btn-xs rounded-lg font-bold">İptal Et</button>
+            {/* Iyzico Content Wrapper */}
+            <div className="flex-1 overflow-y-auto bg-white min-h-[550px] custom-scrollbar">
+              <div id="iyzico-checkout-form-wrapper" className="p-2 sm:p-4">
+                <div dangerouslySetInnerHTML={{ __html: checkoutHtml }} />
+              </div>
+            </div>
+
+            {/* Simple Footer */}
+            <div className="p-4 bg-base-100/30 border-t border-base-content/5 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+                <p className="text-[9px] font-black text-base-content/30 uppercase tracking-[0.2em] italic">256-Bit SSL Secured Transaction</p>
+              </div>
+              <button
+                onClick={() => { setCheckoutHtml(null); setIsPurchasing(false); }}
+                className="text-[10px] font-black text-error/60 hover:text-error uppercase tracking-widest transition-colors mr-2"
+              >
+                İptal Et
+              </button>
             </div>
           </div>
         </div>

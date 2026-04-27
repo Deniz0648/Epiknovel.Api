@@ -4,6 +4,9 @@ using Epiknovel.Modules.Social.Data;
 using Epiknovel.Modules.Social.Domain;
 using Epiknovel.Shared.Core.Models;
 using System.Security.Claims;
+using Epiknovel.Shared.Core.Attributes;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Builder;
 
 namespace Epiknovel.Modules.Social.Endpoints.Comments.Like;
 
@@ -17,6 +20,7 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<int>
     public override void Configure()
     {
         Post("/social/comments/{commentId}/like");
+        Options(x => x.WithMetadata(new IdempotencyAttribute())); // 🛡️ Idempotency
         Summary(s => {
             s.Summary = "Bir yorumu beğen veya beğenmekten vazgeç.";
             s.Description = "Kullanıcının bir yorumu beğenmesini sağlar. Eğer zaten beğenmişse beğeniyi geri alır (toggle).";
@@ -47,9 +51,15 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<int>
         {
             // Like'ı geri al (Unlike)
             dbContext.CommentLikes.Remove(existingLike);
-            comment.LikeCount = Math.Max(0, comment.LikeCount - 1);
             await dbContext.SaveChangesAsync(ct);
-            await Send.ResponseAsync(Result<int>.Success(comment.LikeCount, "Beğeni geri alındı."), 200, ct);
+            
+            // 🚀 Atomic Decrement
+            await dbContext.Comments
+                .Where(c => c.Id == req.CommentId)
+                .ExecuteUpdateAsync(s => s.SetProperty(c => c.LikeCount, c => Math.Max(0, c.LikeCount - 1)), ct);
+
+            var newCount = await dbContext.Comments.Where(c => c.Id == req.CommentId).Select(c => c.LikeCount).FirstOrDefaultAsync(ct);
+            await Send.ResponseAsync(Result<int>.Success(newCount, "Beğeni geri alındı."), 200, ct);
             return;
         }
 
@@ -62,10 +72,14 @@ public class Endpoint(SocialDbContext dbContext) : Endpoint<Request, Result<int>
         };
 
         dbContext.CommentLikes.Add(like);
-        comment.LikeCount++;
-
         await dbContext.SaveChangesAsync(ct);
 
-        await Send.ResponseAsync(Result<int>.Success(comment.LikeCount, "Beğenildi."), 200, ct);
+        // 🚀 Atomic Increment
+        await dbContext.Comments
+            .Where(c => c.Id == req.CommentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.LikeCount, c => c.LikeCount + 1), ct);
+
+        var finalCount = await dbContext.Comments.Where(c => c.Id == req.CommentId).Select(c => c.LikeCount).FirstOrDefaultAsync(ct);
+        await Send.ResponseAsync(Result<int>.Success(finalCount, "Beğenildi."), 200, ct);
     }
 }

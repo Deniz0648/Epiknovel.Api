@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, Check, CheckCircle2, ChevronDown, Clock, Eye, Home, Loader2, Minus, PauseCircle, Play, Plus, Star, Tag, Trash2, XCircle } from "lucide-react";
+import { BookOpen, Eye, Home, Play, Star, Tag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   BookDetailPanels,
   type BookChapterItem,
-  type BookCommentItem,
 } from "@/components/book/book-detail-panels";
+import { AddToLibraryButton } from "@/components/book/add-to-library-button";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { fromBookSlug } from "@/lib/books";
 import { RatingStars } from "@/components/book/rating-stars";
@@ -91,239 +91,6 @@ function mapChaptersFromApi(items: ChaptersApiResponse["chapters"]): (BookChapte
   }));
 }
 
-function buildComments(title: string): BookCommentItem[] {
-  return [
-    {
-      id: "comment-1",
-      author: "Epik Admin",
-      handle: "@epikadmin",
-      timeLabel: "12 dk",
-      likes: 61,
-      rating: 4.9,
-      body: `${title} temposu her bolumde biraz daha yukseliyor, final sahnesi oldukca iyi yazilmisti.`,
-      replies: [
-        {
-          id: "reply-1-1",
-          author: "MaviYel",
-          handle: "@maviyel",
-          timeLabel: "8 dk",
-          likes: 12,
-          body: "Finaldeki gecis gercekten temizdi, sonraki bolume hemen gectim.",
-          replies: [
-            {
-              id: "reply-1-1-1",
-              author: "ArcLight",
-              handle: "@arclight",
-              timeLabel: "6 dk",
-              likes: 7,
-              body: "Aynen, ozellikle son sahnedeki gerilim duzeyi cok iyiydi.",
-              replies: [
-                {
-                  id: "reply-1-1-1-1",
-                  author: "SiyahDefter",
-                  handle: "@siyahdefter",
-                  timeLabel: "4 dk",
-                  likes: 4,
-                  body: "Bu tempo korunursa sonraki kisimlar daha da iyi olacak gibi.",
-                  replies: [
-                    {
-                      id: "reply-1-1-1-1-1",
-                      author: "KutupYolcusu",
-                      handle: "@kutupyolcusu",
-                      timeLabel: "2 dk",
-                      likes: 2,
-                      body: "4. katmanda bile okunuyor mu diye ben de test etmek istedim.",
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-        {
-          id: "reply-1-2",
-          author: "RavenInk",
-          handle: "@ravenink",
-          timeLabel: "7 dk",
-          likes: 9,
-          body: "Ben finaldeki karakter secimini biraz riskli buldum ama cesur hamleydi.",
-          replies: [
-            {
-              id: "reply-1-2-1",
-              author: "AtlasReader",
-              handle: "@atlasreader",
-              timeLabel: "6 dk",
-              likes: 5,
-              body: "Ayni fikirdeyim, ama risk olmasi hikayeyi daha canli tuttu.",
-              replies: [
-                {
-                  id: "reply-1-2-1-1",
-                  author: "SiyahDefter",
-                  handle: "@siyahdefter",
-                  timeLabel: "4 dk",
-                  likes: 3,
-                  body: "Ozellikle son iki bolumde bunun etkisi daha net goruluyor.",
-                  replies: [
-                    {
-                      id: "reply-1-2-1-1-1",
-                      author: "KutupYolcusu",
-                      handle: "@kutupyolcusu",
-                      timeLabel: "2 dk",
-                      likes: 2,
-                      body: "Bu dal tek basina mini tartisma gibi oldu, bence iyi ornek.",
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "comment-2",
-      author: "AtlasReader",
-      handle: "@atlasreader",
-      timeLabel: "35 dk",
-      likes: 43,
-      rating: 4.8,
-      body: "Yan karakterlerin etkisi hikayeyi guclendiriyor. Ozellikle son iki bolumdeki gecisler cok temiz.",
-      replies: [
-        {
-          id: "reply-2-1",
-          author: "RavenInk",
-          handle: "@ravenink",
-          timeLabel: "20 dk",
-          likes: 6,
-          body: "Yan karakter arklari bu serinin en guclu tarafi olabilir.",
-        },
-        {
-          id: "reply-2-2",
-          author: "MaviYel",
-          handle: "@maviyel",
-          timeLabel: "16 dk",
-          likes: 8,
-          body: "Bazi yan karakterler ana karakter kadar agirlik aliyor, bu guzel bir denge.",
-          replies: [
-            {
-              id: "reply-2-2-1",
-              author: "ArcLight",
-              handle: "@arclight",
-              timeLabel: "11 dk",
-              likes: 5,
-              body: "Evet ama bazen ana hikayeyi yavaslatabiliyor, ritim dikkat istiyor.",
-              replies: [
-                {
-                  id: "reply-2-2-1-1",
-                  author: "Epik Admin",
-                  handle: "@epikadmin",
-                  timeLabel: "8 dk",
-                  likes: 4,
-                  body: "Sonraki kisimlarda bu dengeyi toparlayan bolumler var, takipte kalin.",
-                  replies: [
-                    {
-                      id: "reply-2-2-1-1-1",
-                      author: "RavenInk",
-                      handle: "@ravenink",
-                      timeLabel: "5 dk",
-                      likes: 3,
-                      body: "Spoilersiz yorum icin tesekkurler, merakim artti.",
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "comment-3",
-      author: "MaviYel",
-      handle: "@maviyel",
-      timeLabel: "1 sa",
-      likes: 35,
-      rating: 4.7,
-      body: "Dunya kurulumunu sevdim, aksiyon yogun ama karakter motivasyonu da dengeli kalmis.",
-    },
-    {
-      id: "comment-4",
-      author: "RavenInk",
-      handle: "@ravenink",
-      timeLabel: "2 sa",
-      likes: 27,
-      rating: 4.6,
-      body: "Diyaloglar akici, ceviri dili de tutarli. Sonraki bolumler icin merak yuksek.",
-    },
-    {
-      id: "comment-5",
-      author: "KutupYolcusu",
-      handle: "@kutupyolcusu",
-      timeLabel: "3 sa",
-      likes: 22,
-      rating: 4.5,
-      body: "Bu bolumdeki dunya detayi cok iyiydi, ritim biraz yavas ama anlatimi guzel.",
-      replies: [
-        {
-          id: "reply-5-1",
-          author: "AtlasReader",
-          handle: "@atlasreader",
-          timeLabel: "2 sa",
-          likes: 4,
-          body: "Ritim yavas ama detayli anlatim bu evrende ise yariyor.",
-          replies: [
-            {
-              id: "reply-5-1-1",
-              author: "MaviYel",
-              handle: "@maviyel",
-              timeLabel: "1 sa",
-              likes: 3,
-              body: "Ozellikle mekan tasvirlerinde bunu hissettim.",
-              replies: [
-                {
-                  id: "reply-5-1-1-1",
-                  author: "SiyahDefter",
-                  handle: "@siyahdefter",
-                  timeLabel: "52 dk",
-                  likes: 2,
-                  body: "Ben de ayni nedenle daha yavas kisimlari tolere edebiliyorum.",
-                  replies: [
-                    {
-                      id: "reply-5-1-1-1-1",
-                      author: "ArcLight",
-                      handle: "@arclight",
-                      timeLabel: "31 dk",
-                      likes: 1,
-                      body: "Bu dal da 4 katman testine iyi bir ornek oldu.",
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      id: "comment-6",
-      author: "SiyahDefter",
-      handle: "@siyahdefter",
-      timeLabel: "5 sa",
-      likes: 18,
-      rating: 4.4,
-      body: "Karakter kararlarinin sonuca baglanma sekli tutarli, okumasi keyifli gidiyor.",
-    },
-    {
-      id: "comment-7",
-      author: "ArcLight",
-      handle: "@arclight",
-      timeLabel: "7 sa",
-      likes: 14,
-      rating: 4.3,
-      body: "Aksiyon bolumleri guclu ama politik kisimlar daha da derinlesirse daha iyi olur.",
-    },
-  ];
-}
 
 export default function BookDetailPage() {
   const params = useParams<{ bookSlug: string }>();
@@ -333,11 +100,6 @@ export default function BookDetailPage() {
   const [chapters, setChapters] = useState<BookChapterItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
-  const [libraryEntryId, setLibraryEntryId] = useState<string | null>(null);
-  const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
-  const [isLibraryActionLoading, setIsLibraryActionLoading] = useState(false);
-  const [isLibraryStatusLoading, setIsLibraryStatusLoading] = useState(true);
-  const [isLibraryHover, setIsLibraryHover] = useState(false);
 
   // 🚄 Chapter Pagination & Filtering States
   const [filters, setFilters] = useState({
@@ -350,7 +112,6 @@ export default function BookDetailPage() {
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [debouncedQuery, setDebouncedQuery] = useState("");
 
-  const comments = useMemo(() => buildComments(title), [title]);
 
   // ⏳ Debounce Search Query
   useEffect(() => {
@@ -388,47 +149,6 @@ export default function BookDetailPage() {
        void loadChapters(true);
     }
   }, [debouncedQuery, filters.sort, filters.pageSize, filters.page, detail?.id]);
-
-  const getStatusText = (status: any) => {
-    if (status === 0 || status === "Reading") return "Okuyorum";
-    if (status === 1 || status === "Completed") return "Tamamlandı";
-    if (status === 2 || status === "Dropped") return "Bırakıldı";
-    if (status === 3 || status === "PlanToRead") return "Okuyacağım";
-    if (status === 4 || status === "OnHold") return "Beklemede";
-    if (status === 5 || status === "Archived") return "Arşiv";
-    return status?.toString() || "Kütüphanede";
-  };
-
-  const checkLibraryStatus = async (bookId: string) => {
-    try {
-      setIsLibraryStatusLoading(true);
-      const res = await apiRequest<{ 
-        isAdded: boolean; 
-        libraryItem?: { id: string; status: any; Id?: string; Status?: any } 
-      } | null>(`/social/library/check/${bookId}`);
-      
-      const isAdded = res?.isAdded ?? (res as any)?.IsAdded;
-      
-      if (isAdded && res) {
-        const libItem = res.libraryItem ?? (res as any).LibraryItem;
-        if (libItem) {
-          setLibraryEntryId(libItem.id || libItem.Id || null);
-          const statusVal = libItem.status !== undefined ? libItem.status : libItem.Status;
-          setLibraryStatus(getStatusText(statusVal));
-        } else {
-          setLibraryEntryId(null);
-          setLibraryStatus(null);
-        }
-      } else {
-        setLibraryEntryId(null);
-        setLibraryStatus(null);
-      }
-    } catch (err) {
-      console.error("Kutuphane durumu alinamadı:", err);
-    } finally {
-      setIsLibraryStatusLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (!bookSlug) return;
@@ -475,11 +195,6 @@ export default function BookDetailPage() {
 
         setChapters(chapterData.chapters.length > 0 ? mapChaptersFromApi(chapterData.chapters) : []);
         setTotalChaptersCount(chapterData.totalCount);
-        
-        // 3. Kütüphane durumunu kontrol et
-        if (bookId) {
-          await checkLibraryStatus(bookId);
-        }
       } catch (err) {
         if (!isMounted) return;
         setDetail(null);
@@ -497,90 +212,6 @@ export default function BookDetailPage() {
       isMounted = false;
     };
   }, [bookSlug]);
-
-  const handleLibraryAction = async (targetStatus?: number) => {
-    if (!detail) return;
-
-    try {
-      setIsLibraryActionLoading(true);
-      
-      // 1️⃣ Kütüphaneden Çıkarma (Parametresiz veya hedef durum boşsa)
-      if (libraryEntryId && targetStatus === undefined) {
-        await apiRequest(`/social/library/${libraryEntryId}`, { method: "DELETE" });
-        setLibraryEntryId(null);
-        setLibraryStatus(null);
-        showToast({
-          title: "Kütüphaneden Çıkarıldı",
-          description: "Kitap okuma listenizden kaldırıldı.",
-          tone: "success",
-        });
-        return;
-      }
-
-      // 🛑 AKILLI KONTROL: Devam eden eser tamamlandı işaretlenemez.
-      const isBookOngoing = detail.status === "Ongoing" || detail.status === "Devam Ediyor";
-      if (targetStatus === 1 && isBookOngoing) {
-        showToast({
-          title: "Geçersiz İşlem",
-          description: "Devam eden bir eseri 'Tamamlandı' olarak işaretleyemezsiniz.",
-          tone: "error",
-        });
-        return;
-      }
-
-      // 2️⃣ Durum Güncelleme (Zaten kütüphanedeyse)
-      if (libraryEntryId && targetStatus !== undefined) {
-        await apiRequest(`/social/library/${libraryEntryId}`, {
-          method: "PATCH",
-          body: JSON.stringify({ status: targetStatus }),
-        });
-        setLibraryStatus(getStatusText(targetStatus));
-        showToast({
-          title: "Durum Güncellendi",
-          description: `Okuma durumunuz "${getStatusText(targetStatus)}" olarak güncellendi.`,
-          tone: "success",
-        });
-        return;
-      }
-
-      // 3️⃣ Kütüphaneye Ekleme (Mutlaka bir durum seçilmiş olmalı)
-      if (!libraryEntryId) {
-        if (targetStatus === undefined) return; // 🛡️ Koruma: Durum seçilmeden ekleme yapamaz
-
-        const response = await apiRequest<{ id?: string; Id?: string; status?: any; Status?: any }>("/social/library", {
-          method: "POST",
-          body: JSON.stringify({ 
-            bookId: detail.id,
-            status: targetStatus 
-          }),
-        });
-        
-        const newId = response.id || response.Id;
-        const statusVal = response.status !== undefined ? response.status : response.Status;
-        
-        setLibraryEntryId(newId || null);
-        setLibraryStatus(getStatusText(statusVal));
-        
-        showToast({
-          title: "Kütüphaneye Eklendi",
-          description: `Kitap "${getStatusText(statusVal)}" olarak listenize eklendi.`,
-          tone: "success",
-        });
-      }
-    } catch (err: any) {
-      if (err.message?.includes("zaten kütüphanenizde")) {
-        await checkLibraryStatus(detail.id);
-      } else {
-        showToast({
-          title: "Hata",
-          description: err.message || "İşlem gerçekleştirilemedi.",
-          tone: "error",
-        });
-      }
-    } finally {
-      setIsLibraryActionLoading(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -735,96 +366,20 @@ export default function BookDetailPage() {
                 )}
 
                 {/* 📚 PREMIUM DROPDOWN KÜTÜPHANE YÖNETİMİ */}
-                <div className="dropdown dropdown-end flex-1">
-                  <div 
-                    tabIndex={0} 
-                    role="button"
-                    onMouseEnter={() => libraryEntryId && setIsLibraryHover(true)}
-                    onMouseLeave={() => libraryEntryId && setIsLibraryHover(false)}
-                    className={`flex h-12 w-full items-center justify-between rounded-2xl border px-6 transition-all duration-500 shadow-sm ${
-                      libraryEntryId 
-                        ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 shadow-primary/5" 
-                        : "border-base-content/15 bg-base-100/30 hover:bg-base-100/50 hover:border-base-content/25"
-                    } ${isLibraryStatusLoading ? "opacity-50 pointer-events-none" : ""}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      {isLibraryStatusLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : libraryEntryId ? (
-                         <div className="flex items-center justify-center h-6 w-6 rounded-lg bg-primary/20">
-                            <Check className="h-3.5 w-3.5 stroke-3" />
-                         </div>
-                      ) : (
-                        <Plus className="h-4 w-4 opacity-70" />
-                      )}
-                      
-                      <span className="font-bold tracking-tight">
-                        {libraryEntryId ? libraryStatus : "Kütüphaneye Ekle"}
-                      </span>
-                    </div>
-                    
-                    <ChevronDown className="h-4 w-4 opacity-30 group-hover:opacity-100 transition-opacity" />
-                  </div>
-
-                  {/* 📜 DURUM SEÇİM VE YÖNETİM MENÜSÜ */}
-                  <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow-2xl bg-base-200/95 border border-base-content/10 rounded-2xl w-full mt-2 font-semibold backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
-                    <li className="menu-title text-[9px] font-black uppercase tracking-[0.15em] opacity-40 px-3 py-2">DURUMU GÜNCELLE</li>
-                    
-                    <li>
-                      <button onClick={() => handleLibraryAction(0)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
-                        <BookOpen className="h-4 w-4 text-blue-500 group-hover:scale-110 transition-transform" />
-                        <span>Okuyorum</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button onClick={() => handleLibraryAction(3)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
-                        <Clock className="h-4 w-4 text-amber-500 group-hover:rotate-12 transition-transform" />
-                        <span>Okuyacağım</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button onClick={() => handleLibraryAction(1)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
-                        <CheckCircle2 className="h-4 w-4 text-green-500 group-hover:scale-110 transition-transform" />
-                        <span>Tamamlandı</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button onClick={() => handleLibraryAction(4)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
-                        <PauseCircle className="h-4 w-4 text-zinc-400 group-hover:scale-110 transition-transform" />
-                        <span>Beklemede</span>
-                      </button>
-                    </li>
-                    <li>
-                      <button onClick={() => handleLibraryAction(2)} className="hover:bg-primary/10 py-3 rounded-xl flex items-center gap-3 group">
-                        <XCircle className="h-4 w-4 text-red-400 group-hover:scale-110 transition-transform" />
-                        <span>Bıraktım</span>
-                      </button>
-                    </li>
-                    
-                    {libraryEntryId && (
-                      <>
-                        <div className="divider mx-3 my-1 opacity-10"></div>
-                        <li>
-                          <button 
-                            onClick={() => handleLibraryAction()} 
-                            className="bg-error/5 text-error hover:bg-error/15 py-3 rounded-xl flex items-center gap-3 group transition-all"
-                          >
-                            <Trash2 className="h-4 w-4 group-hover:shake" />
-                            <span>Kütüphaneden Kaldır</span>
-                          </button>
-                        </li>
-                      </>
-                    )}
-                  </ul>
-                </div>
+                <AddToLibraryButton 
+                  bookId={detail.id} 
+                  bookStatus={detail.status} 
+                  className="flex-1"
+                />
               </div>
             </div>
           </div>
         </section>
 
         <BookDetailPanels 
+          bookId={detail.id}
+          authorName={detail.author}
           chapters={chapters} 
-          comments={comments} 
           totalChaptersCount={totalChaptersCount}
           activeFilters={filters}
           onFiltersChange={(newFilters) => setFilters(newFilters)}

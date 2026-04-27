@@ -6,8 +6,14 @@ using MediatR;
 
 namespace Epiknovel.Modules.Users.Services;
 
-public class UserProvider(UsersDbContext dbContext, IMediator mediator) : IUserProvider
+public class UserProvider(UsersDbContext dbContext, IMediator mediator, Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor) : IUserProvider
 {
+    public Guid? GetCurrentUserId()
+    {
+        var userId = httpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return string.IsNullOrEmpty(userId) ? null : Guid.TryParse(userId, out var id) ? id : null;
+    }
+
     public async Task<Result<MyProfileResponse>> GetProfileAsync(Guid userId, string? identityName, CancellationToken ct = default)
     {
         // Modüller arası erişimde de self-healing ve yetki kurallarını korumak için 
@@ -63,6 +69,21 @@ public class UserProvider(UsersDbContext dbContext, IMediator mediator) : IUserP
             .Where(p => ids.Contains(p.UserId))
             .Select(p => new { p.UserId, p.DisplayName })
             .ToDictionaryAsync(x => x.UserId, x => x.DisplayName, ct);
+    }
+
+    public async Task<Dictionary<Guid, string?>> GetAvatarsByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default)
+    {
+        var ids = userIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.UserProfiles
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId))
+            .Select(p => new { p.UserId, p.AvatarUrl })
+            .ToDictionaryAsync(x => x.UserId, x => x.AvatarUrl, ct);
     }
 
     public async Task<bool> IsAuthorAsync(Guid userId, CancellationToken ct = default)

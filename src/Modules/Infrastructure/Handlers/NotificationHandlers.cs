@@ -95,7 +95,7 @@ public class NotificationHandlers(
             ? "Tebrikler! Artık Epiknovel üzerinden kitap oluşturabilirsiniz." 
             : $"Maalesef başvurunuz reddedildi. Nedeni: {notification.Note}";
         
-        await notificationService.SendSystemNotificationAsync(notification.UserId, title, message, "/author/dashboard", ct);
+        await notificationService.SendSystemNotificationAsync(notification.UserId, title, message, "/author?tab=stats", ct);
         await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title, message }, ct);
         
         // 📧 EMAIL SENDING: Yeni şifreleme ve şablon sistemi ile mail gönderimi
@@ -106,7 +106,7 @@ public class NotificationHandlers(
             {
                 { "{USER_NAME}", displayName ?? "Üye" },
                 { "{AUTHOR_NAME}", displayName ?? "Yazar" },
-                { "{SETTINGS_LINK}", "/author/dashboard" }, // 🚀 TALEP: Yazar paneline yönlendirme
+                { "{SETTINGS_LINK}", "/author?tab=stats" }, // 🚀 TALEP: Yazar paneline yönlendirme
                 { "{RESPONSE_MESSAGE}", notification.Note ?? "Başvurunuz onaylandı." }
             };
 
@@ -123,7 +123,7 @@ public class NotificationHandlers(
                 notification.UserId, 
                 "Yetki Seviyeniz Güncellendi", 
                 "Tebrikler! Hesabınıza 'Yazar (Author)' yetkisi eklenmiştir. Artık içeriklerinizi yönetebilirsiniz.", 
-                "/author/dashboard", 
+                "/author?tab=stats", 
                 ct);
 
             // Frontend'e 'Rolün değişti, token tazele' komutu gönder
@@ -138,7 +138,7 @@ public class NotificationHandlers(
             ? "Artık bölümlerinize fiyat belirleyebilir ve kazanç elde edebilirsiniz." 
             : $"Başvurunuzda eksikler tespit edildi. Nedeni: {notification.Note}";
 
-        await notificationService.SendSystemNotificationAsync(notification.UserId, title, message, "/author/dashboard", ct);
+        await notificationService.SendSystemNotificationAsync(notification.UserId, title, message, "/author?tab=stats", ct);
         await PushRealTimeAsync(notification.UserId, "NotificationReceived", new { title, message }, ct);
 
         if (notification.IsApproved)
@@ -150,7 +150,7 @@ public class NotificationHandlers(
                 notification.UserId, 
                 "Yetki Seviyeniz Güncellendi", 
                 "Tebrikler! Hesabınıza 'Ücretli Yazar (PaidAuthor)' yetkisi eklenmiştir. Kazanç sisteminiz aktiftir.", 
-                "/author/dashboard", 
+                "/author?tab=stats", 
                 ct);
 
             await PushRealTimeAsync(notification.UserId, "RoleUpdated", new { newRole = "PaidAuthor" }, ct);

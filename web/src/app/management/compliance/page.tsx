@@ -30,11 +30,13 @@ import {
   Flag,
   ShieldAlert,
   Loader2,
-  Save as SaveIcon
+  Save as SaveIcon,
+  Star
 } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/api";
+import { toast } from "sonner";
 
-type ContentTab = "books-original" | "books-translated" | "categories" | "tags" | "quotes" | "faq" | "moderation";
+type ContentTab = "books-original" | "books-translated" | "books-editor-choice" | "reviews-editor-choice" | "categories" | "tags" | "quotes" | "faq" | "moderation";
 
 export default function CompliancePage() {
   const router = useRouter();
@@ -51,7 +53,7 @@ export default function CompliancePage() {
   // Sync tab with URL
   useEffect(() => {
     const tabParam = searchParams.get("tab") as ContentTab;
-    if (tabParam && ["books-original", "books-translated", "categories", "tags", "quotes", "faq", "moderation"].includes(tabParam)) {
+    if (tabParam && ["books-original", "books-translated", "books-editor-choice", "categories", "tags", "quotes", "faq", "moderation"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
@@ -59,49 +61,72 @@ export default function CompliancePage() {
   const tabs = [
     { id: "books-original", label: "Ozgun Kitaplar", icon: Book },
     { id: "books-translated", label: "Ceviri Eserler", icon: Book },
+    { id: "books-editor-choice", label: "Editorun Secimi", icon: Star },
+    { id: "reviews-editor-choice", label: "One Cikan Yorumlar", icon: MessageSquare },
     { id: "categories", label: "Kategoriler", icon: Layers },
     { id: "tags", label: "Etiketler", icon: TagIcon },
     { id: "quotes", label: "Ozlu Sozler", icon: QuoteIcon },
     { id: "faq", label: "SSS", icon: HelpCircle },
-    { id: "moderation", label: "Raporlar", icon: AlertOctagon },
   ];
 
-  React.useEffect(() => {
-    setData(null); // Clear previous data to prevent type mismatch during tab switch
-    setIsAdding(false); // Reset adding state on tab switch
+  const fetchData = React.useCallback(async () => {
+    setData(null);
+    setIsAdding(false);
     setIsLoading(true);
 
-    async function fetchData() {
-      try {
-        let endpoint = "";
-        if (activeTab.startsWith("books")) {
-          const type = activeTab === "books-original" ? "Original" : "Translation";
-          endpoint = `/api/management/compliance/books?type=${type}&search=${searchQuery}`;
-        } else if (activeTab === "categories" || activeTab === "tags") {
-          endpoint = `/api/management/compliance/metadata`;
-        } else if (activeTab === "moderation") {
-          endpoint = `/api/compliance/moderation/tickets`;
-        } else {
-          endpoint = `/api/management/compliance/${activeTab}`;
-        }
+    try {
+      let endpoint = "";
+      if (activeTab.startsWith("books")) {
+        let type = "";
+        let isEditorChoice = "";
+        if (activeTab === "books-original") type = "Original";
+        else if (activeTab === "books-translated") type = "Translation";
+        else if (activeTab === "books-editor-choice") isEditorChoice = "true";
 
-        const res = await fetch(endpoint);
-        const json = await res.json();
-
-        // Handle Result<T> structure safely
-        const actualData = json.data !== undefined ? json.data : json;
-        setData(actualData);
-      } catch (err) {
-        console.error("Fetch error:", err);
-        setData([]); // Set empty array on error to prevent .map crash
-      } finally {
-        setIsLoading(false);
+        endpoint = `/api/management/compliance/books?search=${searchQuery}`;
+        if (type) endpoint += `&type=${type}`;
+        if (isEditorChoice) endpoint += `&isEditorChoice=${isEditorChoice}`;
+      } else if (activeTab === "categories" || activeTab === "tags") {
+        endpoint = `/api/management/compliance/metadata`;
+      } else if (activeTab === "reviews-editor-choice") {
+        endpoint = `/api/social/reviews?isEditorChoice=true&size=50`;
+      } else {
+        endpoint = `/api/management/compliance/${activeTab}`;
       }
-    }
 
+      const res = await fetch(endpoint);
+      if (!res.ok) {
+        console.error(`Fetch error: ${res.status} ${res.statusText}`);
+        setData(activeTab.startsWith("books") ? { items: [] } : []);
+        return;
+      }
+
+      const json = await res.json();
+
+      // Handle Result<T> structure safely
+      if (json && typeof json === 'object' && 'isSuccess' in json) {
+        if (json.isSuccess) {
+          setData(json.data);
+        } else {
+          console.error("API Error:", json.message);
+          setData(activeTab.startsWith("books") ? { items: [] } : []);
+        }
+      } else {
+        // Fallback for direct data or unexpected structures
+        setData(Array.isArray(json) ? json : (activeTab.startsWith("books") ? { items: [] } : []));
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setData(activeTab.startsWith("books") ? { items: [] } : []); // Set safe default on error
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeTab, searchQuery]);
+
+  React.useEffect(() => {
     const timer = setTimeout(fetchData, 300); // Debounce
     return () => clearTimeout(timer);
-  }, [activeTab, searchQuery]);
+  }, [fetchData]);
 
   async function handleToggleVisibility(bookId: string, currentHidden: boolean) {
     try {
@@ -112,10 +137,40 @@ export default function CompliancePage() {
       });
       if (res.ok) {
         // Refresh data
-        window.location.reload();
+        fetchData();
       }
     } catch (err) {
       console.error("Visibility toggle error:", err);
+    }
+  }
+
+  async function handleToggleEditorChoice(bookId: string, currentStatus: boolean) {
+    try {
+      const res = await fetch(`/api/management/compliance/books/${bookId}/editor-choice`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookId, isEditorChoice: !currentStatus }),
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Editor choice toggle error:", err);
+    }
+  }
+
+  async function handleToggleEditorChoiceFromTab(reviewId: string, currentStatus: boolean) {
+    try {
+      const res = await fetch(`/api/social/admin/reviews/${reviewId}/editor-choice`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: reviewId, isEditorChoice: !currentStatus }),
+      });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (err) {
+      console.error("Review Editor choice toggle error:", err);
     }
   }
 
@@ -128,7 +183,7 @@ export default function CompliancePage() {
         : `/api/management/compliance/${activeTab}/${id}`;
 
       const res = await fetch(endpoint, { method: "DELETE" });
-      if (res.ok) window.location.reload();
+      if (res.ok) fetchData();
     } catch (err) {
       console.error("Delete error:", err);
     }
@@ -196,7 +251,7 @@ export default function CompliancePage() {
               <Filter className="h-5 w-5" />
             </button>
 
-            {(activeTab === "books-translated" || !activeTab.startsWith("books")) && (
+            {(activeTab === "books-translated" || (!activeTab.startsWith("books") && activeTab !== "reviews-editor-choice")) && (
               <button
                 onClick={() => {
                   if (activeTab === "books-translated") {
@@ -226,6 +281,7 @@ export default function CompliancePage() {
                 <BookManagementView
                   books={data?.items || []}
                   onToggleVisibility={handleToggleVisibility}
+                  onToggleEditorChoice={handleToggleEditorChoice}
                   onDelete={handleDelete}
                   onAssign={(book) => setAssigningBook(book)}
                   onReviewSocial={(book) => setReviewingBook(book)}
@@ -261,10 +317,11 @@ export default function CompliancePage() {
                   setIsAdding={setIsAdding}
                 />
               )}
-              {activeTab === "moderation" && (
-                <ModerationTicketsView
-                  tickets={data || []}
-                  onRefresh={() => window.location.reload()}
+              {activeTab === "reviews-editor-choice" && (
+                <FeaturedReviewsView
+                  reviews={Array.isArray(data) ? data : []}
+                  onToggleEditorChoice={handleToggleEditorChoiceFromTab}
+                  onRefresh={() => fetchData()}
                 />
               )}
             </>
@@ -292,17 +349,19 @@ export default function CompliancePage() {
 function BookManagementView({
   books,
   onToggleVisibility,
-  onDelete,
+  onToggleEditorChoice,
+  onEdit,
   onAssign,
   onReviewSocial,
-  onEdit
+  onDelete
 }: {
   books: any[],
   onToggleVisibility: (id: string, hidden: boolean) => void,
-  onDelete: (id: string) => void,
+  onToggleEditorChoice: (id: string, current: boolean) => void,
+  onEdit: (book: any) => void,
   onAssign: (book: any) => void,
   onReviewSocial: (book: any) => void,
-  onEdit: (book: any) => void
+  onDelete: (id: string) => void
 }) {
   if (!books || books.length === 0) {
     return (
@@ -381,6 +440,13 @@ function BookManagementView({
                     title={book.isHidden ? "Goster" : "Gizle"}
                   >
                     {book.isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => onToggleEditorChoice(book.id, book.isEditorChoice)}
+                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${book.isEditorChoice ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-base-content/5 text-base-content/40 hover:bg-yellow-500/10 hover:text-yellow-500'}`}
+                    title={book.isEditorChoice ? "Editorun Seciminden Kaldir" : "Editorun Secimi Yap"}
+                  >
+                    <Star className={`h-4 w-4 ${book.isEditorChoice ? 'fill-current' : ''}`} />
                   </button>
                   <button
                     onClick={() => onReviewSocial(book)}
@@ -861,127 +927,111 @@ function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void 
   );
 }
 
-function ModerationTicketsView({ tickets, onRefresh }: { tickets: any[], onRefresh: () => void }) {
-  const [isResolving, setIsResolving] = useState<string | null>(null);
-
-  const handleResolve = async (ticketId: string, action: string) => {
-    if (!confirm(`Bu bilet için "${action}" kararı alınacak. Emin misiniz?`)) return;
-    setIsResolving(ticketId);
-    try {
-      const res = await fetch(`/api/compliance/moderation/tickets/${ticketId}/resolve`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ticketId,
-          action,
-          reason: "İnceleme sonucu karar verildi.",
-          targetUserId: null
-        })
-      });
-      if (res.ok) {
-        onRefresh();
-      }
-    } catch (err) {
-      console.error("Resolve error:", err);
-    } finally {
-      setIsResolving(null);
-    }
-  };
-
-  if (!tickets || tickets.length === 0) {
+function FeaturedReviewsView({
+  reviews,
+  onToggleEditorChoice,
+  onRefresh
+}: {
+  reviews: any[],
+  onToggleEditorChoice: (id: string, current: boolean) => void,
+  onRefresh: () => void
+}) {
+  if (!reviews || reviews.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-32 opacity-20">
-        <ShieldAlert className="h-20 w-20 mb-6 text-primary" />
-        <p className="text-sm font-black uppercase tracking-[0.5em] italic">Bekleyen Şikayet Bulunmuyor</p>
+        <MessageSquare className="h-16 w-16 mb-4 text-primary" />
+        <p className="text-xs font-black uppercase tracking-[0.4em]">Henüz Öne Çıkarılan Yorum Bulunmuyor</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-8 max-w-5xl mx-auto">
-      {tickets.map((ticket) => (
-        <div key={ticket.id} className="relative group overflow-hidden rounded-4xl border border-base-content/5 bg-base-content/2 p-8 transition-all hover:bg-base-content/5">
-          <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none group-hover:rotate-12 transition-transform duration-700">
-            <Flag className="h-48 w-48" />
-          </div>
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-8">
-            <div className="flex-1 space-y-6">
-              <div className="flex items-center gap-4">
-                <div className="px-4 py-1.5 rounded-full bg-error/10 text-error text-[10px] font-black uppercase tracking-widest border border-error/5 shadow-sm">
-                  {ticket.topReason}
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="border-b border-base-content/5 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30">
+            <th className="pb-4 pl-4">Kullanıcı & Kitap</th>
+            <th className="pb-4">İçerik</th>
+            <th className="pb-4">Puan</th>
+            <th className="pb-4 text-right pr-4">İşlem</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-base-content/5">
+          {reviews.map((review) => (
+            <tr key={review.id} className="group hover:bg-base-content/2 transition">
+              <td className="py-5 pl-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-xs font-black text-primary border border-primary/10">
+                    {(review.userName || "U").charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-bold text-sm text-base-content/80">{review.userName || "Anonim"}</div>
+                    <div className="text-[10px] font-bold text-primary uppercase tracking-widest">{review.bookTitle}</div>
+                  </div>
                 </div>
-                <div className="h-1.5 w-1.5 rounded-full bg-base-content/20" />
-                <span className="text-[10px] font-black text-base-content/30 tracking-widest">
-                  #{ticket.id.slice(0, 8).toUpperCase()}
-                </span>
-                <div className="flex items-center gap-1.5 text-[10px] font-bold text-error animate-pulse">
-                  <Flag className="h-3 w-3" />
-                  {ticket.reportCount} RAPOR
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-xl font-black italic text-base-content tracking-tight">
-                  {ticket.contentType} Denetimi
-                </h4>
-                <p className="mt-4 text-base font-medium text-base-content/60 leading-relaxed italic max-w-2xl">
-                  "{ticket.initialDescription || 'Açıklama girilmemiş.'}"
+              </td>
+              <td className="py-5">
+                <p className="text-sm italic text-base-content/60 max-w-md line-clamp-2 leading-relaxed">
+                  "{review.content}"
                 </p>
-              </div>
-
-              <div className="flex items-center gap-6 pt-2">
-                <div className="flex items-center gap-2 group/meta">
-                  <div className="h-8 w-8 rounded-xl bg-base-content/5 flex items-center justify-center text-base-content/30 group-hover/meta:bg-primary/10 group-hover/meta:text-primary transition-colors">
-                    <Clock className="h-4 w-4" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[8px] font-black uppercase text-base-content/20 tracking-widest">Rapor Tarihi</span>
-                    <span className="text-[11px] font-bold text-base-content/50">{new Date(ticket.createdAt).toLocaleString('tr-TR')}</span>
-                  </div>
+              </td>
+              <td className="py-5">
+                <div className="flex items-center gap-1.5 text-yellow-500">
+                  <Star className="h-3 w-3 fill-current" />
+                  <span className="text-xs font-black">{review.rating?.toFixed(1)}</span>
                 </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row md:flex-col gap-3 shrink-0">
-              <button
-                disabled={isResolving === ticket.id}
-                onClick={() => handleResolve(ticket.id, 'DeleteContent')}
-                className="h-14 px-8 rounded-2xl bg-error text-white text-[11px] font-black uppercase tracking-[0.15em] shadow-xl shadow-error/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                {isResolving === ticket.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                İçeriği Sil ve Çöz
-              </button>
-              <button
-                disabled={isResolving === ticket.id}
-                onClick={() => handleResolve(ticket.id, 'Ignore')}
-                className="h-14 px-8 rounded-2xl bg-base-content/5 border border-base-content/10 text-base-content/60 text-[11px] font-black uppercase tracking-[0.15em] hover:bg-base-content/10 transition-all flex items-center justify-center gap-2"
-              >
-                Hatalı İşlem / Kapat
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
+              </td>
+              <td className="py-5 pr-4 text-right">
+                <button
+                  onClick={() => onToggleEditorChoice(review.id, true)}
+                  className="h-9 px-4 rounded-xl bg-yellow-500/10 text-yellow-500 text-[10px] font-black uppercase tracking-widest hover:bg-yellow-500 hover:text-white transition-all shadow-sm"
+                  title="Öne Çıkarmayı Kaldır"
+                >
+                  Kaldır
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
+
 
 function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<"reviews" | "comments" | "inline">("reviews");
   const [activity, setActivity] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchActivity() {
       setIsLoading(true);
+      setActivity(null);
+      setErrorMsg(null);
       try {
-        const res = await fetch(`/api/social/admin/books/${book.id}/activity`);
+        const res = await fetch(`/api/social/admin/books/${book.id}/activity?t=${Date.now()}`);
         const json = await res.json();
-        if (json.isSuccess) {
-          setActivity(json.data);
+        
+        // Esnek kontrol: Veri json.data icinde de olabilir, dogrudan json icinde de olabilir
+        const isSuccess = json && (json.isSuccess === true || json.IsSuccess === true);
+        const data = json ? (json.data || json.Data || json) : null;
+
+        // Eger reviews, chapterComments veya inlineComments alanlarindan biri varsa veriyi kabul et
+        const hasData = data && (data.reviews || data.Reviews || data.chapterComments || data.ChapterComments || data.inlineComments || data.InlineComments);
+
+        if (isSuccess && hasData) {
+          setActivity(data);
+        } else if (isSuccess && !hasData) {
+          setErrorMsg("Bu kitap icin henuz herhangi bir etkilesim (yorum/inceleme) bulunmuyor.");
+          console.log("No activity found for this book:", json);
+        } else {
+          setErrorMsg(json?.message || json?.Message || "Sunucu hata mesaji dondurmedi.");
+          console.error("API Error Result:", json);
         }
       } catch (err) {
+        setErrorMsg("Sunucuya baglanirken bir hata olustu.");
         console.error("Fetch activity error:", err);
       } finally {
         setIsLoading(false);
@@ -1017,56 +1067,158 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
     }
   }
 
-  const renderList = (items: any[], type: string) => (
-    <div className="mt-4 space-y-3">
-      {items.map((item) => (
-        <div
-          key={item.id}
-          className={`transition rounded-2xl border p-4 ${item.isHidden
-            ? "border-error/20 bg-error/5 opacity-60"
-            : "border-base-content/5 bg-base-content/2 hover:border-primary/20"
-            }`}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="mb-2 flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-base-content/10 text-[8px] font-black">
-                  U
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">
-                  {item.userId}
-                </span>
-                <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-base-content/20">
-                  <Clock className="h-3 w-3" /> {new Date(item.createdAt).toLocaleDateString()}
-                </span>
+  async function handleToggleReviewEditorChoice(id: string, currentStatus: boolean) {
+    try {
+      const res = await fetch(`/api/social/admin/reviews/${id}/editor-choice`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isEditorChoice: !currentStatus }),
+      });
+      if (res.ok) {
+        setActivity((prev: any) => {
+          const next = { ...prev };
+          next.reviews = (next.reviews || []).map((item: any) =>
+            item.id === id ? { ...item, isEditorChoice: !currentStatus } : item
+          );
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error("Toggle review editor choice error:", err);
+    }
+  }
+
+  const handleModerate = async (id: string, action: number) => {
+    try {
+      const res = await fetch("/api/social/admin/moderate", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action })
+      });
+      const json = await res.json();
+      if (json.isSuccess) {
+        toast.success(json.message);
+        // Refresh activity
+        if (book) {
+          const res = await fetch(`/api/social/admin/books/${book.id}/activity`);
+          const data = await res.json();
+          if (data.isSuccess) setActivity(data.data);
+        }
+      }
+    } catch (err) {
+      toast.error("İşlem başarısız.");
+    }
+  };
+
+  function renderItem(item: any, type: string, isReply = false) {
+    return (
+      <div
+        key={item.id}
+        className={`transition rounded-2xl border p-4 ${item.isHidden
+          ? "border-error/20 bg-error/5 opacity-60"
+          : "border-base-content/5 bg-base-content/2 hover:border-primary/20"
+          } ${isReply ? "mt-2 ml-8 border-l-2 border-primary/20" : ""}`}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-base-content/10 text-[8px] font-black">
+                {(item.userName || "U").charAt(0).toUpperCase()}
               </div>
-              <p className="italic leading-relaxed text-sm font-medium text-base-content/80">
-                "{item.content}"
-              </p>
-              <div className="mt-3 flex items-center gap-4">
-                <div className="italic flex items-center gap-1 text-[10px] font-bold text-base-content/30">
-                  <ThumbsUp className="h-3 w-3" /> {item.likeCount || 0} Beğeni
-                </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">
+                {item.userName || "Anonim"}
+              </span>
+              {item.isSpoiler && (
+                <span className="badge badge-error badge-xs font-black text-[8px] uppercase tracking-tighter">SPOILER</span>
+              )}
+              {item.rating > 0 && (
+                <span className="flex items-center gap-1 text-[10px] font-black text-warning">
+                  <Star className="ml-2 h-3 w-3 fill-current" /> {item.rating.toFixed(1)}
+                </span>
+              )}
+              <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-base-content/20">
+                <Clock className="h-3 w-3" /> {new Date(item.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div
+              className={`text-xs leading-relaxed text-base-content/80 prose prose-sm prose-invert max-w-none prose-p:my-0.5 prose-strong:text-white ${item.isSpoiler ? "blur-[2px] hover:blur-0 transition-all cursor-help" : ""}`}
+              title={item.isSpoiler ? "Spoiler içeriği görmek için üzerine gelin" : ""}
+              dangerouslySetInnerHTML={{
+                __html: item.content
+                  ?.replace(/&lt;/g, '<')
+                  ?.replace(/&gt;/g, '>')
+                  ?.replace(/&quot;/g, '"')
+                  ?.replace(/&#39;/g, "'")
+                  ?.replace(/&amp;/g, '&') || ""
+              }}
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleModerate(item.id, item.isHidden ? 1 : 0)}
+                className={`btn btn-xs rounded-lg font-black uppercase tracking-widest h-8 px-3 ${item.isHidden ? "btn-success text-white" : "btn-error btn-outline"}`}
+              >
+                {item.isHidden ? "Göster" : "Gizle"}
+              </button>
+  
+              {!isReply && type !== "review" && (
+                <button
+                  onClick={() => handleModerate(item.id, 4)}
+                  className="btn btn-xs btn-error rounded-lg font-black uppercase tracking-widest h-8 px-3"
+                >
+                  Konuşmayı Gizle
+                </button>
+              )}
+  
+              <button
+                onClick={() => handleModerate(item.id, item.isSpoiler ? 3 : 2)}
+                className={`btn btn-xs rounded-lg font-black uppercase tracking-widest h-8 px-3 ${item.isSpoiler ? "bg-yellow-600 text-white" : "bg-base-content/5 text-base-content/40"}`}
+              >
+                {item.isSpoiler ? "Spoiler Kaldır" : "Spoiler Yap"}
+              </button>
+  
+              {type === "review" && (
+                <button
+                  onClick={() => handleToggleReviewEditorChoice(item.id, item.isEditorChoice)}
+                  className={`btn btn-xs rounded-lg font-black uppercase tracking-widest border-none h-8 px-3 ${item.isEditorChoice ? "bg-yellow-500 text-white hover:bg-yellow-600" : "bg-base-content/5 text-base-content/40 hover:bg-yellow-500/20 hover:text-yellow-600"
+                    }`}
+                >
+                  <Star className={`h-3 w-3 ${item.isEditorChoice ? 'fill-current' : ''}`} />
+                  {item.isEditorChoice ? "Öne Çıkarıldı" : "Öne Çıkar"}
+                </button>
+              )}
+              
+              <div className="italic flex items-center gap-1 text-[10px] font-bold text-base-content/30 ml-auto">
+                <ThumbsUp className="h-3 w-3" /> {item.likeCount || 0}
               </div>
             </div>
-            <button
-              onClick={() => handleToggleHide(type, item.id, item.isHidden)}
-              className={`btn btn-xs rounded-lg font-black uppercase tracking-widest ${item.isHidden ? "btn-success h-8 px-4 text-white" : "btn-error h-8 px-4 text-white"
-                }`}
-            >
-              {item.isHidden ? "Göster" : "Gizle"}
-            </button>
           </div>
         </div>
-      ))}
-      {items.length === 0 && (
-        <div className="py-12 text-center opacity-20">
-          <MessageSquare className="mx-auto mb-2 h-10 w-10" />
-          <p className="text-xs font-black uppercase tracking-widest">Kayıt Bulunmuyor</p>
-        </div>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
+
+  function renderList(items: any[], type: string) {
+    const topLevel = (items || []).filter(i => !i.parentId);
+    const replies = (items || []).filter(i => i.parentId);
+
+    return (
+      <div className="mt-4 space-y-4">
+        {topLevel.map((item) => (
+          <div key={item.id} className="space-y-2">
+            {renderItem(item, type)}
+            {/* Yanıtlar */}
+            {replies.filter(r => r.parentId === item.id).map(reply => renderItem(reply, type, true))}
+          </div>
+        ))}
+        {items.length === 0 && (
+          <div className="flex h-32 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-base-content/10 text-[10px] font-black uppercase tracking-widest text-base-content/20">
+            <MessageSquare className="mb-2 h-6 w-6" />
+            Kayıt Bulunmuyor
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
@@ -1088,9 +1240,12 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
 
           <div className="mt-6 flex gap-2">
             {[
-              { id: "reviews", label: "İncelemeler" },
-              { id: "comments", label: "Bölüm Yorumları" },
-              { id: "inline", label: "Satır Yorumları" },
+              { 
+                id: "reviews", 
+                label: `İnceleme & Yorum (${(activity?.reviews?.length || activity?.Reviews?.length || 0) + (activity?.bookComments?.length || activity?.BookComments?.length || 0)})` 
+              },
+              { id: "comments", label: `Bölüm Yorumları (${activity?.chapterComments?.length || activity?.ChapterComments?.length || 0})` },
+              { id: "inline", label: `Satır Yorumları (${activity?.inlineComments?.length || activity?.InlineComments?.length || 0})` },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1111,16 +1266,27 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
             <div className="flex h-64 items-center justify-center">
               <span className="loading loading-spinner text-primary"></span>
             </div>
-          ) : (
+          ) : activity ? (
             <>
-              {activeTab === "reviews" && activity?.reviews && renderList(activity.reviews, "review")}
-              {activeTab === "comments" &&
-                activity?.chapterComments &&
-                renderList(activity.chapterComments, "comment")}
-              {activeTab === "inline" &&
-                activity?.inlineComments &&
-                renderList(activity.inlineComments, "inline")}
+              {activeTab === "reviews" && renderList([
+                ...(activity?.reviews || activity?.Reviews || []),
+                ...(activity?.bookComments || activity?.BookComments || [])
+              ].sort((a, b) => {
+                const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+              }), "review")}
+              {activeTab === "comments" && renderList(activity?.chapterComments || activity?.ChapterComments || [], "comment")}
+              {activeTab === "inline" && renderList(activity?.inlineComments || activity?.InlineComments || [], "inline")}
             </>
+          ) : (
+            <div className="flex h-64 flex-col items-center justify-center opacity-40">
+              <ShieldAlert className="h-10 w-10 mb-2" />
+              <p className="text-xs font-black uppercase tracking-widest">
+                {errorMsg || "Veriler Yüklenemedi"}
+              </p>
+              <button onClick={() => window.location.reload()} className="mt-4 text-[10px] underline font-bold">Sayfayı Yenile</button>
+            </div>
           )}
         </div>
       </div>

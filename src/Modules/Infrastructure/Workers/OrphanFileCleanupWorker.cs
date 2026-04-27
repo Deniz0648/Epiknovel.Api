@@ -33,11 +33,19 @@ public class OrphanFileCleanupWorker(
                 logger.LogInformation("Dosya temizliği başlatılıyor...");
 
                 // 1. Modüllerden kullanılan tüm dosya adlarını topla
-                var usedFiles = new HashSet<string>();
+                var usedFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var provider in providers)
                 {
                     var files = await provider.GetUsedFilesAsync();
-                    foreach (var f in files) if (!string.IsNullOrEmpty(f)) usedFiles.Add(f);
+                    foreach (var f in files)
+                    {
+                        if (!string.IsNullOrEmpty(f))
+                        {
+                            // Path/URL içerisinden sadece dosya adını al (Örn: /uploads/covers/abc.webp -> abc.webp)
+                            var fileName = Path.GetFileName(f);
+                            usedFiles.Add(fileName);
+                        }
+                    }
                 }
 
                 // 2. Fiziksel dosyaları tara

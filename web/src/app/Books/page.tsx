@@ -53,6 +53,7 @@ type BooksApiItem = {
   isEditorChoice: boolean;
   viewCount: number;
   averageRating: number;
+  voteCount: number;
   chapterCount: number;
   categoryNames: string[];
 };

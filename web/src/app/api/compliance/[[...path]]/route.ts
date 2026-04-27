@@ -19,6 +19,10 @@ export async function PUT(request: NextRequest) {
   return handleProxyRequest(request, "PUT");
 }
 
+export async function PATCH(request: NextRequest) {
+  return handleProxyRequest(request, "PATCH");
+}
+
 export async function DELETE(request: NextRequest) {
   return handleProxyRequest(request, "DELETE");
 }
@@ -28,7 +32,7 @@ async function handleProxyRequest(request: NextRequest, method: string) {
     const { pathname, search } = new URL(request.url);
     // /api/compliance/moderation/tickets -> /compliance/moderation/tickets
     const subRoute = pathname.replace("/api/compliance", "") || "/";
-    
+
     let body = undefined;
     if (method !== "GET" && request.headers.get("content-type")?.includes("application/json")) {
       const json = await request.json().catch(() => ({}));
@@ -50,44 +54,44 @@ async function handleProxyRequest(request: NextRequest, method: string) {
 
     // Eğer backend hata döndüyse (ve JSON değilse), ApiError fırlatabiliriz veya doğrudan yansıtabiliriz.
     if (!backendResponse.ok) {
-        const text = await backendResponse.text();
-        try {
-            const errorPayload = JSON.parse(text);
-            return NextResponse.json(
-                { isSuccess: false, message: errorPayload.message || "Backend hatası", errors: errorPayload.errors },
-                { status: backendResponse.status }
-            );
-        } catch {
-            return NextResponse.json(
-                { isSuccess: false, message: "Backend hatası oluştu." },
-                { status: backendResponse.status }
-            );
-        }
+      const text = await backendResponse.text();
+      try {
+        const errorPayload = JSON.parse(text);
+        return NextResponse.json(
+          { isSuccess: false, message: errorPayload.message || "Backend hatası", errors: errorPayload.errors },
+          { status: backendResponse.status }
+        );
+      } catch {
+        return NextResponse.json(
+          { isSuccess: false, message: "Backend hatası oluştu." },
+          { status: backendResponse.status }
+        );
+      }
     }
 
     const contentType = backendResponse.headers.get("content-type");
-    
+
     // Eğer yanıt JSON ise, standart formatta sarmalayıp dönelim (mevcut frontend beklentisi için)
     if (contentType?.includes("application/json")) {
-        const data = await backendResponse.json();
-        const response = NextResponse.json({
-            isSuccess: true,
-            data: data.data || data // Backend'den dönen data'yı al veya direkt objeyi
-        });
-        if (tokens?.refreshedTokens) applyRefreshedTokens(response, tokens.refreshedTokens);
-        return response;
+      const data = await backendResponse.json();
+      const response = NextResponse.json({
+        isSuccess: true,
+        data: data.data || data // Backend'den dönen data'yı al veya direkt objeyi
+      });
+      if (tokens?.refreshedTokens) applyRefreshedTokens(response, tokens.refreshedTokens);
+      return response;
     }
 
     // Eğer yanıt JSON DEĞİLSE (Dosya indirme v.s.), ham body'yi stream olarak dönelim
     const responseHeaders = new Headers();
     if (contentType) responseHeaders.set("Content-Type", contentType);
-    
+
     const contentDisposition = backendResponse.headers.get("content-disposition");
     if (contentDisposition) responseHeaders.set("Content-Disposition", contentDisposition);
 
     const response = new NextResponse(backendResponse.body, {
-        status: backendResponse.status,
-        headers: responseHeaders,
+      status: backendResponse.status,
+      headers: responseHeaders,
     });
 
     if (tokens?.refreshedTokens) applyRefreshedTokens(response, tokens.refreshedTokens);

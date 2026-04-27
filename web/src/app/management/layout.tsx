@@ -16,7 +16,8 @@ import {
   Bell,
   Menu,
   X,
-  ClipboardList
+  ClipboardList,
+  FileText
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, redirect } from "next/navigation";
@@ -45,9 +46,11 @@ export default function ManagementLayout({ children }: { children: React.ReactNo
 
   const menuItems = [
     { label: "Dashboard", href: "/management", icon: LayoutDashboard },
+    { label: "Duyuru Yonetimi", href: "/management/announcements", icon: Bell },
     { label: "Talepler", href: "/management/requests", icon: ClipboardList },
     { label: "Sistem Gunlukleri", href: "/management/audit", icon: ShieldCheck },
     { label: "Icerik Denetimi", href: "/management/compliance", icon: ShieldCheck },
+    { label: "Yasal Belgeler", href: "/management/compliance/legal", icon: FileText },
     { label: "Ekonomi Yonetimi", href: "/management/economy", icon: Coins },
     { label: "Destek Talepleri", href: "/management/support", icon: MessageSquare },
     { label: "Kullanicilar", href: "/management/users", icon: Users },

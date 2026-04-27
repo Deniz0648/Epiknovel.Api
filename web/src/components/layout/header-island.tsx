@@ -106,31 +106,26 @@ export function HeaderIsland() {
     };
   }, []);
 
-  const discoverClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${
-    isDiscoverActive
+  const discoverClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${isDiscoverActive
       ? "header-link-filled bg-primary text-primary-content shadow-lg shadow-primary/28"
       : "bg-transparent text-base-content/88"
-  }`;
-  const updatesClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${
-    isUpdatesActive
+    }`;
+  const updatesClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${isUpdatesActive
       ? "header-link-filled bg-primary text-primary-content shadow-lg shadow-primary/28"
       : "bg-transparent text-base-content/88"
-  }`;
-  const announcementsClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${
-    isAnnouncementsActive
+    }`;
+  const announcementsClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${isAnnouncementsActive
       ? "header-link-filled bg-primary text-primary-content shadow-lg shadow-primary/28"
       : "bg-transparent text-base-content/88"
-  }`;
-  const communityClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${
-    isCommunityActive
+    }`;
+  const communityClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${isCommunityActive
       ? "header-link-filled bg-primary text-primary-content shadow-lg shadow-primary/28"
       : "bg-transparent text-base-content/88"
-  }`;
-  const authorClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${
-    isAuthorActive
+    }`;
+  const authorClass = `header-link rounded-full px-3.5 py-2 no-underline transition-all sm:px-4 ${isAuthorActive
       ? "header-link-filled bg-primary text-primary-content shadow-lg shadow-primary/28"
       : "bg-transparent text-base-content/88"
-  }`;
+    }`;
 
   function closeMobileNav() {
     setIsMobileNavOpen(false);
@@ -166,6 +161,10 @@ export function HeaderIsland() {
               <Link href="/author" className={authorClass}>
                 Yazarlik
               </Link>
+            ) : profile ? (
+              <Link href="/author/apply" className={`${authorClass} border border-primary/20 bg-primary/5 text-primary`}>
+                Yazar Ol
+              </Link>
             ) : null}
           </nav>
         </div>
@@ -182,11 +181,10 @@ export function HeaderIsland() {
                   }
                   setIsNotificationsOpen(willOpen);
                 }}
-                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${
-                  isNotificationsActive || isNotificationsOpen
+                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${isNotificationsActive || isNotificationsOpen
                     ? "border-primary/30 bg-primary/12 text-primary"
                     : "border-base-content/14 bg-base-100/26 text-base-content/78"
-                }`}
+                  }`}
                 aria-label="Bildirimleri ac"
               >
                 <Bell className="h-4.5 w-4.5" />
@@ -198,7 +196,7 @@ export function HeaderIsland() {
               </button>
 
               {isNotificationsOpen ? (
-                <div className="glass-frame fixed left-4 right-4 top-[5.25rem] z-30 overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 backdrop-blur-2xl sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.6rem)] sm:w-[min(26rem,calc(100vw-2rem))]">
+                <div className="glass-frame fixed left-4 right-4 top-21 z-30 overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 backdrop-blur-2xl sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.6rem)] sm:w-[min(26rem,calc(100vw-2rem))]">
                   <div className="flex items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100/38 px-3.5 py-3">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-base-content/48">Bildirimler</p>
@@ -219,7 +217,7 @@ export function HeaderIsland() {
                     )}
                   </div>
 
-                  <div className="overlay-scroll-region mt-2 max-h-[26rem] space-y-2 overflow-y-auto">
+                  <div className="overlay-scroll-region mt-2 max-h-104 space-y-2 overflow-y-auto">
                     {notificationsLoading ? (
                       <div className="rounded-2xl border border-base-content/10 bg-base-100/28 px-4 py-8 text-center text-sm font-semibold text-base-content/58">
                         Bildirimler yukleniyor...
@@ -228,11 +226,10 @@ export function HeaderIsland() {
                       recentNotifications.map((item) => (
                         <div
                           key={item.id}
-                          className={`rounded-2xl border px-3.5 py-3 ${
-                            item.isRead
+                          className={`rounded-2xl border px-3.5 py-3 ${item.isRead
                               ? "border-base-content/10 bg-base-100/24"
                               : "border-primary/18 bg-primary/8"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-3">
                             <span className={`mt-1 inline-flex h-2.5 w-2.5 rounded-full ${item.isRead ? "bg-base-content/18" : "bg-primary"}`} />
@@ -277,7 +274,7 @@ export function HeaderIsland() {
 
                   {notifications.length > 0 && (
                     <div className="mt-2 border-t border-base-content/10 pt-2 text-center">
-                       <Link
+                      <Link
                         href="/notifications"
                         onClick={() => setIsNotificationsOpen(false)}
                         className="block w-full rounded-2xl bg-base-content/6 py-2.5 text-xs font-black uppercase tracking-[0.08em] text-base-content/55 no-underline transition hover:bg-primary/10 hover:text-primary"
@@ -309,8 +306,8 @@ export function HeaderIsland() {
 
           <ThemeSelector />
           {profile && (
-            <Link 
-              href="/wallet" 
+            <Link
+              href="/wallet"
               className="hidden xl:flex items-center gap-1.5 rounded-2xl border border-warning/24 bg-warning/8 px-3.5 py-2 text-xs font-black text-warning transition-all hover:bg-warning/14 no-underline"
             >
               <Coins className="h-4 w-4" />
@@ -329,11 +326,10 @@ export function HeaderIsland() {
                   }
                   setIsProfileMenuOpen(willOpen);
                 }}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${
-                  isProfileActive || isProfileMenuOpen
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${isProfileActive || isProfileMenuOpen
                     ? "border-primary/30 bg-primary/12 text-primary"
                     : "border-base-content/14 bg-base-100/26 text-base-content/80"
-                }`}
+                  }`}
                 aria-label="Profil menusu"
               >
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-base-100/34 text-xs font-black">
@@ -342,7 +338,7 @@ export function HeaderIsland() {
               </button>
 
               {isProfileMenuOpen ? (
-                <div className="glass-frame fixed left-4 right-4 top-[5.25rem] z-30 overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 backdrop-blur-2xl sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.6rem)] sm:w-[min(22rem,calc(100vw-2rem))]">
+                <div className="glass-frame fixed left-4 right-4 top-21 z-30 overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 backdrop-blur-2xl sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.6rem)] sm:w-[min(22rem,calc(100vw-2rem))]">
                   <div className="flex items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100/38 px-3.5 py-3">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.14em] text-base-content/48">Profil</p>
@@ -352,7 +348,7 @@ export function HeaderIsland() {
                       {profile.displayName.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  
+
                   {/* Mobile Balance - Visible in dropdown for small screens */}
                   <div className="xl:hidden mt-2">
                     <Link
@@ -438,11 +434,10 @@ export function HeaderIsland() {
           )}
           <button
             type="button"
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-base-content/85 transition-all lg:hidden ${
-              isMobileNavOpen
+            className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border text-base-content/85 transition-all lg:hidden ${isMobileNavOpen
                 ? "border-primary/30 bg-primary/14 text-primary shadow-lg shadow-primary/18"
                 : "border-base-content/18 bg-base-100/24"
-            }`}
+              }`}
             aria-label={isMobileNavOpen ? "Menuyu kapat" : "Menuyu ac"}
             onClick={() => {
               const willOpen = !isMobileNavOpen;
@@ -458,7 +453,7 @@ export function HeaderIsland() {
       </header>
 
       {isMobileNavOpen ? (
-        <nav className="glass-frame absolute left-0 right-0 top-[calc(100%+0.75rem)] z-40 overflow-hidden rounded-[2rem] border border-base-content/16 bg-base-100/90 p-3 shadow-2xl backdrop-blur-2xl lg:hidden">
+        <nav className="glass-frame absolute left-0 right-0 top-[calc(100%+0.75rem)] z-40 overflow-hidden rounded-4xl border border-base-content/16 bg-base-100/90 p-3 shadow-2xl backdrop-blur-2xl lg:hidden">
           <div className="mb-3 flex items-center justify-between rounded-2xl border border-base-content/10 bg-base-100/28 px-4 py-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.14em] text-base-content/48">Gezinme</p>
@@ -475,58 +470,53 @@ export function HeaderIsland() {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2">
-          <Link
-            href="/Books"
-            className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${
-              isDiscoverActive
-                ? "bg-primary text-primary-content shadow-md shadow-primary/25"
-                : "border border-base-content/10 bg-base-200/60 text-base-content/86"
-            }`}
-          >
-            Kesfet
-          </Link>
-          <Link
-            href="/Updates"
-            className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${
-              isUpdatesActive
-                ? "bg-primary text-primary-content shadow-md shadow-primary/25"
-                : "border border-base-content/10 bg-base-200/60 text-base-content/86"
-            }`}
-          >
-            Guncellemeler
-          </Link>
-          <Link
-            href="/announcements"
-            className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${
-              isAnnouncementsActive
-                ? "bg-primary text-primary-content shadow-md shadow-primary/25"
-                : "border border-base-content/10 bg-base-200/60 text-base-content/86"
-            }`}
-          >
-            Duyurular
-          </Link>
-          <Link
-            href="/community"
-            className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${
-              isCommunityActive
-                ? "bg-primary text-primary-content shadow-md shadow-primary/25"
-                : "border border-base-content/10 bg-base-200/60 text-base-content/86"
-            }`}
-          >
-            Topluluk
-          </Link>
-          {canAccessAuthor ? (
             <Link
-              href="/author"
-              className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition sm:col-span-2 ${
-                isAuthorActive
+              href="/Books"
+              className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${isDiscoverActive
                   ? "bg-primary text-primary-content shadow-md shadow-primary/25"
                   : "border border-base-content/10 bg-base-200/60 text-base-content/86"
-              }`}
+                }`}
             >
-              Yazarlik
+              Kesfet
             </Link>
-          ) : null}
+            <Link
+              href="/Updates"
+              className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${isUpdatesActive
+                  ? "bg-primary text-primary-content shadow-md shadow-primary/25"
+                  : "border border-base-content/10 bg-base-200/60 text-base-content/86"
+                }`}
+            >
+              Guncellemeler
+            </Link>
+            <Link
+              href="/announcements"
+              className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${isAnnouncementsActive
+                  ? "bg-primary text-primary-content shadow-md shadow-primary/25"
+                  : "border border-base-content/10 bg-base-200/60 text-base-content/86"
+                }`}
+            >
+              Duyurular
+            </Link>
+            <Link
+              href="/community"
+              className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition ${isCommunityActive
+                  ? "bg-primary text-primary-content shadow-md shadow-primary/25"
+                  : "border border-base-content/10 bg-base-200/60 text-base-content/86"
+                }`}
+            >
+              Topluluk
+            </Link>
+            {canAccessAuthor ? (
+              <Link
+                href="/author"
+                className={`block rounded-2xl px-4 py-3 text-left text-sm font-semibold no-underline transition sm:col-span-2 ${isAuthorActive
+                    ? "bg-primary text-primary-content shadow-md shadow-primary/25"
+                    : "border border-base-content/10 bg-base-200/60 text-base-content/86"
+                  }`}
+              >
+                Yazarlik
+              </Link>
+            ) : null}
           </div>
         </nav>
       ) : null}

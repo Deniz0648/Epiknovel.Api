@@ -87,6 +87,9 @@ namespace Epiknovel.Modules.Social.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("ContentHash")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp without time zone");
 
@@ -96,10 +99,25 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("IsAuthorComment")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsEdited")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsEditorChoice")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSpoiler")
                         .HasColumnType("boolean");
 
                     b.Property<int>("LikeCount")
@@ -108,8 +126,14 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<string>("ModerationNote")
                         .HasColumnType("text");
 
+                    b.Property<string>("ParagraphId")
+                        .HasColumnType("text");
+
                     b.Property<Guid?>("ParentCommentId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("ReplyCount")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp without time zone");
@@ -142,6 +166,45 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.ToTable("CommentLikes", "social");
                 });
 
+            modelBuilder.Entity("Epiknovel.Modules.Social.Domain.CommentMention", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<Guid?>("DeletedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("MentionedUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ModerationNote")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("MentionedUserId");
+
+                    b.ToTable("CommentMentions", "social");
+                });
+
             modelBuilder.Entity("Epiknovel.Modules.Social.Domain.InlineComment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -168,6 +231,9 @@ namespace Epiknovel.Modules.Social.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSpoiler")
                         .HasColumnType("boolean");
 
                     b.Property<int>("LikeCount")
@@ -306,6 +372,9 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSpoiler")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("LikeCount")
                         .HasColumnType("integer");
 
@@ -392,6 +461,17 @@ namespace Epiknovel.Modules.Social.Migrations
                     b.HasIndex("ProcessedAtUtc");
 
                     b.ToTable("OutboxMessages", "social");
+                });
+
+            modelBuilder.Entity("Epiknovel.Modules.Social.Domain.CommentMention", b =>
+                {
+                    b.HasOne("Epiknovel.Modules.Social.Domain.Comment", "Comment")
+                        .WithMany()
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
                 });
 #pragma warning restore 612, 618
         }

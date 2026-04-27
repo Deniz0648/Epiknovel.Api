@@ -27,7 +27,10 @@ export function getToastEventName() {
 }
 
 export const toast = {
-  info: (payload: Omit<ToastPayload, "tone">) => showToast({ ...payload, tone: "info" }),
-  success: (payload: Omit<ToastPayload, "tone">) => showToast({ ...payload, tone: "success" }),
-  error: (payload: Omit<ToastPayload, "tone">) => showToast({ ...payload, tone: "error" }),
+  info: (payload: string | Omit<ToastPayload, "tone">) => 
+    showToast(typeof payload === "string" ? { description: payload, tone: "info" } : { ...payload, tone: "info" }),
+  success: (payload: string | Omit<ToastPayload, "tone">) => 
+    showToast(typeof payload === "string" ? { description: payload, tone: "success" } : { ...payload, tone: "success" }),
+  error: (payload: string | Omit<ToastPayload, "tone">) => 
+    showToast(typeof payload === "string" ? { description: payload, tone: "error" } : { ...payload, tone: "error" }),
 };

@@ -10,7 +10,8 @@ public class Request : PaginationRequest
     public BookType? Type { get; set; }
     public string SortBy { get; set; } = "UpdatedAt";
     public bool SortDescending { get; set; } = true;
-    public bool? isDeleted { get; set; }
+    [FastEndpoints.BindFrom("onlyDeleted")]
+    public bool OnlyDeleted { get; set; } = false;
 }
 
 public class Response 

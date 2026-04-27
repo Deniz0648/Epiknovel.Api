@@ -15,6 +15,8 @@ public record Request
     public Guid? ChapterId { get; init; }
     public Guid? ParentCommentId { get; init; }
     public string Content { get; init; } = string.Empty;
+    public bool IsSpoiler { get; init; }
+    public string? ParagraphId { get; init; }
 }
 
 [AuditLog("Yorum Eklendi")]
@@ -23,7 +25,7 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Guid>>
     public override void Configure()
     {
         Post("/social/comments");
-        Options(x => x.RequireRateLimiting("SocialPolicy"));
+        Options(x => x.RequireRateLimiting("SocialPolicy").WithMetadata(new IdempotencyAttribute()));
         Summary(s => {
             s.Summary = "Yeni bir yorum ekle.";
             s.Description = "Kitap, bölüm veya başka bir yoruma yeni bir yorum ekler (Dakikada 15 işlem limiti).";
@@ -44,7 +46,9 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Guid>>
             req.BookId,
             req.ChapterId,
             req.ParentCommentId,
-            req.Content
+            req.Content,
+            req.IsSpoiler,
+            req.ParagraphId
         ), ct);
 
         if (!result.IsSuccess)

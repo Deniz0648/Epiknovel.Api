@@ -60,6 +60,9 @@ namespace Epiknovel.Modules.Infrastructure.Migrations
                     b.Property<string>("ModerationNote")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("timestamp without time zone");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text");

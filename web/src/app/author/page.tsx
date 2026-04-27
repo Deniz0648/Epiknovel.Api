@@ -2,11 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
-import { Eye, BookOpen, Clock, ExternalLink, ChevronLeft, ChevronRight, Feather, Loader2, Plus, Search, SlidersHorizontal, Home, Star, MessageSquare, LayoutGrid, Wallet, Trash2, BarChart3, Type } from "lucide-react";
+import {
+  Eye, BookOpen, Clock, ExternalLink, ChevronLeft, ChevronRight,
+  Feather, Loader2, Plus, Search, SlidersHorizontal, Home, Star,
+  MessageSquare, LayoutGrid, Wallet, Trash2, BarChart3, Type,
+  CircleDollarSign, AlertCircle, CheckCircle2, ShieldCheck,
+  FileText, Building2, Zap, PenTool, X
+} from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { canAccessAuthorPanel as hasAuthorPanelAccess, getMyBooks, restoreBook, type MyBookListItem } from "@/lib/auth";
-import { resolveMediaUrl } from "@/lib/api";
+import { getWalletBalance, getWalletTransactions, type WalletBalanceDto, type TransactionDto } from "@/lib/wallet";
+import { apiRequest, resolveMediaUrl } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { LegalDocumentModal } from "@/components/legal/legal-document-modal";
 
 const STATUS_OPTIONS = [
   { label: "Tüm Durumlar", value: "" },
@@ -47,11 +57,23 @@ function getContentRatingProps(rating: MyBookListItem["contentRating"] | string 
   }
 }
 
-export default function AuthorPage() {
+import { Suspense } from "react";
+
+function AuthorPanelContent() {
   const { profile, isLoading: isSessionLoading } = useAuth();
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState("works");
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  // URL'den tab bilgisini al, yoksa 'stats' (Dashboard) varsayılan olsun
+  const activeTab = searchParams.get("tab") || "stats";
+
+  const setActiveTab = (tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", tab);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [selectedDiscussionBook, setSelectedDiscussionBook] = useState<any>(null);
   const [selectedDiscussionChapter, setSelectedDiscussionChapter] = useState<any>(null);
   const [discussionSubView, setDiscussionSubView] = useState<"overview" | "all_reviews" | "full_comments" | "full_line_comments">("overview");
@@ -61,19 +83,7 @@ export default function AuthorPage() {
   const [discussionPage, setDiscussionPage] = useState(1);
   const [discussionPageSize, setDiscussionPageSize] = useState(10);
 
-  // Sayfa yüklendiğinde (mount) en son seçili sekmeyi ve tartisma odagini getir
-  useEffect(() => {
-    const savedTab = localStorage.getItem("author_panel_active_tab");
-    if (savedTab) setActiveTab(savedTab);
-
-    const savedBook = localStorage.getItem("discussion_selected_book");
-    if (savedBook) setSelectedDiscussionBook(JSON.parse(savedBook));
-
-    const savedChapter = localStorage.getItem("discussion_selected_chapter");
-    if (savedChapter) setSelectedDiscussionChapter(JSON.parse(savedChapter));
-  }, []);
-
-  // Sekme veya odak değiştiğinde seçimini hafızaya kaydet
+  // Sekme veya odak değiştiğinde seçimi hafızaya kaydet (Yedek olarak dursun)
   useEffect(() => {
     localStorage.setItem("author_panel_active_tab", activeTab);
   }, [activeTab]);
@@ -111,6 +121,19 @@ export default function AuthorPage() {
   const [deletedBooks, setDeletedBooks] = useState<MyBookListItem[]>([]);
   const [isTrashLoading, setIsTrashLoading] = useState(false);
 
+  // Gelirlerim State
+  const [walletBalance, setWalletBalance] = useState<WalletBalanceDto | null>(null);
+  const [earningsTransactions, setEarningsTransactions] = useState<TransactionDto[]>([]);
+  const [isEarningsLoading, setIsEarningsLoading] = useState(false);
+  const [earningsPage, setEarningsPage] = useState(1);
+  const [totalEarningsCount, setTotalEarningsCount] = useState(0);
+  const [paidStatus, setPaidStatus] = useState<any>(null);
+  const [isPaidStatusLoading, setIsPaidStatusLoading] = useState(false);
+  const [isPaidSubmitting, setIsPaidSubmitting] = useState(false);
+  const [legalSlug, setLegalSlug] = useState<string | null>(null);
+  const [paidTermsAccepted, setPaidTermsAccepted] = useState(false);
+  const [isPaidModalOpen, setIsPaidModalOpen] = useState(false);
+
   useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
@@ -136,7 +159,7 @@ export default function AuthorPage() {
           search: query || undefined,
           status: status || undefined,
           type: bookType || undefined,
-          isDeleted: isDeleted
+          OnlyDeleted: isDeleted
         });
 
         if (isMountedLocal) {
@@ -162,10 +185,111 @@ export default function AuthorPage() {
       setBooks([]);
       setDeletedBooks([]);
       if (activeTab === "trash") loadBooks(true);
-      else loadBooks(false);
+      else loadBooks(false); // Dashboard ve Eserlerim için kitaplar yüklenmeli
     }
     return () => { isMountedLocal = false; };
   }, [profile, query, status, bookType, page, pageSize, activeTab]);
+
+  // Gelirleri Yükle
+  useEffect(() => {
+    if (activeTab === "earnings" && hasAuthorPanelAccess(profile)) {
+      const loadEarnings = async () => {
+        setIsEarningsLoading(true);
+        try {
+          const [balance, txs] = await Promise.all([
+            getWalletBalance(),
+            getWalletTransactions(earningsPage, 20, undefined, "Revenue")
+          ]);
+          setWalletBalance(balance);
+          setEarningsTransactions(txs.items);
+          setTotalEarningsCount(txs.totalCount);
+        } catch (err) {
+          console.error("Gelirler yüklenemedi:", err);
+        } finally {
+          setIsEarningsLoading(false);
+        }
+      };
+
+      const loadPaidStatus = async () => {
+        setIsPaidStatusLoading(true);
+        try {
+          const res = await apiRequest("/paid-author/application-status", { method: "GET" });
+          if ((res as any).isSuccess) {
+            setPaidStatus((res as any).data);
+          }
+        } catch (err) {
+          console.error("Başvuru durumu yüklenemedi:", err);
+        } finally {
+          setIsPaidStatusLoading(false);
+        }
+      };
+
+      loadEarnings();
+      loadPaidStatus();
+    }
+  }, [activeTab, profile, earningsPage]);
+
+  const handleSubmitPaidApplication = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    const iban = formData.get("iban") as string;
+    const bankName = formData.get("bankName") as string;
+    const certFile = formData.get("exemptionCertificate") as File;
+    const docFile = formData.get("bankDocument") as File;
+
+    if (!iban || !bankName || !certFile.name || !docFile.name) {
+      toast.error({ description: "Lütfen tüm alanları doldurun ve dosyaları yükleyin." });
+      return;
+    }
+
+    setIsPaidSubmitting(true);
+    try {
+      // 1. İstisna Belgesini Merkezi Upload Endpointi ile Yükle
+      const certFormData = new FormData();
+      certFormData.append("file", certFile);
+      certFormData.append("category", "paid-author-docs");
+
+      const certRes = await apiRequest<{ documentId: string; message: string }>("/compliance/documents/upload", {
+        method: "POST",
+        body: certFormData,
+      });
+      const certId = certRes.documentId;
+
+      // 2. Banka Belgesini Merkezi Upload Endpointi ile Yükle
+      const docFormData = new FormData();
+      docFormData.append("file", docFile);
+      docFormData.append("category", "paid-author-docs");
+
+      const docRes = await apiRequest<{ documentId: string; message: string }>("/compliance/documents/upload", {
+        method: "POST",
+        body: docFormData,
+      });
+      const docId = docRes.documentId;
+
+      // 3. Başvuruyu Tamamla
+      await apiRequest<any>("/paid-author/apply", {
+        method: "POST",
+        body: JSON.stringify({
+          exemptionCertificateId: certId,
+          bankDocumentId: docId,
+          iban,
+          bankName
+        }),
+      });
+
+      toast.success({ description: "Başvurunuz başarıyla alındı! Belgeleriniz mühürlendi ve incelemeye alındı." });
+      setIsPaidModalOpen(false);
+      // Durumu güncelle
+      const statusRes = await apiRequest<any>("/paid-author/application-status", { method: "GET" });
+      setPaidStatus(statusRes);
+    } catch (err: any) {
+      toast.error({ description: err.message || "Başvuru sırasında bir hata oluştu." });
+    } finally {
+      setIsPaidSubmitting(false);
+    }
+  };
 
   // Gerçek Veri Hesaplamaları (Dashboard Genişletme)
   const stats = useMemo(() => {
@@ -193,7 +317,7 @@ export default function AuthorPage() {
       await restoreBook(id);
 
       // Çöp kutusunu yenile
-      const response = await getMyBooks({ pageNumber: 1, pageSize: 50, isDeleted: true });
+      const response = await getMyBooks({ pageNumber: 1, pageSize: 50, OnlyDeleted: true });
       setDeletedBooks(response.items);
 
       alert("Eser başarıyla geri yüklendi.");
@@ -241,42 +365,17 @@ export default function AuthorPage() {
               )}
             </div>
           </div>
-
-          <div className="h-px w-full bg-linear-to-r from-base-content/10 via-base-content/5 to-transparent" />
-
-          {/* İstatistikler (Premium Dashboard Stili) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4 divide-y md:divide-y-0 md:divide-x divide-base-content/5">
-            <div className="flex flex-col gap-1.5 md:pr-8">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-base-content/40 italic">
-                <Eye className="w-3 h-3 text-primary" /> Toplam Okunma
-              </div>
-              <div className="text-4xl md:text-5xl font-black tracking-tighter text-primary">
-                {isMounted ? stats.totalViews.toLocaleString("tr-TR") : "0"}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 pt-6 md:pt-0 md:px-8">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-base-content/40 italic">
-                <Star className="w-3 h-3 text-warning" /> Ortalama Puan
-              </div>
-              <div className="text-4xl md:text-5xl font-black tracking-tighter text-base-content/80">
-                {isMounted ? stats.avgRating : "0.0"}
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5 pt-6 md:pt-0 md:pl-8">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-base-content/40 italic">
-                <MessageSquare className="w-3 h-3 text-secondary" /> Toplam Oy
-              </div>
-              <div className="text-4xl md:text-5xl font-black tracking-tighter text-base-content/80">
-                {isMounted ? stats.totalVotes.toLocaleString("tr-TR") : "0"}
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Sekme Seçici (Tabs) */}
         <div className={`flex flex-wrap items-center gap-1.5 p-1.5 rounded-[1.8rem] ${glassStyle} w-fit mx-auto lg:mx-0`}>
+          <button
+            onClick={() => setActiveTab("stats")}
+            className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "stats" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
+              }`}
+          >
+            <BarChart3 className="w-4 h-4" /> Dashboard
+          </button>
           <button
             onClick={() => setActiveTab("works")}
             className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "works" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
@@ -289,7 +388,7 @@ export default function AuthorPage() {
             className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "discussions" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
               }`}
           >
-            <MessageSquare className="w-4 h-4" /> Tartismalar
+            <MessageSquare className="w-4 h-4" /> Tartışmalar
           </button>
           <button
             onClick={() => setActiveTab("earnings")}
@@ -303,9 +402,85 @@ export default function AuthorPage() {
             className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "trash" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
               }`}
           >
-            <Trash2 className="w-4 h-4" /> Cop Kutusu
+            <Trash2 className="w-4 h-4" /> Çöp Kutusu
           </button>
         </div>
+
+        {activeTab === "stats" && (
+          <div className="grid gap-8 lg:grid-cols-[1fr_350px] animate-in fade-in slide-in-from-bottom-5 duration-700">
+            <div className="space-y-8">
+              {/* Ana İstatistikler Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className={`p-6 rounded-3xl ${glassStyle} flex flex-col gap-1`}>
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-base-content/40 italic">
+                    <Eye className="w-3 h-3 text-primary" /> Toplam Okunma
+                  </div>
+                  <div className="text-3xl font-black tracking-tighter text-primary">
+                    {isMounted ? stats.totalViews.toLocaleString("tr-TR") : "0"}
+                  </div>
+                </div>
+
+                <div className={`p-6 rounded-3xl ${glassStyle} flex flex-col gap-1`}>
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-base-content/40 italic">
+                    <Star className="w-3 h-3 text-warning" /> Ortalama Puan
+                  </div>
+                  <div className="text-3xl font-black tracking-tighter text-base-content/80">
+                    {isMounted ? stats.avgRating : "0.0"}
+                  </div>
+                </div>
+
+                <div className={`p-6 rounded-3xl ${glassStyle} flex flex-col gap-1`}>
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-base-content/40 italic">
+                    <MessageSquare className="w-3 h-3 text-secondary" /> Toplam Oy
+                  </div>
+                  <div className="text-3xl font-black tracking-tighter text-base-content/80">
+                    {isMounted ? stats.totalVotes.toLocaleString("tr-TR") : "0"}
+                  </div>
+                </div>
+              </div>
+
+              <div className={`p-8 rounded-[2.5rem] ${glassStyle} relative overflow-hidden group`}>
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 group-hover:opacity-10 transition-all">
+                  <Feather className="w-32 h-32" />
+                </div>
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter mb-4">Hoş geldin, {profile?.displayName || "Yazar"}!</h2>
+                <p className="text-base-content/60 font-bold leading-relaxed max-w-lg italic">
+                  Bugün eserlerin için harika bir gün. Anlık istatistiklerini yukarıdan takip edebilir, yeni içeriklerin için plan yapabilirsin.
+                </p>
+
+                <div className="flex gap-4 mt-8">
+                  <Link href="/author?tab=works" className="btn btn-primary px-8 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20">Eserlerime Git</Link>
+                  <Link href="/author/new" className="btn btn-ghost px-8 rounded-2xl font-black uppercase tracking-widest bg-base-content/5 hover:bg-base-content/10">Yeni Taslak</Link>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className={`p-6 rounded-4xl ${glassStyle} border-primary/20 shadow-primary/5`}>
+                <h3 className="text-xs font-black uppercase tracking-widest text-primary mb-4 flex items-center gap-2">
+                  <Zap size={14} className="fill-primary" /> Hızlı Eylem
+                </h3>
+                <div className="grid gap-2">
+                  <Link href="/author/new" className="btn btn-sm h-11 justify-start px-4 rounded-xl bg-primary/10 text-primary border-none hover:bg-primary hover:text-primary-content text-[10px] font-black uppercase tracking-wider">
+                    Yeni Roman Başlat
+                  </Link>
+                  <Link href="/author?tab=paid" className="btn btn-sm h-11 justify-start px-4 rounded-xl bg-base-content/5 text-base-content/60 border-none hover:bg-base-content/10 text-[10px] font-black uppercase tracking-wider">
+                    Gelir Paneline Git
+                  </Link>
+                </div>
+              </div>
+
+              <div className={`p-6 rounded-4xl ${glassStyle} bg-secondary/5`}>
+                <h3 className="text-xs font-black uppercase tracking-widest text-secondary mb-4 flex items-center gap-2">
+                  <AlertCircle size={14} /> Bilgilendirme
+                </h3>
+                <p className="text-[10px] font-bold text-base-content/40 leading-relaxed uppercase tracking-widest italic">
+                  Eserlerini yönetirken topluluk kurallarına uymayı unutmayın. Her hafta Pazar günü gelir raporları güncellenmektedir.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeTab === "works" && (
           <>
@@ -523,6 +698,54 @@ export default function AuthorPage() {
                       className="join-item btn btn-ghost h-12 w-14 rounded-xl hover:bg-base-100/40 disabled:opacity-30 disabled:bg-transparent"
                     >
                       <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Sayfalama (Pagination) */}
+              {!isLoading && totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 pt-6 border-t border-base-content/5 px-4 backdrop-blur-xs">
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30 italic">
+                    Sayfa {page} / {totalPages} — Toplam {totalCount} Eser
+                  </div>
+                  <div className="join gap-1 p-1 rounded-2xl bg-base-100/30 border border-base-content/5">
+                    <button
+                      onClick={() => { setPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      disabled={page === 1}
+                      className="btn btn-sm h-10 w-10 p-0 rounded-xl bg-transparent! border-none hover:bg-primary hover:text-primary-content transition-all duration-300 disabled:opacity-20"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                       let pageNum = page;
+                       if (totalPages <= 5) pageNum = i + 1;
+                       else {
+                         if (page <= 3) pageNum = i + 1;
+                         else if (page >= totalPages - 2) pageNum = totalPages - 4 + i;
+                         else pageNum = page - 2 + i;
+                       }
+                       
+                       return (
+                         <button
+                           key={pageNum}
+                           onClick={() => { setPage(pageNum); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                           className={`btn btn-sm h-10 w-10 p-0 rounded-xl border-none transition-all duration-300 text-[10px] font-black uppercase tracking-widest ${
+                             page === pageNum ? "bg-primary! text-primary-content shadow-lg shadow-primary/20" : "bg-transparent! hover:bg-base-content/5"
+                           }`}
+                         >
+                           {pageNum}
+                         </button>
+                       );
+                    })}
+
+                    <button
+                      onClick={() => { setPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      disabled={page === totalPages}
+                      className="btn btn-sm h-10 w-10 p-0 rounded-xl bg-transparent! border-none hover:bg-primary hover:text-primary-content transition-all duration-300 disabled:opacity-20"
+                    >
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -1033,15 +1256,242 @@ export default function AuthorPage() {
 
         {/* Gelirlerim Sekmesi */}
         {activeTab === "earnings" && (
-          <section className={`py-40 flex flex-col items-center justify-center gap-6 rounded-4xl border-dashed ${glassStyle} opacity-60`}>
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-              <Wallet className="w-12 h-12 text-primary" />
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Üst Özet Kartları */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className={`p-6 rounded-4xl ${glassStyle} relative overflow-hidden group`}>
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+                  <Wallet className="w-24 h-24" />
+                </div>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-2">Hakediş (Net Kazanç)</h4>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-4xl font-black text-primary">₺{isEarningsLoading ? "..." : (walletBalance?.revenueBalance || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  <button
+                    disabled={isEarningsLoading || (walletBalance?.revenueBalance || 0) < 100}
+                    className="btn btn-primary btn-xs h-8 px-4 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-lg shadow-primary/20"
+                  >
+                    Para Çek
+                  </button>
+                </div>
+                <p className="text-[10px] font-bold text-base-content/30 mt-4 uppercase tracking-tighter italic">Bu miktar cüzdanınızdaki çekilebilir nakit karşılığıdır. (Min: 100 TL)</p>
+              </div>
+
+              <div className={`p-6 rounded-4xl ${glassStyle} relative overflow-hidden group`}>
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+                  <CircleDollarSign className="w-24 h-24" />
+                </div>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-2">Toplam Bölüm Satışı</h4>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-black text-secondary">{isEarningsLoading ? "..." : totalEarningsCount}</span>
+                  <span className="text-[11px] font-bold opacity-30 text-secondary uppercase">İşlem</span>
+                </div>
+                <p className="text-[10px] font-bold text-base-content/30 mt-4 uppercase tracking-tighter italic">Kayıtlı bölüm satın alım işlemlerinin adedi.</p>
+              </div>
+
+              <div className={`p-6 rounded-4xl ${glassStyle} relative overflow-hidden group lg:col-span-1 md:col-span-2`}>
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+                  <BarChart3 className="w-24 h-24" />
+                </div>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-2">Durum Özeti</h4>
+                <div className="space-y-2 mt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black text-base-content/50 uppercase italic">Son Tahsil Edilen</span>
+                    <span className="text-xs font-bold text-success">₺0.00</span>
+                  </div>
+                  <div className="h-px bg-base-content/5" />
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] font-black text-base-content/50 uppercase italic">Bekleyen Ödeme</span>
+                    <span className="text-xs font-bold text-warning">₺0.00</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-black uppercase italic tracking-tighter">Henuz Veri Bulunamadi</h2>
-              <p className="text-xs font-bold uppercase tracking-widest text-base-content/40 italic">Bu bolum henuz yapilandirilma asamasindadir.</p>
+
+            {/* Ücretli Yazarlık Statüsü / Başvuru Alanı */}
+            <div className={`p-8 rounded-4xl ${glassStyle} relative overflow-hidden group border-primary/20 bg-primary/5`}>
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+                <ShieldCheck className="w-48 h-48 text-primary" />
+              </div>
+
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative z-10">
+                <div className="max-w-2xl space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center">
+                      <Zap className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-black uppercase tracking-tight italic hero-title-gradient">Ücretli Yazarlık Modülü</h3>
+                      <p className="text-[10px] font-bold text-base-content/40 uppercase tracking-widest italic">Eserlerinden gelir elde etmeye başla.</p>
+                    </div>
+                  </div>
+
+                  {!paidStatus ? (
+                    <div className="space-y-4">
+                      <p className="text-sm text-base-content/60 leading-relaxed font-medium">
+                        Epiknovel'de profesyonel bir yazar olarak bölüm satışı yapabilmek ve kazancını banka hesabına nakit olarak çekebilmek için
+                        <span className="text-primary font-bold"> Ücretli Yazarlık</span> statüsüne geçmeniz gerekmektedir.
+                        Gerekli belgeleri (İstisna Belgesi, Banka Dekontu) hazırlayıp hemen başvurabilirsiniz.
+                      </p>
+                      <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <li className="flex items-center gap-2 text-[11px] font-bold text-base-content/50 uppercase"><CheckCircle2 className="w-4 h-4 text-success" /> Bölüm Satma Yetkisi</li>
+                        <li className="flex items-center gap-2 text-[11px] font-bold text-base-content/50 uppercase"><CheckCircle2 className="w-4 h-4 text-success" /> Nakit Para Çekme</li>
+                        <li className="flex items-center gap-2 text-[11px] font-bold text-base-content/50 uppercase"><CheckCircle2 className="w-4 h-4 text-success" /> Premium Yazar Rozeti</li>
+                        <li className="flex items-center gap-2 text-[11px] font-bold text-base-content/50 uppercase"><CheckCircle2 className="w-4 h-4 text-success" /> GVK İstisna Desteği</li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className={`p-4 rounded-3xl border ${paidStatus.status === "Approved" || paidStatus.status === 1 ? "bg-success/10 border-success/20 text-success" :
+                        paidStatus.status === "Pending" || paidStatus.status === 0 ? "bg-warning/10 border-warning/20 text-warning" :
+                          "bg-error/10 border-error/20 text-error"
+                        }`}>
+                        <div className="flex items-center gap-3 mb-2">
+                          {paidStatus.status === "Approved" || paidStatus.status === 1 ? <CheckCircle2 className="w-5 h-5" /> :
+                            paidStatus.status === "Pending" || paidStatus.status === 0 ? <Clock className="w-5 h-5 animate-pulse" /> :
+                              <AlertCircle className="w-5 h-5" />}
+                          <span className="font-black uppercase tracking-widest text-xs">
+                            {paidStatus.status === "Approved" || paidStatus.status === 1 ? "ÜCRETLİ YAZARLIK ONAYLANDI" :
+                              paidStatus.status === "Pending" || paidStatus.status === 0 ? "BAŞVURU İNCELENİYOR" :
+                                "BAŞVURU REDDEDİLDİ"}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium opacity-80 italic">
+                          {paidStatus.status === "Approved" || paidStatus.status === 1 ? "Tebrikler! Platformumuzda ücretli yazar statüsündesiniz. Gelirlerinizi hakediş kartından çekebilirsiniz." :
+                            paidStatus.status === "Pending" || paidStatus.status === 0 ? "Belgeleriniz editörlerimiz tarafından inceleniyor. Ortalama 3-5 iş günü sürmektedir." :
+                              `Maalesef başvurunuz uygun görülmedi. Admin Notu: ${paidStatus.adminNote || 'Belirtilmedi.'}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col gap-3 min-w-[200px]">
+                  {!paidStatus ? (
+                    <button
+                      onClick={() => setIsPaidModalOpen(true)}
+                      className="btn btn-primary h-14 rounded-2xl font-black uppercase tracking-widest px-8 shadow-xl shadow-primary/25 hover:-translate-y-1 transition-all"
+                    >
+                      Hemen Başvur
+                    </button>
+                  ) : (paidStatus.status === "Rejected" || paidStatus.status === 2) ? (
+                    <button
+                      onClick={() => setIsPaidModalOpen(true)}
+                      className="btn btn-outline btn-error h-14 rounded-2xl font-black uppercase tracking-widest px-8"
+                    >
+                      Yeniden Başvur
+                    </button>
+                  ) : (paidStatus.status === "Approved" || paidStatus.status === 1) ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="p-4 rounded-2xl bg-success/5 border border-success/10 text-center">
+                        <span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] italic decoration-primary underline-offset-4 decoration-2 underline">Aktif Ödeme Hesabı</span>
+                        <div className="mt-2 text-xs font-bold text-success/60">
+                          {paidStatus.bankName} - {paidStatus.iban.substring(0, 4)}...
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setIsPaidModalOpen(true)}
+                        className="btn btn-ghost btn-xs h-8 text-[9px] font-black uppercase tracking-tighter opacity-40 hover:opacity-100"
+                      >
+                        Bankayı Güncelle
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-base-100/30 border border-base-content/5 text-center">
+                      <span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] italic">Kayıtlı</span>
+                      <div className="mt-2 text-xs font-bold text-base-content/60">
+                        {paidStatus.bankName} - {paidStatus.iban.substring(0, 4)}...
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[9px] text-center font-bold text-base-content/25 uppercase tracking-tighter">İşlemler yasal mevzuat gereğidir.</p>
+                </div>
+              </div>
             </div>
-          </section>
+
+            {/* İşlem Listesi */}
+            <div className={`rounded-4xl ${glassStyle} overflow-hidden`}>
+              <div className="p-6 border-b border-base-content/5 bg-base-content/2 flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-3">
+                  <Wallet className="w-4 h-4 text-primary" /> Son Bölüm Satışları & Kazanç Hareketleri
+                </h3>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="table w-full border-separate border-spacing-0">
+                  <thead className="bg-base-content/3">
+                    <tr>
+                      <th className="bg-transparent! text-[10px] font-black uppercase tracking-widest text-base-content/40 py-5 pl-8">İşlem ID / Tarih</th>
+                      <th className="bg-transparent! text-[10px] font-black uppercase tracking-widest text-base-content/40">Detay</th>
+                      <th className="bg-transparent! text-[10px] font-black uppercase tracking-widest text-base-content/40 text-right pr-8">Kazanç</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-base-content/5">
+                    {isEarningsLoading ? (
+                      <tr>
+                        <td colSpan={3} className="py-20 text-center">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary opacity-20" />
+                        </td>
+                      </tr>
+                    ) : earningsTransactions.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-20 text-center">
+                          <div className="opacity-20 italic font-bold uppercase tracking-widest text-xs">Henüz bir kazanç kaydı bulunmuyor.</div>
+                        </td>
+                      </tr>
+                    ) : (
+                      earningsTransactions.map((tx) => (
+                        <tr key={tx.id} className="hover:bg-base-content/2 transition-colors group">
+                          <td className="py-5 pl-8">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[9px] font-black text-base-content/30 uppercase tracking-tighter truncate w-24">#{tx.id.split('-')[0]}</span>
+                              <span className="text-[11px] font-bold text-base-content/60 italic">{new Date(tx.createdAt).toLocaleString("tr-TR")}</span>
+                            </div>
+                          </td>
+                          <td className="py-5">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-xs font-black text-base-content italic line-clamp-1">{tx.description}</span>
+                              <span className="text-[10px] font-bold text-primary/40 uppercase tracking-widest">{tx.type}</span>
+                            </div>
+                          </td>
+                          <td className="py-5 text-right pr-8">
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className="text-sm font-black text-success">+ ₺{tx.fiatAmount?.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                              <span className="text-[10px] font-bold text-base-content/20 uppercase">NET KAZANÇ</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {Math.ceil(totalEarningsCount / 20) > 1 && (
+                <div className="p-6 border-t border-base-content/5 flex justify-center">
+                  <div className="join rounded-2xl bg-base-content/5 p-1">
+                    <button
+                      onClick={() => setEarningsPage(p => Math.max(1, p - 1))}
+                      disabled={earningsPage === 1}
+                      className="join-item btn btn-ghost btn-sm h-10 w-12 rounded-xl"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <div className="join-item flex items-center px-4 text-[10px] font-black uppercase opacity-40 italic">
+                      Sayfa {earningsPage} / {Math.ceil(totalEarningsCount / 20)}
+                    </div>
+                    <button
+                      onClick={() => setEarningsPage(p => p + 1)}
+                      disabled={earningsPage >= Math.ceil(totalEarningsCount / 20)}
+                      className="join-item btn btn-ghost btn-sm h-10 w-12 rounded-xl"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Çöp Kutusu Sekmesi */}
@@ -1109,6 +1559,172 @@ export default function AuthorPage() {
         )}
 
       </div>
+
+      {/* Ücretli Yazarlık Başvuru Modalı */}
+      <AnimatePresence>
+        {isPaidModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0 bg-base-300/80 backdrop-blur-xl" onClick={() => setIsPaidModalOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className={`relative w-full h-full sm:h-auto sm:max-w-2xl overflow-hidden bg-base-100 sm:rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col border border-white/5 transition-all duration-500`}
+            >
+              <div className="p-8 sm:p-10 overflow-y-auto custom-scrollbar">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                      <PenTool className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black italic uppercase tracking-tighter hero-title-gradient">Ücretli Yazarlık <span className="text-primary">Başvurusu</span></h2>
+                      <p className="text-[10px] font-bold text-base-content/30 uppercase tracking-[0.2em] italic">Gelir elde etmek için belgelerinizi hazırlayın.</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsPaidModalOpen(false)}
+                    className="btn btn-circle btn-sm btn-ghost hover:bg-base-content/10"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={async (e) => {
+                  await handleSubmitPaidApplication(e);
+                  if (!(e.target as any).hasAttribute('data-error')) {
+                    setIsPaidModalOpen(false);
+                  }
+                }} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="form-control w-full">
+                      <label className="label">
+                        <span className="label-text font-black uppercase tracking-widest text-[10px] text-base-content/40 italic">Banka Adı</span>
+                      </label>
+                      <div className="relative">
+                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/20" />
+                        <input
+                          name="bankName"
+                          type="text"
+                          placeholder="Ziraat Bankası, İş Bankası vb."
+                          className="input h-14 w-full rounded-2xl bg-base-100/30 pl-12 text-sm font-bold border-transparent focus:border-primary/30 focus:bg-base-100/50 transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-control w-full">
+                      <label className="label">
+                        <span className="label-text font-black uppercase tracking-widest text-[10px] text-base-content/40 italic">IBAN Numarası</span>
+                      </label>
+                      <div className="relative">
+                        <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/20" />
+                        <input
+                          name="iban"
+                          type="text"
+                          placeholder="TR00 0000 0000..."
+                          className="input h-14 w-full rounded-2xl bg-base-100/30 pl-12 text-sm font-bold border-transparent focus:border-primary/30 focus:bg-base-100/50 transition-all"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="form-control w-full">
+                      <label className="label">
+                        <span className="label-text font-black uppercase tracking-widest text-[10px] text-base-content/40 italic flex items-center gap-2">
+                          <FileText className="w-3 h-3" /> GVK 20/B İstisna Belgesi (PDF/JPG)
+                        </span>
+                      </label>
+                      <input
+                        name="exemptionCertificate"
+                        type="file"
+                        className="file-input file-input-bordered w-full h-14 rounded-2xl bg-base-100/30 text-xs font-bold border-transparent focus:border-primary/30"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        required
+                      />
+                      <p className="mt-2 text-[9px] font-bold text-base-content/30 italic uppercase">* Vergi dairesinden alınan sosyal içerik üreticiliği istisna belgesi.</p>
+                    </div>
+
+                    <div className="form-control w-full">
+                      <label className="label">
+                        <span className="label-text font-black uppercase tracking-widest text-[10px] text-base-content/40 italic flex items-center gap-2">
+                          <ShieldCheck className="w-3 h-3" /> Banka Hesap Dekontu / Cüzdanı (PDF/JPG)
+                        </span>
+                      </label>
+                      <input
+                        name="bankDocument"
+                        type="file"
+                        className="file-input file-input-bordered w-full h-14 rounded-2xl bg-base-100/30 text-xs font-bold border-transparent focus:border-primary/30"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        required
+                      />
+                      <p className="mt-2 text-[9px] font-bold text-base-content/30 italic uppercase">* Üzerinde adınızın ve IBAN'ın göründüğü resmi belge veya dekont.</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-warning/5 border border-warning/10">
+                    <p className="text-[10px] font-bold text-warning uppercase italic flex items-center gap-2 leading-relaxed">
+                      <AlertCircle className="w-4 h-4 shrink-0" />
+                      Paylaştığınız bilgilerin size ait olması zorunludur. Yanlış veya başkasına ait bilgiler başvurunuzun reddine neden olur.
+                    </p>
+                  </div>
+
+                    <div className="form-control">
+                      <label className="label cursor-pointer justify-start gap-4 p-4 rounded-2xl bg-base-content/5 border border-base-content/5">
+                        <input 
+                          type="checkbox" 
+                          className="checkbox checkbox-primary rounded-lg checkbox-sm" 
+                          checked={paidTermsAccepted}
+                          onChange={(e) => setPaidTermsAccepted(e.target.checked)}
+                          required
+                        />
+                        <span className="label-text text-[11px] font-bold leading-relaxed">
+                          <button type="button" onClick={() => setLegalSlug("paid-author-terms")} className="text-primary hover:underline">Ücretli Yazarlık Şartlarını</button> ve <button type="button" onClick={() => setLegalSlug("kvkk")} className="text-primary hover:underline">KVKK Aydınlatma Metni'ni</button> okudum, onaylıyorum.
+                        </span>
+                      </label>
+                    </div>
+
+                    <div className="pt-4 flex gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setIsPaidModalOpen(false)}
+                        className="btn btn-ghost h-14 flex-1 rounded-2xl font-black uppercase tracking-widest"
+                      >
+                        Vazgeç
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isPaidSubmitting || !paidTermsAccepted}
+                        className="btn btn-primary h-14 flex-2 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                      >
+                        {isPaidSubmitting ? <span className="loading loading-spinner"></span> : "Başvuruyu Gönder"}
+                      </button>
+                    </div>
+                </form>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      <LegalDocumentModal 
+        slug={legalSlug || ""} 
+        isOpen={!!legalSlug} 
+        onClose={() => setLegalSlug(null)} 
+      />
     </main>
+  );
+}
+
+export default function AuthorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-base-100">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    }>
+      <AuthorPanelContent />
+    </Suspense>
   );
 }

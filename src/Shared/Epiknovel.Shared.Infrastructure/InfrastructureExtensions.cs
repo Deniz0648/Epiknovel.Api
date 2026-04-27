@@ -182,21 +182,14 @@ public static class InfrastructureExtensions
                         Console.Out.Flush();
                     }
 
-                    if (string.IsNullOrWhiteSpace(context.Token) &&
-                        context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                    if (string.IsNullOrWhiteSpace(context.Token))
                     {
-                        var queryToken = context.Request.Query["access_token"].FirstOrDefault();
-                        if (!string.IsNullOrWhiteSpace(queryToken))
+                        var cookieToken = context.Request.Cookies["epiknovel_at"];
+                        if (!string.IsNullOrWhiteSpace(cookieToken))
                         {
-                            context.Token = queryToken;
-                        }
-                        else
-                        {
-                            var cookieToken = context.Request.Cookies["epiknovel_at"];
-                            if (!string.IsNullOrWhiteSpace(cookieToken))
-                            {
-                                context.Token = cookieToken;
-                            }
+                            context.Token = cookieToken;
+                            // Opsiyonel: Log ekleyerek doğrulayalım
+                            // Console.WriteLine($"[AUTH_COOKIE] Token extracted from cookie for Path: {context.Request.Path}");
                         }
                     }
 
@@ -335,6 +328,7 @@ public static class InfrastructureExtensions
                 // 🛡️ Sadece anonim istekleri Redis'te tut (Cache Explosion Koruması)
                 builder.With(c => !c.HttpContext.Request.Headers.ContainsKey("Authorization"))
                        .Tag(CacheTags.AllBooks)
+                       .Tag(CacheTags.Global)
                        .Expire(TimeSpan.FromSeconds(300));
             });
         });

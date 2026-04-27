@@ -31,8 +31,9 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
 
         // 1. Sahiplik ve Ekip Kontrolü (Book bazlı)
         var bookInfo = await dbContext.Books
-            .Where(x => x.Slug.ToLower() == req.BookSlug.ToLower() && !x.IsDeleted)
-            .Select(x => new { x.Id, x.AuthorId })
+            .IgnoreQueryFilters()
+            .Where(x => x.Slug.ToLower() == req.BookSlug.ToLower())
+            .Select(x => new { x.Id, x.AuthorId, x.IsDeleted })
             .FirstOrDefaultAsync(ct);
 
         if (bookInfo == null)
@@ -51,7 +52,9 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
         }
 
         // 2. Query İnşası
-        bool filterIsDeleted = req.isDeleted ?? (HttpContext.Request.Query.TryGetValue("isDeleted", out var values) && values.ToString().Equals("true", StringComparison.OrdinalIgnoreCase));
+        bool filterIsDeleted = req.OnlyDeleted;
+        Console.WriteLine($"[DEBUG_CHAPTERS] OnlyDeleted parameter: {req.OnlyDeleted}");
+        Console.Out.Flush();
         
         var query = dbContext.Chapters
             .IgnoreQueryFilters()
@@ -81,6 +84,7 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
             .Select(x => new 
             {
                 x.Id,
+                x.IsDeleted,
                 x.Title,
                 x.Slug,
                 x.Order,
@@ -103,6 +107,7 @@ public class Endpoint(BooksDbContext dbContext, IUserAccountProvider userAccount
         var chapters = dbChapters.Select(x => new Response
         {
             Id = x.Id,
+            IsDeleted = x.IsDeleted,
             Title = x.Title,
             Slug = x.Slug,
             Order = x.Order,

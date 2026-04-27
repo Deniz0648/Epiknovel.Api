@@ -12,5 +12,6 @@ public class Announcement : BaseEntity, ISoftDelete
     public bool IsActive { get; set; } = true;
     public bool IsPinned { get; set; }
     
+    public DateTime? PublishedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
 }

@@ -1,101 +1,93 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, LayoutDashboard, Settings, FileText, BarChart3, PlusCircle, Share2, Eye, Star, Clock, LoaderCircle, AlertCircle, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getMyBookBySlug, getMyChapters, type MyBookListItem } from "@/lib/auth";
-import { resolveMediaUrl } from "@/lib/api";
-import { ApiError } from "@/lib/api";
-import { useAuth } from "@/components/providers/auth-provider";
+import {
+  ChevronLeft,
+  Settings,
+  PlusCircle,
+  Eye,
+  FileText,
+  Search,
+  Trash2,
+  ChevronRight
+} from "lucide-react";
+import { getMyBookBySlug, getMyChapters } from "@/lib/auth";
+import { toMediaProxyUrl } from "@/lib/media";
 import { ChapterReorderList } from "@/components/author/ChapterReorderList";
+import Image from "next/image";
+import { COVER_DEFAULT } from "@/lib/api";
 
-export default function ManageBookPage() {
-  const params = useParams<{ bookSlug: string }>();
-  const router = useRouter();
-  const bookSlug = params?.bookSlug ?? "";
-
-  const { profile, isLoading: isAuthLoading } = useAuth();
-
-  const [book, setBook] = useState<MyBookListItem | null>(null);
+export default function BookManagementPage() {
+  const { bookSlug } = useParams() as { bookSlug: string };
+  const [book, setBook] = useState<any>(null);
   const [chapters, setChapters] = useState<any[]>([]);
   const [deletedChapters, setDeletedChapters] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTrashLoading, setIsTrashLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 20;
 
   useEffect(() => {
-    // Oturum yuklenmeden veya slug gelmeden asla istek atma!
-    if (isAuthLoading || !bookSlug) return;
-
     let isMounted = true;
 
-    const loadData = async () => {
+    async function fetchData() {
       try {
         setIsLoading(true);
         // 1. Kitap Detaylarını Çek
         const bookData = await getMyBookBySlug(bookSlug);
         if (isMounted) {
           setBook(bookData);
-          setError(null);
         }
 
         // 2. Bölümleri Çek
-        try {
-          const chaptersData = await getMyChapters(bookSlug, { pageSize: 100, isDeleted: false });
-          if (isMounted) {
-            setChapters(chaptersData.items || []);
-          }
+        await loadChapters(1, searchQuery);
 
-          // 3. Silinen Bölümleri Çek
-          const deletedChaptersData = await getMyChapters(bookSlug, { pageSize: 100, isDeleted: true });
-          if (isMounted) {
-            setDeletedChapters(deletedChaptersData.items || []);
-          }
-        } catch (chapterErr) {
-          console.error("Bolumler yuklenirken hata:", chapterErr);
-        }
-
-      } catch (err) {
-        console.error("Kitap detay yukleme hatası:", err);
+        // 3. Silinen Bölümleri Çek
+        const deletedChaptersData = await getMyChapters(bookSlug, { pageSize: 100, OnlyDeleted: true });
         if (isMounted) {
-          if (err instanceof ApiError) {
-            setError(`Hata: ${err.status} - ${err.message}`);
-          } else {
-            setError("Kitap yuklenirken beklenmedik bir hata olustu.");
-          }
+          setDeletedChapters(deletedChaptersData.items || []);
         }
+      } catch (error) {
+        console.error("Fetch error:", error);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
-    };
+    }
 
-    loadData();
+    fetchData();
     return () => { isMounted = false; };
-  }, [bookSlug, isAuthLoading]);
+  }, [bookSlug]);
 
-  if (isAuthLoading || isLoading) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <LoaderCircle className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-bold animate-pulse text-base-content/40 uppercase tracking-widest">Kitap Bilgileri Yukleniyor...</p>
-      </div>
-    );
+  async function loadChapters(page: number, search: string) {
+    try {
+      const chaptersData = await getMyChapters(bookSlug, {
+        pageNumber: page,
+        pageSize: pageSize,
+        search: search || undefined,
+        OnlyDeleted: false
+      });
+      setChapters(chaptersData.items || []);
+      setTotalPages(chaptersData.totalPages || 1);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Load chapters error:", error);
+    }
   }
 
-  if (error || !book) {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearchQuery(val);
+    loadChapters(1, val);
+  };
+
+  if (isLoading || !book) {
     return (
-      <div className="site-shell mx-auto px-4 pt-32 sm:px-8">
-        <div className="glass-frame border-error/20 bg-error/5 p-8 text-center text-error">
-          <AlertCircle className="mx-auto h-12 w-12 opacity-50" />
-          <p className="mt-4 font-bold">{error ?? "Bu kitaba erisim yetkiniz bulunmuyor."}</p>
-          <div className="flex items-center justify-center gap-4 mt-6">
-            <Link href="/author" className="btn btn-ghost btn-sm underline">Yazar Paneline Don</Link>
-            <button onClick={() => window.location.reload()} className="btn btn-primary btn-sm rounded-xl">Tekrar Dene</button>
-          </div>
-        </div>
+      <div className="flex min-h-screen items-center justify-center bg-base-100">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
       </div>
     );
   }
@@ -128,12 +120,13 @@ export default function ManageBookPage() {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             {/* 2:3 Kapak Gorseli */}
             <div className="relative aspect-2/3 w-28 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40 sm:w-32 md:w-36">
-              {book.coverImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full items-center justify-center p-2 text-center text-[8px] font-black uppercase tracking-widest text-base-content/25">Gorsel Yok</div>
-              )}
+                <Image 
+                  src={toMediaProxyUrl(book.coverImageUrl) || COVER_DEFAULT} 
+                  alt={book.title} 
+                  fill 
+                  unoptimized
+                  className="h-full w-full object-cover" 
+                />
             </div>
 
             <div className="flex flex-1 flex-col justify-center gap-4">
@@ -145,7 +138,7 @@ export default function ManageBookPage() {
                 {book.description || "Bu kitabin ozeti henüz eklenmemis."}
               </p>
 
-              {/* Tur, Durum ve Yas Badge Grubu (Robust String/Number Checks) */}
+              {/* Tur, Durum ve Yas Badge Grubu */}
               <div className="flex flex-wrap items-center gap-2 pt-1 font-sans">
                 <span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-primary shadow-sm">
                   {book.type === "Original" || Number(book.type) === 0 ? "Orijinal" : "Ceviri"}
@@ -176,7 +169,6 @@ export default function ManageBookPage() {
                 </div>
               </div>
 
-              {/* Aksiyon Butonlari */}
               <div className="flex flex-wrap items-center gap-3 pt-4">
                 <Link href={`/author/${book.slug}/chapters/new`} className="btn btn-primary rounded-2xl px-8 shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 active:scale-95">
                   <PlusCircle className="h-4 w-4" /> Yeni Bolum Yaz
@@ -190,23 +182,89 @@ export default function ManageBookPage() {
         </section>
 
         {/* Chapters Section */}
-        <section className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-4">
-            <h3 className="flex items-center gap-2 text-xl font-black px-2">
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2">
+            <h3 className="flex items-center gap-2 text-xl font-black">
               <FileText className="h-5 w-5 text-primary" /> Bolumler
             </h3>
+
+            {/* Search Input */}
+            <div className="relative group min-w-[300px]">
+              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-base-content/30 group-focus-within:text-primary transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Bölüm ara..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                className="w-full h-12 pl-12 pr-4 rounded-2xl bg-base-100/50 border border-base-content/10 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm font-semibold"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
             {chapters.length > 0 ? (
-              <ChapterReorderList bookId={book.id} bookSlug={book.slug} initialChapters={chapters} />
+              <>
+                <ChapterReorderList
+                  bookId={book.id}
+                  bookSlug={book.slug}
+                  initialChapters={chapters}
+                  onOrderSaved={() => loadChapters(currentPage, searchQuery)}
+                />
+
+                {/* Simple Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2 pt-6">
+                    <button
+                      onClick={() => loadChapters(currentPage - 1, searchQuery)}
+                      disabled={currentPage === 1}
+                      className="btn btn-ghost btn-sm rounded-xl disabled:opacity-30"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => loadChapters(p, searchQuery)}
+                          className={`h-8 w-8 rounded-xl text-[10px] font-black transition-all ${p === currentPage ? "bg-primary text-primary-content shadow-lg shadow-primary/20 scale-110" : "bg-base-100/50 hover:bg-base-100"
+                            }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => loadChapters(currentPage + 1, searchQuery)}
+                      disabled={currentPage === totalPages}
+                      className="btn btn-ghost btn-sm rounded-xl disabled:opacity-30"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
+              </>
             ) : (
-              <div className="glass-frame flex flex-col items-center justify-center gap-4 border-dashed py-24 text-center opacity-60">
+              <div className="glass-frame flex flex-col items-center justify-center gap-4 border-dashed py-24 text-center opacity-60 font-sans">
                 <FileText className="h-8 w-8 opacity-20" />
-                <p className="text-sm font-bold">Henuz hic bolum eklenmemis.</p>
+                <p className="text-sm font-bold uppercase tracking-widest">
+                  {searchQuery ? "Arama sonucu bulunamadi." : "Henuz hic bolum eklenmemis."}
+                </p>
+                {searchQuery && (
+                  <button
+                    onClick={() => { setSearchQuery(""); loadChapters(1, ""); }}
+                    className="text-[10px] font-black text-primary uppercase underline underline-offset-4"
+                  >
+                    Aramayi Temizle
+                  </button>
+                )}
               </div>
             )}
 
             {/* Silinen Bölümler (Çöp Kutusu) */}
-            {deletedChapters.length > 0 && (
-              <div className="mt-12 space-y-4">
+            {deletedChapters.length > 0 && !searchQuery && (
+              <div className="mt-12 space-y-4 pt-12 border-t border-base-content/5">
                 <div className="flex items-center gap-6 px-2">
                   <h3 className="flex items-center gap-2 text-xl font-black text-error">
                     <Trash2 className="h-5 w-5" /> Silinen Bölümler
@@ -229,17 +287,14 @@ export default function ManageBookPage() {
                           if (!confirm("Bölümü geri yüklemek istediğinize emin misiniz?")) return;
                           try {
                             setIsTrashLoading(true);
-                            const { restoreChapter, getMyChapters } = await import("@/lib/auth");
+                            const { restoreChapter } = await import("@/lib/auth");
                             await restoreChapter(chapter.id);
 
                             // Verileri yenile
-                            const [updChapters, updDeleted] = await Promise.all([
-                              getMyChapters(bookSlug, { pageSize: 100, isDeleted: false }),
-                              getMyChapters(bookSlug, { pageSize: 100, isDeleted: true })
-                            ]);
+                            loadChapters(currentPage, searchQuery);
+                            const deletedChaptersData = await getMyChapters(bookSlug, { pageSize: 100, OnlyDeleted: true });
+                            setDeletedChapters(deletedChaptersData.items || []);
 
-                            setChapters(updChapters.items || []);
-                            setDeletedChapters(updDeleted.items || []);
                             alert("Bölüm başarıyla geri yüklendi.");
                           } catch (e) {
                             alert("Geri yükleme sırasında bir hata oluştu.");
@@ -258,16 +313,7 @@ export default function ManageBookPage() {
               </div>
             )}
           </div>
-
-          <div className="space-y-4">
-            <h3 className="flex items-center gap-2 text-xl font-black px-2">
-              <BarChart3 className="h-5 w-5 text-secondary" /> Performans
-            </h3>
-            <div className="glass-frame p-6 h-64 flex items-center justify-center border-dashed text-[10px] font-black uppercase tracking-widest text-base-content/30 italic">
-              Analiz Verileri Yakinda
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
     </main>
   );

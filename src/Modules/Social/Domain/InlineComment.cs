@@ -16,6 +16,7 @@ public class InlineComment : BaseEntity, ISoftDelete, IOwnable
     public int LikeCount { get; set; }
 
     public bool IsHidden { get; set; }
+    public bool IsSpoiler { get; set; }
 
     public override void UndoDelete()
     {

@@ -10,6 +10,7 @@ public class ComplianceFileUsageProvider(ComplianceDbContext dbContext) : IFileU
     {
         // Güvenli belgelerdeki aktif dosya adlarını al
         return await dbContext.SecureDocuments
+            .IgnoreQueryFilters()
             .Where(d => !string.IsNullOrEmpty(d.StoredFileName))
             .Select(d => d.StoredFileName)
             .ToListAsync();

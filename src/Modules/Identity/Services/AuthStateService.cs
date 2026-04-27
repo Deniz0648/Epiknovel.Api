@@ -3,12 +3,13 @@ using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Epiknovel.Modules.Identity.Services;
 
 public sealed class AuthStateService(
     IdentityDbContext dbContext,
-    StackExchange.Redis.IConnectionMultiplexer redis,
+    IDistributedCache cache,
     IHubContext<GlobalNotificationHub> hubContext) : IAuthStateService
 {
     private static readonly TimeSpan AccessTokenRevocationTtl = TimeSpan.FromMinutes(70);
@@ -26,9 +27,11 @@ public sealed class AuthStateService(
 
         if (activeJtis.Count > 0)
         {
-            var redisDb = redis.GetDatabase();
             var revocationTasks = activeJtis
-                .Select(jti => redisDb.StringSetAsync($"revoked_token:{jti}", "1", AccessTokenRevocationTtl))
+                .Select(jti => cache.SetStringAsync(
+                    $"revoked_token:{jti}", 
+                    "1", 
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = AccessTokenRevocationTtl }))
                 .ToArray();
 
             await Task.WhenAll(revocationTasks);

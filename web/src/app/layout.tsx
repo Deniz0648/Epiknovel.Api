@@ -6,13 +6,14 @@ import { NotificationsProvider } from "@/components/providers/notifications-prov
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { SettingsProvider } from "@/components/providers/settings-provider";
 import { backendApiRequest } from "@/lib/backend-api";
+import { resolveMediaUrl } from "@/lib/api";
 
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const settings = await backendApiRequest<Record<string, string>>("/Settings/public", { cache: "no-store" });
     const siteName = settings?.SITE_Name || "EpikNovel";
     const slogan = settings?.SITE_Slogan || "Modern Okuma Platformu";
-    const favicon = settings?.SITE_FaviconUrl || "/favicon.svg";
+    const favicon = resolveMediaUrl(settings?.SITE_FaviconUrl) || "/favicon.svg";
 
     return {
       title: {

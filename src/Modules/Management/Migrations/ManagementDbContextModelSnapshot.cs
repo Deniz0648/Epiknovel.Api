@@ -291,9 +291,8 @@ namespace Epiknovel.Modules.Management.Migrations
                     b.Property<string>("AdminNote")
                         .HasColumnType("text");
 
-                    b.Property<string>("BankAccountDocumentUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<Guid>("BankAccountDocumentId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("BankName")
                         .IsRequired()
@@ -308,9 +307,8 @@ namespace Epiknovel.Modules.Management.Migrations
                     b.Property<Guid?>("DeletedByUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<string>("GvkExemptionCertificateUrl")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<Guid>("GvkExemptionCertificateId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("Iban")
                         .IsRequired()

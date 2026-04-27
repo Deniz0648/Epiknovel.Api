@@ -4,7 +4,6 @@ public class PaginationRequest
 {
     private int _pageNumber = 1;
     private int _pageSize = 10;
-    private const int MaxPageSize = 50;
 
     public int PageNumber
     {
@@ -15,6 +14,6 @@ public class PaginationRequest
     public int PageSize
     {
         get => _pageSize;
-        set => _pageSize = value > MaxPageSize ? MaxPageSize : (value < 1 ? 10 : value);
+        set => _pageSize = value < 1 ? 10 : value;
     }
 }

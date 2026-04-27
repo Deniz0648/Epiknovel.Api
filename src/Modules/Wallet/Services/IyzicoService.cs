@@ -17,12 +17,29 @@ public class IyzicoService(Epiknovel.Shared.Core.Interfaces.Management.ISystemSe
         string source = "DATABASE";
 
         // 🏗️ ENVIRONMENT SETTINGS (Priority 2 - Fallback)
-        if (string.IsNullOrEmpty(apiKey))
+        // Not: Eğer DB'deki değer boş ise VEYA varsayılan "sandbox-xxxx" ise .env'den almayı dene
+        if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("sandbox-xxxx"))
         {
-            apiKey = Environment.GetEnvironmentVariable("IYZICO_API_KEY") ?? "sandbox-xxxx";
-            secretKey = Environment.GetEnvironmentVariable("IYZICO_SECRET_KEY") ?? "sandbox-xxxx";
-            baseUrl = Environment.GetEnvironmentVariable("IYZICO_BASE_URL") ?? "https://sandbox-api.iyzipay.com";
-            source = "FALLBACK/ENV";
+            var envApiKey = Environment.GetEnvironmentVariable("IYZICO_API_KEY");
+            var envSecretKey = Environment.GetEnvironmentVariable("IYZICO_SECRET_KEY");
+            var envBaseUrl = Environment.GetEnvironmentVariable("IYZICO_BASE_URL");
+
+            if (!string.IsNullOrEmpty(envApiKey))
+            {
+                apiKey = envApiKey;
+                secretKey = envSecretKey ?? secretKey;
+                baseUrl = envBaseUrl ?? baseUrl;
+                source = "ENVIRONMENT";
+            }
+            else if (string.IsNullOrEmpty(apiKey))
+            {
+                // Eğer hem DB boş hem de ENV boşsa, kütüphanenin hata vermemesi için 
+                // ama çalışmayacağını bildiğimiz bir değer ata (veya hata fırlat)
+                apiKey = "sandbox-xxxx";
+                secretKey = "sandbox-xxxx";
+                baseUrl = "https://sandbox-api.iyzipay.com";
+                source = "FALLBACK (MISSING CONFIG)";
+            }
         }
 
         Console.WriteLine($"[IYZICO CONFIG] Keys loaded from {source}. BaseUrl: {baseUrl}");

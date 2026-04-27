@@ -4,10 +4,27 @@ using Epiknovel.Modules.Infrastructure.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Services;
 
+using Epiknovel.Shared.Infrastructure.Hubs;
+using Microsoft.AspNetCore.SignalR;
+
 namespace Epiknovel.Modules.Infrastructure.Services;
 
-public class NotificationService(InfrastructureDbContext dbContext, IEmailService emailService) : INotificationService
+public class NotificationService(
+    InfrastructureDbContext dbContext, 
+    IEmailService emailService,
+    IHubContext<GlobalNotificationHub> hubContext) : INotificationService
 {
+    public async Task BroadcastCommentAsync(Guid userId, Guid? bookId, Guid? chapterId, string? paragraphId, CancellationToken ct = default)
+    {
+        await hubContext.Clients.All.SendAsync("NewCommentArrived", new
+        {
+            userId,
+            bookId,
+            chapterId,
+            paragraphId,
+            timestamp = DateTime.UtcNow
+        }, cancellationToken: ct);
+    }
     public async Task SendEmailAsync(string email, string subject, string message, CancellationToken ct = default)
     {
         await emailService.SendEmailAsync(email, subject, message);

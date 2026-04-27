@@ -5,6 +5,8 @@ import { ArrowRight, BookOpen } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { toBookSlug } from "@/lib/books";
+import { getLibraryList, type LibraryItemResponse } from "@/lib/social";
+import { useEffect } from "react";
 
 type ContinueReadingBook = {
   title: string;
@@ -15,39 +17,17 @@ type ContinueReadingBook = {
   blurDataURL: string;
 };
 
-const CONTINUE_READING_BOOKS: ReadonlyArray<ContinueReadingBook> = [
-  {
-    title: "Kutsal Arsivlerin Son Koruyucusu",
-    chapter: "Bolum 148",
-    percent: 72,
-    image: "/covers/cover-arsiv.svg",
-    imageAlt: "Kutsal Arsivlerin Son Koruyucusu kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f6c886'/%3E%3Cstop offset='1' stop-color='%233d3968'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    title: "Golge Loncasinin Kayip Haritasi",
-    chapter: "Bolum 89",
-    percent: 41,
-    image: "/covers/cover-golge.svg",
-    imageAlt: "Golge Loncasinin Kayip Haritasi kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2381ddd0'/%3E%3Cstop offset='1' stop-color='%231a2436'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-  {
-    title: "Sonsuz Muhurun Ucuncu Anahtari",
-    chapter: "Bolum 203",
-    percent: 93,
-    image: "/covers/cover-muhur.svg",
-    imageAlt: "Sonsuz Muhurun Ucuncu Anahtari kapagi",
-    blurDataURL:
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%23f4b286'/%3E%3Cstop offset='1' stop-color='%23271f3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-  },
-];
+// CONTINUE_READING_BOOKS statik dizisi API'den cekiliyor.
 const SWIPE_THRESHOLD = 48;
 
 function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
-  const bookHref = `/Books/${toBookSlug(book.title)}`;
+  const bSlug = toBookSlug(book.title);
+  const cSlug = book.chapter;
+  
+  // KESIN URL: /read/[kitap-slug]/[bolum-slug]
+  const bookHref = (cSlug && cSlug !== "Bolum Secilmedi")
+    ? `/read/${bSlug}/${cSlug}`
+    : `/Books/${bSlug}`;
 
   return (
     <Link
@@ -55,11 +35,12 @@ function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
       className="glass-frame group block h-full cursor-pointer p-5 transition duration-200 active:scale-[0.995] sm:p-6"
     >
       <div className="flex items-start gap-4">
-        <div className="relative aspect-[2/3] w-[4.6rem] shrink-0 overflow-hidden rounded-xl border border-base-content/12 sm:w-[5rem]">
+        <div className="relative aspect-2/3 w-[4.6rem] shrink-0 overflow-hidden rounded-xl border border-base-content/12 sm:w-20">
           <Image
             src={book.image}
             alt={book.imageAlt}
             fill
+            unoptimized
             placeholder="blur"
             blurDataURL={book.blurDataURL}
             className="object-cover"
@@ -112,10 +93,35 @@ function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
 }
 
 export function ContinueReadingSection() {
-  const books = CONTINUE_READING_BOOKS.slice(0, 3);
+  const [books, setBooks] = useState<LibraryItemResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    getLibraryList({ status: "Reading", size: 6 })
+      .then((data) => {
+        setBooks(data);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setIsLoading(false);
+      });
+  }, []);
+
+  if (!isLoading && books.length === 0) {
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <section className="space-y-3 animate-pulse">
+        <div className="h-8 w-48 rounded-lg bg-base-content/10" />
+        <div className="h-40 w-full rounded-2xl bg-base-content/5" />
+      </section>
+    );
+  }
 
   function showNext() {
     setActiveIndex((currentIndex) =>
@@ -183,9 +189,18 @@ export function ContinueReadingSection() {
             className="flex transition-transform delay-75 duration-500 ease-out"
             style={{ transform: `translateX(-${activeIndex * 100}%)` }}
           >
-            {books.map((book) => (
-              <div key={book.title} className="min-w-full">
-                <ContinueReadingCard book={book} />
+            {books.map((item) => (
+              <div key={item.id} className="min-w-full">
+                <ContinueReadingCard
+                  book={{
+                    title: item.bookTitle,
+                    chapter: item.lastReadChapterSlug || "Bolum Secilmedi",
+                    percent: Math.round(item.progressPercentage),
+                    image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
+                    imageAlt: `${item.bookTitle} kapagi`,
+                    blurDataURL: ""
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -196,13 +211,12 @@ export function ContinueReadingSection() {
             const isActive = index === activeIndex;
             return (
               <button
-                key={book.title}
+                key={book.bookTitle}
                 type="button"
                 onClick={() => setActiveIndex(index)}
-                className={`h-2.5 rounded-full transition-all ${
-                  isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-                }`}
-                aria-label={`${index + 1}. kitap: ${book.title}`}
+                className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
+                  }`}
+                aria-label={`${index + 1}. kitap: ${book.bookTitle}`}
                 aria-current={isActive ? "true" : "false"}
               />
             );
@@ -210,9 +224,19 @@ export function ContinueReadingSection() {
         </div>
       </div>
 
-      <div className="hidden gap-4 lg:grid lg:grid-cols-3">
-        {books.map((book) => (
-          <ContinueReadingCard key={book.title} book={book} />
+      <div className="hidden gap-4 lg:grid lg:grid-cols-2 xl:grid-cols-3">
+        {books.slice(0, 6).map((item) => (
+          <ContinueReadingCard
+            key={item.id}
+            book={{
+              title: item.bookTitle,
+              chapter: item.lastReadChapterSlug || "Bolum Secilmedi",
+              percent: Math.round(item.progressPercentage),
+              image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
+              imageAlt: `${item.bookTitle} kapagi`,
+              blurDataURL: ""
+            }}
+          />
         ))}
       </div>
     </section>

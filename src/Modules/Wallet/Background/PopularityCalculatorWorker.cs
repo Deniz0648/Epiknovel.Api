@@ -47,6 +47,7 @@ public class PopularityCalculatorWorker(
             .Where(o => o.Status == OrderStatus.Paid && o.PaidAt >= thirtyDaysAgo)
             .GroupBy(o => o.CoinPackageId)
             .OrderByDescending(g => g.Count())
+            .ThenBy(g => g.Key)
             .Take(2)
             .Select(g => g.Key)
             .ToListAsync(ct);

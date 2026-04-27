@@ -21,4 +21,10 @@ public class DummyNotificationService : INotificationService
         Console.WriteLine($"[BATCH_NOTIFICATION] Count: {userIds.Count()} | Title: {title}");
         return Task.CompletedTask;
     }
+
+    public Task BroadcastCommentAsync(Guid userId, Guid? bookId, Guid? chapterId, string? paragraphId, CancellationToken ct = default)
+    {
+        Console.WriteLine($"[BROADCAST] User: {userId} | Book: {bookId} | Chapter: {chapterId} | Paragraph: {paragraphId}");
+        return Task.CompletedTask;
+    }
 }

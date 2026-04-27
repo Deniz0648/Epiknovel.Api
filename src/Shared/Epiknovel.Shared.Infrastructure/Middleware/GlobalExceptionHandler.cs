@@ -10,6 +10,16 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IE
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
+        // 🚨 CRITICAL DEBUG: Print full stack trace to console for Docker logging visibility
+        Console.WriteLine($"[CRITICAL_EXCEPTION] {DateTime.UtcNow:O}");
+        Console.WriteLine($"Message: {exception.Message}");
+        Console.WriteLine($"Stack Trace: {exception.StackTrace}");
+        if (exception.InnerException != null) {
+            Console.WriteLine($"Inner Message: {exception.InnerException.Message}");
+            Console.WriteLine($"Inner Stack Trace: {exception.InnerException.StackTrace}");
+        }
+        Console.Out.Flush();
+
         logger.LogError(exception, "Beklenmedik bir hata oluştu: {Message}", exception.Message);
 
         var result = Result<object>.Failure("Sunucuda beklenmedik bir sorun oluştu. Lütfen daha sonra tekrar deneyiniz.");

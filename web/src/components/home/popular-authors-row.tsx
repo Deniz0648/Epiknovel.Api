@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Crown, Trophy } from "lucide-react";
 import { type TouchEvent, useMemo, useRef, useState } from "react";
 
@@ -12,58 +13,10 @@ type PopularAuthor = {
   specialty: string;
   followers: string;
   seriesCount: number;
+  avatarUrl?: string;
 };
 
-const POPULAR_AUTHORS: ReadonlyArray<PopularAuthor> = [
-  {
-    id: "a-1",
-    name: "Aylin Karaca",
-    initials: "AK",
-    specialty: "Dark Fantasy",
-    followers: "312K",
-    seriesCount: 8,
-  },
-  {
-    id: "a-2",
-    name: "Mert Erkan",
-    initials: "ME",
-    specialty: "Aksiyon",
-    followers: "271K",
-    seriesCount: 6,
-  },
-  {
-    id: "a-3",
-    name: "Deniz Yildiran",
-    initials: "DY",
-    specialty: "Isekai",
-    followers: "229K",
-    seriesCount: 7,
-  },
-  {
-    id: "a-4",
-    name: "Sena Alper",
-    initials: "SA",
-    specialty: "Romantasy",
-    followers: "188K",
-    seriesCount: 4,
-  },
-  {
-    id: "a-5",
-    name: "Kaan Tumer",
-    initials: "KT",
-    specialty: "Bilim Kurgu",
-    followers: "163K",
-    seriesCount: 5,
-  },
-  {
-    id: "a-6",
-    name: "Ece Gunes",
-    initials: "EG",
-    specialty: "Macera",
-    followers: "149K",
-    seriesCount: 4,
-  },
-];
+// POPULAR_AUTHORS statik dizisi props'a tasindi.
 
 function getRankBadgeClasses(rank: number) {
   if (rank === 1) {
@@ -106,9 +59,18 @@ function AuthorCard({ author, rank }: { author: PopularAuthor; rank: number }) {
       <div className="flex items-start gap-3">
         <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-base-content/10 bg-base-100/25">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,color-mix(in_oklab,var(--color-primary)_55%,transparent),transparent_68%)]" />
-          <span className="relative z-10 text-sm font-extrabold tracking-wide text-base-content">
-            {author.initials}
-          </span>
+          {author.avatarUrl ? (
+             <Image 
+               src={author.avatarUrl} 
+               alt={author.name}
+               fill
+               className="object-cover relative z-10"
+             />
+          ) : (
+            <span className="relative z-10 text-sm font-extrabold tracking-wide text-base-content">
+              {author.initials}
+            </span>
+          )}
         </div>
 
         <div className="min-w-0 pt-1">
@@ -143,8 +105,15 @@ function AuthorCard({ author, rank }: { author: PopularAuthor; rank: number }) {
   );
 }
 
-export function PopularAuthorsRow() {
-  const authors = POPULAR_AUTHORS;
+export function PopularAuthorsRow({ 
+  authors, 
+  title = "Populer Yazarlar", 
+  icon: Icon = Trophy 
+}: { 
+  authors: PopularAuthor[], 
+  title?: string, 
+  icon?: any 
+}) {
   const [activeMobilePage, setActiveMobilePage] = useState(0);
   const [activeTabletPage, setActiveTabletPage] = useState(0);
   const mobileTouchStartXRef = useRef<number | null>(null);
@@ -260,9 +229,9 @@ export function PopularAuthorsRow() {
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2 px-1">
-        <Trophy className="h-4 w-4 text-warning" />
+        <Icon className={`h-4 w-4 ${title === "Populer Yazarlar" ? "text-warning" : "text-primary"}`} />
         <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
-          Populer Yazarlar
+          {title}
         </h2>
       </div>
 

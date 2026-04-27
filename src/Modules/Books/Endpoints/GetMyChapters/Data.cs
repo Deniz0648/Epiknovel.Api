@@ -8,7 +8,8 @@ public class Request : PaginationRequest
     public string BookSlug { get; set; } = string.Empty;
     public string? Search { get; set; }
     public ChapterStatus? Status { get; set; }
-    public bool? isDeleted { get; set; }
+    [FastEndpoints.BindFrom("onlyDeleted")]
+    public bool OnlyDeleted { get; set; } = false;
 }
 
 public class Response 

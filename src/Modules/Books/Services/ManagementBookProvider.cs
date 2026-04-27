@@ -19,6 +19,16 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
         return true;
     }
 
+    public async Task<bool> ToggleEditorChoiceAsync(Guid bookId, bool isEditorChoice, CancellationToken ct = default)
+    {
+        var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
+        if (book == null) return false;
+
+        book.IsEditorChoice = isEditorChoice;
+        await dbContext.SaveChangesAsync(ct);
+        return true;
+    }
+
     public async Task<bool> DeleteBookAsync(Guid bookId, CancellationToken ct = default)
     {
         var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
@@ -37,7 +47,7 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
         return true;
     }
 
-    public async Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, string? searchTerm, int page, int pageSize, CancellationToken ct = default)
+    public async Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, bool? isEditorChoice, string? searchTerm, int page, int pageSize, CancellationToken ct = default)
     {
         var query = dbContext.Books.AsNoTracking().IgnoreQueryFilters();
 
@@ -49,6 +59,9 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
 
         if (isHidden.HasValue)
             query = query.Where(b => b.IsHidden == isHidden.Value);
+
+        if (isEditorChoice.HasValue)
+            query = query.Where(b => b.IsEditorChoice == isEditorChoice.Value);
 
         if (!string.IsNullOrEmpty(searchTerm))
             query = query.Where(b => b.Title.Contains(searchTerm) || (b.OriginalAuthorName != null && b.OriginalAuthorName.Contains(searchTerm)));

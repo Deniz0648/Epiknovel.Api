@@ -133,25 +133,52 @@ public class Endpoint(
                     IsEditorChoice = x.IsEditorChoice,
                     ViewCount = x.ViewCount,
                     AverageRating = x.AverageRating,
+                    VoteCount = x.VoteCount,
                     ChapterCount = dbContext.Chapters.Count(c => c.BookId == x.Id && c.Status == Epiknovel.Modules.Books.Domain.ChapterStatus.Published),
                     CategoryNames = x.Categories.Select(c => c.Name).ToList()
                 }
             })
             .ToListAsync(ct);
 
-        // 🚀 Redis üzerinden anlık hitleri bindir (Batch Query)
+        // 🚀 Redis üzerinden anlık hitleri ve puanları bindir (Batch Query)
         try 
         {
             var db = redis.GetDatabase();
-            var keys = itemsWithIds.Select(x => (StackExchange.Redis.RedisKey)$"book:hits:{x.Id}").ToArray();
-            if (keys.Length > 0)
+            
+            // 1. ViewCount Overlay
+            var hitKeys = itemsWithIds.Select(x => (StackExchange.Redis.RedisKey)$"book:hits:{x.Id}").ToArray();
+            if (hitKeys.Length > 0)
             {
-                var redisHits = await db.StringGetAsync(keys);
+                var redisHits = await db.StringGetAsync(hitKeys);
                 for (int i = 0; i < itemsWithIds.Count; i++)
                 {
                     if (redisHits[i].HasValue)
                     {
                         itemsWithIds[i].Res.ViewCount += (long)redisHits[i];
+                    }
+                }
+            }
+
+            // 2. Rating Overlay (Puan Delta Buffering)
+            var sumKeys = itemsWithIds.Select(x => (StackExchange.Redis.RedisKey)$"book:v2:rating_sum:{x.Id}").ToArray();
+            var countKeys = itemsWithIds.Select(x => (StackExchange.Redis.RedisKey)$"book:v2:rating_count:{x.Id}").ToArray();
+            
+            var redisSums = await db.StringGetAsync(sumKeys);
+            var redisCounts = await db.StringGetAsync(countKeys);
+
+            for (int i = 0; i < itemsWithIds.Count; i++)
+            {
+                long deltaSum = (long?)redisSums[i] ?? 0;
+                long deltaCount = (long?)redisCounts[i] ?? 0;
+
+                if (deltaSum != 0 || deltaCount != 0)
+                {
+                    var (newAvg, currentCount) = Epiknovel.Modules.Books.Helpers.RatingMath.Calculate(itemsWithIds[i].Res.AverageRating, itemsWithIds[i].Res.VoteCount, (int)deltaSum, (int)deltaCount);
+
+                    if (currentCount > 0)
+                    {
+                        itemsWithIds[i].Res.AverageRating = newAvg;
+                        itemsWithIds[i].Res.VoteCount = currentCount;
                     }
                 }
             }
