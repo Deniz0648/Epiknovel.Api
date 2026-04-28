@@ -107,7 +107,7 @@ function AuthorCard({ author, rank }: { author: PopularAuthor; rank: number }) {
 
 export function PopularAuthorsRow({ 
   authors, 
-  title = "Populer Yazarlar", 
+  title = "Popüler Yazarlar", 
   icon: Icon = Trophy 
 }: { 
   authors: PopularAuthor[], 
@@ -229,7 +229,7 @@ export function PopularAuthorsRow({
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2 px-1">
-        <Icon className={`h-4 w-4 ${title === "Populer Yazarlar" ? "text-warning" : "text-primary"}`} />
+        <Icon className={`h-4 w-4 ${title === "Popüler Yazarlar" ? "text-warning" : "text-primary"}`} />
         <h2 className="text-xl font-extrabold tracking-tight sm:text-2xl">
           {title}
         </h2>
@@ -267,7 +267,7 @@ export function PopularAuthorsRow({
                 className={`h-2.5 rounded-full transition-all ${
                   isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
                 }`}
-                aria-label={`${index + 1}. populer yazarlar sayfasi`}
+                aria-label={`${index + 1}. popüler yazarlar sayfasi`}
                 aria-current={isActive ? "true" : "false"}
               />
             );
@@ -310,7 +310,7 @@ export function PopularAuthorsRow({
                 className={`h-2.5 rounded-full transition-all ${
                   isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
                 }`}
-                aria-label={`${index + 1}. tablet populer yazarlar sayfasi`}
+                aria-label={`${index + 1}. tablet popüler yazarlar sayfasi`}
                 aria-current={isActive ? "true" : "false"}
               />
             );

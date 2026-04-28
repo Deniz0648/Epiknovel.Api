@@ -23,12 +23,14 @@ public record ReviewResponse
     public string UserName { get; set; } = string.Empty;
     public string? UserAvatar { get; set; }
     public string Content { get; init; } = string.Empty;
-    public double Rating { get; init; }
+    public double Rating { get; set; }
     public int LikeCount { get; init; }
     public bool IsEditorChoice { get; init; }
     public Guid BookId { get; init; }
     public string BookTitle { get; set; } = string.Empty;
     public string BookSlug { get; set; } = string.Empty;
+    public string Type { get; init; } = "Review";
+    public bool IsLikedByMe { get; set; }
     public DateTime CreatedAt { get; init; }
 }
 
@@ -62,7 +64,8 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
                 LikeCount = r.LikeCount,
                 IsEditorChoice = r.IsEditorChoice,
                 BookId = r.BookId,
-                CreatedAt = r.CreatedAt
+                CreatedAt = r.CreatedAt,
+                Type = "Review"
             })
             .ToListAsync(ct);
 
@@ -82,7 +85,8 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
                     LikeCount = c.LikeCount,
                     IsEditorChoice = true,
                     BookId = c.BookId ?? Guid.Empty,
-                    CreatedAt = c.CreatedAt
+                    CreatedAt = c.CreatedAt,
+                    Type = "Comment"
                 })
                 .ToListAsync(ct);
 
@@ -100,10 +104,23 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
         {
             var bookIds = finalResult.Where(r => r.BookId != Guid.Empty).Select(r => r.BookId).Distinct().ToList();
             var userIds = finalResult.Select(r => r.UserId).Distinct().ToList();
+            var reviewIds = finalResult.Select(r => r.Id).ToList();
 
             var bookDetails = await bookProvider.GetBookBasicsByIdsAsync(bookIds, ct);
             var userNames = await userProvider.GetDisplayNamesByUserIdsAsync(userIds, ct);
             var userAvatars = await userProvider.GetAvatarsByUserIdsAsync(userIds, ct);
+
+            // 4. Beğeni durumunu kontrol et
+            var userLikedReviewIds = new HashSet<Guid>();
+            var userIdString = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (Guid.TryParse(userIdString, out var currentUserId))
+            {
+                userLikedReviewIds = (await dbContext.ReviewLikes
+                    .AsNoTracking()
+                    .Where(l => l.UserId == currentUserId && reviewIds.Contains(l.ReviewId))
+                    .Select(l => l.ReviewId)
+                    .ToListAsync(ct)).ToHashSet();
+            }
 
             foreach (var item in finalResult)
             {
@@ -111,9 +128,15 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
                 {
                     item.BookTitle = bookInfo.Title;
                     item.BookSlug = bookInfo.Slug;
+                    // Eğer Rating varsayılan 5.0 ise (Comment'lerden gelenler gibi), kitabın gerçek ortalamasını kullan
+                    if (item.Rating >= 4.99) 
+                    {
+                        item.Rating = bookInfo.AverageRating;
+                    }
                 }
                 item.UserName = userNames.GetValueOrDefault(item.UserId, "Bilinmeyen Kullanıcı");
                 item.UserAvatar = userAvatars.GetValueOrDefault(item.UserId);
+                item.IsLikedByMe = userLikedReviewIds.Contains(item.Id);
             }
         }
 

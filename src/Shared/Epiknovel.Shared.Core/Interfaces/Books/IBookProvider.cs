@@ -75,5 +75,5 @@ public interface IBookProvider
     /// Verilen kitap ID'leri için temel bilgileri (Başlık, Slug) toplu döner.
     /// N+1 problemini önlemek için kullanılır.
     /// </summary>
-    Task<Dictionary<Guid, (string Title, string Slug)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default);
+    Task<Dictionary<Guid, (string Title, string Slug, double AverageRating)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default);
 }

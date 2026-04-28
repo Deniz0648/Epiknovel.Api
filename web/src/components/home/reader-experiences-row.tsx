@@ -29,6 +29,8 @@ type ReaderExperience = {
   editorName: string;
   avatarUrl?: string;
   likes: number;
+  isLiked?: boolean;
+  type?: string;
   bookTitle: string;
   rating: number;
   review: string;
@@ -227,46 +229,63 @@ export function ReaderExperiencesRow({ experiences }: { experiences: ReaderExper
             />
           </div>
 
-          {/* Footer: Rating */}
-            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-base-content/5 pt-6">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-1.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-5 w-5 ${i < Math.floor(activeExperience.rating) ? 'fill-warning text-warning' : 'text-base-content/20'}`}
-                    />
-                  ))}
-                  <span className="ml-1 text-lg font-black text-warning">
-                    {activeExperience.rating.toFixed(1)}
-                  </span>
-                  <span className="text-xs font-bold text-base-content/30 uppercase tracking-widest mt-0.5">/ 5.0</span>
-                </div>
-              </div>
-              
-              <button 
-                onClick={async (e) => {
-                  e.preventDefault();
-                  try {
-                    const res = await fetch(`/api/social/comments/${activeExperience.id}/like`, { method: 'POST' });
-                    if (res.ok) {
-                      const heart = e.currentTarget.querySelector('svg');
-                      if (heart) {
-                        heart.classList.toggle('fill-secondary');
-                        heart.classList.toggle('text-secondary');
+          {/* Footer: Rating & Likes */}
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-base-content/5 pt-6">
+            <button
+              onClick={async (e) => {
+                e.preventDefault();
+                const endpoint = activeExperience.type === "Comment" 
+                  ? `/api/social/comments/${activeExperience.id}/like`
+                  : `/api/social/reviews/${activeExperience.id}/like`;
+                
+                try {
+                  const res = await fetch(endpoint, { method: 'POST' });
+                  if (res.ok) {
+                    const data = await res.json();
+                    // Basit bir UI feedback (tam sayfa yenilemesi olmadan)
+                    const heart = e.currentTarget.querySelector('svg');
+                    const span = e.currentTarget.querySelector('span');
+                    if (heart && span) {
+                      const isNowLiked = !heart.classList.contains('fill-red-500');
+                      if (isNowLiked) {
+                        heart.classList.add('fill-red-500', 'text-red-500');
+                      } else {
+                        heart.classList.remove('fill-red-500', 'text-red-500');
+                      }
+                      // Backend'den gelen yeni sayıyı göster
+                      if (data.isSuccess && typeof data.data === 'number') {
+                        span.textContent = `${data.data} Etkileşim`;
                       }
                     }
-                  } catch (err) {
-                    console.error("Like error:", err);
                   }
-                }}
-                className="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-secondary/10 px-6 py-3.5 text-sm font-black uppercase tracking-widest text-secondary transition-all hover:bg-secondary/20 hover:shadow-xl hover:shadow-secondary/10 active:scale-95 active:shadow-inner shadow-lg shadow-secondary/5"
-              >
-                <div className="absolute inset-0 bg-linear-to-tr from-secondary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                <Heart className="relative z-10 h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-                <span className="relative z-10">{activeExperience.likes} Etkileşim</span>
-              </button>
+                } catch (err) {
+                  console.error("Like error:", err);
+                }
+              }}
+              className="group relative flex items-center gap-3 overflow-hidden rounded-2xl bg-base-content/5 px-6 py-3.5 text-sm font-black uppercase tracking-widest transition-all hover:bg-base-content/10 hover:shadow-xl active:scale-95 active:shadow-inner"
+            >
+              <div className="absolute inset-0 bg-linear-to-tr from-primary/5 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+              <Heart 
+                className={`relative z-10 h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${activeExperience.isLiked ? 'fill-red-500 text-red-500' : 'text-base-content/40'}`} 
+              />
+              <span className="relative z-10">{activeExperience.likes} Etkileşim</span>
+            </button>
+
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-1.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-5 w-5 ${i < Math.floor(activeExperience.rating) ? 'fill-warning text-warning' : 'text-base-content/20'}`}
+                  />
+                ))}
+                <span className="ml-1 text-lg font-black text-warning">
+                  {activeExperience.rating.toFixed(1)}
+                </span>
+                <span className="text-xs font-bold text-base-content/30 uppercase tracking-widest mt-0.5">/ 5.0</span>
+              </div>
             </div>
+          </div>
         </div>
       </article>
 

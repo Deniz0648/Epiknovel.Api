@@ -201,15 +201,15 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
         return (result?.BookSlug, result?.Slug);
     }
 
-    public async Task<Dictionary<Guid, (string Title, string Slug)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default)
+    public async Task<Dictionary<Guid, (string Title, string Slug, double AverageRating)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default)
     {
         var bookIdList = bookIds.Distinct().ToList();
-        if (bookIdList.Count == 0) return new Dictionary<Guid, (string Title, string Slug)>();
+        if (bookIdList.Count == 0) return new Dictionary<Guid, (string Title, string Slug, double AverageRating)>();
 
         return await dbContext.Books
             .AsNoTracking()
             .Where(b => bookIdList.Contains(b.Id))
-            .Select(b => new { b.Id, b.Title, b.Slug })
-            .ToDictionaryAsync(x => x.Id, x => (x.Title, x.Slug), ct);
+            .Select(b => new { b.Id, b.Title, b.Slug, b.AverageRating })
+            .ToDictionaryAsync(x => x.Id, x => (x.Title, x.Slug, x.AverageRating), ct);
     }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { UserCheck } from "lucide-react";
+import { Trophy } from "lucide-react";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { PopularAuthorsRow } from "./popular-authors-row";
 
@@ -14,19 +14,19 @@ type AuthorItem = {
   booksCount: number;
 };
 
-export function FollowedAuthorsSection() {
+export function PopularAuthorsSection() {
   const [authors, setAuthors] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Sadece takip edilen yazarları getir
-    apiRequest<any>("/users?isAuthor=true&followedByMe=true&pageSize=6")
+    // Popüler yazarları getir
+    apiRequest<any>("/users?isAuthor=true&sortBy=followers&sortDirection=desc&pageSize=6")
       .then((data) => {
         const mappedAuthors = data.items.map((a: any) => ({
           id: a.userId,
           name: a.displayName || "Anonim Yazar",
           initials: (a.displayName || "A Y").split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),
-          specialty: "Takip Ettigin Yazar",
+          specialty: "Popüler Yazar",
           followers: (a.followersCount || 0) > 1000 ? `${((a.followersCount || 0) / 1000).toFixed(1)}K` : String(a.followersCount || 0),
           seriesCount: a.booksCount || 0,
           avatarUrl: resolveMediaUrl(a.avatarUrl, "profiles")
@@ -51,7 +51,7 @@ export function FollowedAuthorsSection() {
           </div>
         </section>
       ) : (
-        <PopularAuthorsRow authors={authors} title="Takip Ettigin Yazarlar" icon={UserCheck} />
+        <PopularAuthorsRow authors={authors} title="Popüler Yazarlar" icon={Trophy} />
       )}
     </>
   );

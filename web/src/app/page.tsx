@@ -2,13 +2,13 @@ import { ContinueReadingSection } from "@/components/home/continue-reading";
 import { HeroFrame } from "@/components/home/hero-frame";
 import { MostReadRow } from "@/components/home/most-read-row";
 import { PopularAuthorsRow } from "@/components/home/popular-authors-row";
-import { FollowedAuthorsSection } from "@/components/home/followed-authors-section";
 import { ReaderExperiencesRow } from "@/components/home/reader-experiences-row";
 import { RecommendationsRow } from "@/components/home/recommendations-row";
 import { UpdatesFeed } from "@/components/home/updates-feed";
 import { backendApiRequest } from "@/lib/backend-api";
 import { resolveMediaUrl } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
+import { getSessionTokens } from "@/lib/server-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -23,16 +23,17 @@ type BookItem = {
 };
 type UpdateItem = { bookTitle: string; chapterTitle: string; publishedAt: string; bookCoverImageUrl?: string };
 type AuthorItem = { userId: string; displayName: string; slug: string; avatarUrl?: string; followersCount: number; booksCount: number; initials?: string };
-type ReviewItem = { id: string; userName: string; userAvatar?: string; content: string; rating: number; likeCount: number; bookTitle: string; bookSlug: string };
+type ReviewItem = { id: string; userName: string; userAvatar?: string; content: string; rating: number; likeCount: number; isLikedByMe: boolean; type: string; bookTitle: string; bookSlug: string };
 
 async function getHomepageData() {
+  const { accessToken } = await getSessionTokens();
   const [editorChoiceRes, updatesRes, popularAuthorsRes, mostReadRes, recommendationsRes, reviewsRes] = await Promise.allSettled([
-    backendApiRequest<PagedResult<BookItem>>("/books?isEditorChoice=true&pageSize=5"),
-    backendApiRequest<{ updates: UpdateItem[] }>("/books/updates?pageSize=6"),
-    backendApiRequest<{ items: AuthorItem[] }>("/users?isAuthor=true&sortBy=followers&sortDirection=desc&pageSize=6"),
-    backendApiRequest<PagedResult<BookItem>>("/books?sortBy=ViewCount&sortDescending=true&pageSize=6"),
-    backendApiRequest<PagedResult<BookItem>>("/books?sortBy=AverageRating&sortDescending=true&pageSize=6"),
-    backendApiRequest<ReviewItem[]>("/social/reviews?isEditorChoice=true&pageSize=6"),
+    backendApiRequest<PagedResult<BookItem>>("/books?isEditorChoice=true&pageSize=5", { token: accessToken }),
+    backendApiRequest<{ updates: UpdateItem[] }>("/books/updates?pageSize=6", { token: accessToken }),
+    backendApiRequest<{ items: AuthorItem[] }>("/users?isAuthor=true&sortBy=followers&sortDirection=desc&pageSize=6", { token: accessToken }),
+    backendApiRequest<PagedResult<BookItem>>("/books?sortBy=ViewCount&sortDescending=true&pageSize=6", { token: accessToken }),
+    backendApiRequest<PagedResult<BookItem>>("/books?sortBy=AverageRating&sortDescending=true&pageSize=6", { token: accessToken }),
+    backendApiRequest<ReviewItem[]>("/social/reviews?isEditorChoice=true&pageSize=6", { token: accessToken }),
   ]);
 
   const data = {
@@ -109,6 +110,8 @@ export default async function Home() {
     editorName: r.userName || "Okur",
     avatarUrl: resolveMediaUrl(r.userAvatar, "profiles"),
     likes: r.likeCount || 0,
+    isLiked: r.isLikedByMe || false,
+    type: r.type || "Review",
     bookTitle: r.bookTitle || "Bilinmeyen Kitap",
     rating: r.rating || 0,
     review: r.content || ""
@@ -121,7 +124,6 @@ export default async function Home() {
         <ContinueReadingSection />
         {updateItems.length > 0 && <UpdatesFeed updates={updateItems} announcements={[]} />}
         {recommendationItems.length > 0 && <RecommendationsRow books={recommendationItems} />}
-        <FollowedAuthorsSection />
         {popularAuthorItems.length > 0 && <PopularAuthorsRow authors={popularAuthorItems} />}
         {mostReadItems.length > 0 && <MostReadRow books={mostReadItems} />}
         {experienceItems.length > 0 && <ReaderExperiencesRow experiences={experienceItems} />}

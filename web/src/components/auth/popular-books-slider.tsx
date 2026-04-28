@@ -71,7 +71,7 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
   return (
     <section className={`glass-frame flex h-full flex-col p-6 sm:p-7 ${className}`}>
       <div className="space-y-2">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Populer Kitaplar</p>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Popüler Kitaplar</p>
         <h2 className="text-2xl font-black leading-tight">EpikNovel Seckisi</h2>
       </div>
 

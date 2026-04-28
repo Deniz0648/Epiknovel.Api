@@ -75,7 +75,7 @@ const COVER_ASSETS = {
 
 const QUICK_FILTERS: ReadonlyArray<{ key: QuickFilterKey; label: string; sortBy: string; sortDescending: boolean }> = [
   { key: "newest", label: "En Yeniler", sortBy: "CreatedAt", sortDescending: true },
-  { key: "popular", label: "Populer", sortBy: "ViewCount", sortDescending: true },
+  { key: "popular", label: "Popüler", sortBy: "ViewCount", sortDescending: true },
   { key: "topRated", label: "En Yuksek Puan", sortBy: "AverageRating", sortDescending: true },
   { key: "trending", label: "Trend", sortBy: "ViewCount", sortDescending: true },
   { key: "recentlyUpdated", label: "Guncellenenler", sortBy: "UpdatedAt", sortDescending: true },
