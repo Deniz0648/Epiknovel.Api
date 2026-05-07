@@ -232,6 +232,18 @@ export type MyProfile = {
   billingAddress?: AddressDto | null;
 };
 
+export type NotificationPreference = {
+  id: string;
+  userId: string;
+  emailOnNewChapter: boolean;
+  emailOnNewReview: boolean;
+  emailOnNewComment: boolean;
+  pushOnNewChapter: boolean;
+  pushOnNewReview: boolean;
+  pushOnNewComment: boolean;
+  emailMarketing: boolean;
+};
+
 type PermissionFlags = Partial<NonNullable<MyProfile["permissions"]>>;
 
 export function canAccessAuthorPanel(profile?: { isAuthor?: boolean; permissions?: PermissionFlags } | null) {
@@ -405,6 +417,21 @@ export async function updateMyAvatar(file: File) {
 export async function updateMyBillingAddress(request: AddressDto) {
   return apiRequest<IdentityMessage>("/users/me/billing-address", {
     method: "PUT",
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+}
+
+export async function getMyNotificationPreferences() {
+  return apiRequest<NotificationPreference>("/users/me/notifications", {
+    method: "GET",
+    credentials: "include",
+  });
+}
+
+export async function updateMyNotificationPreferences(request: Partial<NotificationPreference>) {
+  return apiRequest<IdentityMessage>("/users/me/notifications", {
+    method: "POST",
     credentials: "include",
     body: JSON.stringify(request),
   });

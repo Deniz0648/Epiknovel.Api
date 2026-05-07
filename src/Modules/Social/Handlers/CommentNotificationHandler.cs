@@ -2,6 +2,7 @@ using Epiknovel.Modules.Social.Data;
 using Epiknovel.Shared.Core.Events;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Interfaces.Books;
+using Epiknovel.Shared.Core.Interfaces.Users;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,8 @@ public class CommentNotificationHandler(
     SocialDbContext dbContext,
     INotificationService notificationService,
     IBookProvider bookProvider,
+    IUserAccountProvider userAccountProvider,
+    INotificationPreferenceProvider preferenceProvider,
     ILogger<CommentNotificationHandler> logger) : INotificationHandler<CommentCreatedEvent>
 {
     public async Task Handle(CommentCreatedEvent notification, CancellationToken ct)
@@ -70,6 +73,20 @@ public class CommentNotificationHandler(
                         $"`{comment.Content.Take(30)}...` içeriğiyle yeni bir yorum yapıldı.",
                         notificationLink, 
                         ct);
+
+                    // 📧 Email Notification
+                    if (await preferenceProvider.CanSendEmailAsync(authorId.Value, NotificationTypes.NewComment, ct))
+                    {
+                        var (email, displayName) = await userAccountProvider.GetUserBasicInfoAsync(authorId.Value, ct);
+                        if (!string.IsNullOrEmpty(email))
+                        {
+                            await notificationService.SendTemplatedEmailAsync(email, "NewCommentEmail", new Dictionary<string, string>
+                            {
+                                { "UserName", displayName ?? email },
+                                { "ActionLink", notificationLink ?? "/" }
+                            }, ct);
+                        }
+                    }
                 }
             }
 
@@ -89,6 +106,20 @@ public class CommentNotificationHandler(
                         "Paylaştığınız yoruma yeni bir yanıt verildi.",
                         notificationLink,
                         ct);
+
+                    // 📧 Email Notification
+                    if (await preferenceProvider.CanSendEmailAsync(parentOwnerId, NotificationTypes.NewComment, ct))
+                    {
+                        var (email, displayName) = await userAccountProvider.GetUserBasicInfoAsync(parentOwnerId, ct);
+                        if (!string.IsNullOrEmpty(email))
+                        {
+                            await notificationService.SendTemplatedEmailAsync(email, "NewCommentEmail", new Dictionary<string, string>
+                            {
+                                { "UserName", displayName ?? email },
+                                { "ActionLink", notificationLink ?? "/" }
+                            }, ct);
+                        }
+                    }
                 }
             }
 

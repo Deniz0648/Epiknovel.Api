@@ -55,6 +55,16 @@ import Placeholder from '@tiptap/extension-placeholder';
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
+type EmailTemplate = {
+  id: string;
+  name: string;
+  key: string;
+  subject: string;
+  body: string;
+  variables: string;
+  isActive: boolean;
+};
+
 type SettingItem = {
   key: string;
   value: string;
@@ -64,8 +74,6 @@ type SettingItem = {
 type TabType = 'site' | 'economy' | 'pos' | 'smtp' | 'content' | 'templates' | 'rewards';
 
 // --- Alt Bileşenler (Focus Hatasını Önlemek İçin Dışarı Taşındı) ---
-// ... (InputField, ToggleField, AdvancedTemplateEditor definitions remain the same)
-
 const InputField = ({ label, value, onChange, placeholder, type = "text", description }: { label: string, value: string, onChange: (val: string) => void, placeholder: string, type?: string, description?: string }) => {
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === "password";
@@ -122,10 +130,8 @@ const ToggleField = ({ label, isChecked, onToggle, description }: { label: strin
   );
 };
 
-const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSettings, handleInputChange, saveSettings, isSaving, isLoading }: any) => {
-  const bodyKey = `TEMPLATES_${name}_Body`;
-  const subjectKey = `TEMPLATES_${name}_Subject`;
-  const varList = variables.split(',').map((v: string) => v.trim());
+const AdvancedTemplateEditor = ({ template, onUpdate, onSave, isSaving }: { template: EmailTemplate, onUpdate: (subject: string, body: string) => void, onSave: () => void, isSaving: boolean }) => {
+  const varList = template.variables.split(',').map((v: string) => v.trim());
 
   const editor = useEditor({
     extensions: [
@@ -133,22 +139,19 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
       UnderlineExt,
       TipTapLink.configure({ openOnClick: false }),
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: "E-posta içeriğini buraya yazın..." }),
     ],
-    content: localSettings[bodyKey] || '',
+    content: template.body || '',
     onUpdate: ({ editor }) => {
-      handleInputChange(bodyKey, editor.getHTML());
+      onUpdate(template.subject, editor.getHTML());
     },
-  }, [name, isLoading]);
+  }, [template.id]);
 
   useEffect(() => {
-    // 🛡️ RE-RENDER LOOP PROTECTION:
-    // Sadece kullanıcı editöre odaklanmamışsa (dışarıdan veri geliyorsa) içeriği güncelle.
-    // Kullanıcı yazarken (focused) içeriği ezmeye çalışmak sonsuz döngüye sebep olur.
-    if (editor && !editor.isFocused && localSettings[bodyKey] !== editor.getHTML()) {
-      editor.commands.setContent(localSettings[bodyKey] || '');
+    if (editor && !editor.isFocused && template.body !== editor.getHTML()) {
+      editor.commands.setContent(template.body || '');
     }
-  }, [localSettings[bodyKey], editor]);
+  }, [template.body, editor]);
 
   const ToolbarButton = ({ onClick, isActive = false, icon: Icon, title }: any) => (
     <button
@@ -166,7 +169,12 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
   return (
     <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-base-content/5 pb-6">
-        <h2 className="text-2xl font-black text-primary">{label}</h2>
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <Layout className="h-5 w-5" />
+          </div>
+          <h2 className="text-2xl font-black text-primary">{template.name}</h2>
+        </div>
         <div className="flex flex-wrap gap-2">
           {varList.map((v: string) => (
             <span key={v} className="px-3 py-1 rounded-xl bg-base-content/5 border border-base-content/10 text-base-content/60 text-[10px] font-black tracking-tight">{v}</span>
@@ -179,8 +187,8 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
         <div className="relative group">
           <input
             type="text"
-            value={localSettings[subjectKey] || ""}
-            onChange={(e) => handleInputChange(subjectKey, e.target.value)}
+            value={template.subject || ""}
+            onChange={(e) => onUpdate(e.target.value, template.body)}
             className="w-full h-14 rounded-2xl bg-base-content/5 border border-base-content/10 px-6 text-sm font-bold focus:border-primary/40 focus:ring-8 focus:ring-primary/5 outline-none transition group-hover:bg-base-content/8"
             placeholder="Mail başlığını giriniz..."
           />
@@ -209,7 +217,7 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
             <div className="w-px h-4 bg-base-content/10 mx-1" />
             <ToolbarButton onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive('bulletList')} icon={List} />
             <ToolbarButton onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive('orderedList')} icon={ListOrdered} />
-            <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} isActive={editor.isActive('blockquote')} icon={Quote} />
+            <ToolbarButton onClick={() => editor.chain().focus().toggleBlockquote().run()} icon={Quote} />
             <ToolbarButton onClick={() => editor.chain().focus().setHorizontalRule().run()} icon={Minus} />
             <div className="w-px h-4 bg-base-content/10 mx-1" />
             <ToolbarButton onClick={() => editor.chain().focus().setTextAlign('left').run()} isActive={editor.isActive({ textAlign: 'left' })} icon={AlignLeft} />
@@ -228,15 +236,12 @@ const AdvancedTemplateEditor = ({ label, name, variables, placeholder, localSett
 
       <div className="flex justify-end mt-4">
         <button
-          onClick={() => {
-            const keys = [bodyKey, subjectKey];
-            saveSettings(keys);
-          }}
+          onClick={onSave}
           disabled={isSaving}
           className="flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-sm font-black text-primary-content shadow-2xl shadow-primary/40 transition hover:scale-105 active:scale-95 disabled:opacity-50"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Şablon Değişikliklerini Kaydet
+          Şablonu Güncelle
         </button>
       </div>
     </div>
@@ -248,17 +253,16 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
-  // URL'den aktif tabı çek, yoksa varsayılan 'site'
   const currentTab = (searchParams.get('tab') as TabType) || 'site';
 
   const [activeTab, _setActiveTab] = useState<TabType>(currentTab);
-  const [activeMailTab, setActiveMailTab] = useState('EmailConfirmation');
   const [settings, setSettings] = useState<SettingItem[]>([]);
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
 
-  // Tab değiştiğinde hem state'i hem de URL'i güncelle
   const setActiveTab = (tab: TabType) => {
     _setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
@@ -266,7 +270,6 @@ export default function SettingsPage() {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // URL manuel değişirse state'i senkronize et
   useEffect(() => {
     if (activeTab !== currentTab) {
       _setActiveTab(currentTab);
@@ -275,7 +278,10 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+    if (activeTab === 'templates') {
+      fetchTemplates();
+    }
+  }, [activeTab]);
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -295,11 +301,16 @@ export default function SettingsPage() {
     }
   };
 
-  const updateValue = (key: string, value: string) => {
-    // 🛠️ AUTO CONVERT: Virgülü noktaya çevir (0,25 -> 0.25)
-    // Özellikle kur ve komisyon gibi alanlarda hatalı girişi önler.
-    const normalizedValue = value.replace(',', '.');
-    handleInputChange(key, normalizedValue);
+  const fetchTemplates = async () => {
+    try {
+      const data = await apiRequest<{ items: EmailTemplate[] }>('/management/system/emails/templates');
+      setEmailTemplates(data.items);
+      if (data.items.length > 0 && !selectedTemplateId) {
+        setSelectedTemplateId(data.items[0].id);
+      }
+    } catch (error) {
+      toast.error({ description: "Şablonlar yüklenemedi." });
+    }
   };
 
   const handleInputChange = (key: string, value: string) => {
@@ -326,6 +337,36 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const saveTemplate = async () => {
+    if (!selectedTemplateId) return;
+    const template = emailTemplates.find(t => t.id === selectedTemplateId);
+    if (!template) return;
+
+    setIsSaving(true);
+    try {
+      await apiRequest<boolean>(`/management/system/emails/templates/${selectedTemplateId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          id: template.id,
+          subject: template.subject,
+          body: template.body
+        })
+      });
+
+      toast.success({ description: "Şablon başarıyla güncellendi." });
+    } catch (error) {
+      toast.error({ description: "Şablon kaydedilemedi." });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTemplateUpdate = (subject: string, body: string) => {
+    setEmailTemplates(prev => prev.map(t =>
+      t.id === selectedTemplateId ? { ...t, subject, body } : t
+    ));
   };
 
   const renderSectionHeader = (title: string, desc: string, icon: any) => (
@@ -364,17 +405,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="space-y-8 pb-20">
-      <div>
-        <h1 className="text-3xl font-black flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Zap className="h-6 w-6" />
-          </div>
-          Sistem Ayarları
-        </h1>
-        <p className="text-sm font-bold text-base-content/40 uppercase tracking-widest mt-1">Platform Parametreleri ve Konfigürasyonlar</p>
-      </div>
-
+    <div className="space-y-8 pb-20 pt-4">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col gap-6">
           <div className="glass-island inline-flex p-1.5 rounded-[2.2rem] gap-1 overflow-x-auto no-scrollbar max-w-full">
@@ -385,8 +416,8 @@ export default function SettingsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as TabType)}
                   className={`flex items-center gap-2.5 rounded-[1.8rem] px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${isActive
-                      ? "bg-primary text-primary-content shadow-xl shadow-primary/20"
-                      : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/70"
+                    ? "bg-primary text-primary-content shadow-xl shadow-primary/20"
+                    : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/70"
                     }`}
                 >
                   <tab.icon className={`h-4 w-4 ${isActive ? "" : "opacity-40"}`} />
@@ -395,7 +426,6 @@ export default function SettingsPage() {
               );
             })}
           </div>
-
         </div>
 
         <div className="min-w-0">
@@ -415,6 +445,7 @@ export default function SettingsPage() {
                       <InputField label="Site Sloganı" value={localSettings["SITE_Slogan"] || ""} onChange={(v) => handleInputChange("SITE_Slogan", v)} placeholder="En Epik Hikayeler Burada" />
                       <InputField label="Site Logosu (URL)" value={localSettings["SITE_LogoUrl"] || ""} onChange={(v) => handleInputChange("SITE_LogoUrl", v)} placeholder="/images/logo.png" description="Sitenin sol üstünde görünen ana logo." />
                       <InputField label="Favicon (URL)" value={localSettings["SITE_FaviconUrl"] || ""} onChange={(v) => handleInputChange("SITE_FaviconUrl", v)} placeholder="/favicon.ico" description="Tarayıcı sekmesindeki ikon." />
+                      <InputField label="Site URL" value={localSettings["SITE_Url"] || ""} onChange={(v) => handleInputChange("SITE_Url", v)} placeholder="https://epiknovel.com" description="Mail şablonlarında kullanılan ana site adresi." />
                       <InputField label="Destek E-Postası" value={localSettings["SITE_SupportEmail"] || ""} onChange={(v) => handleInputChange("SITE_SupportEmail", v)} placeholder="destek@epiknovel.com" />
                       <InputField label="Bakım Modu" value={localSettings["SITE_MaintenanceMode"] || ""} onChange={(v) => handleInputChange("SITE_MaintenanceMode", v)} placeholder="false" description="'true' yazılırsa site bakıma alınır." />
                       <div className="md:col-span-2">
@@ -483,40 +514,30 @@ export default function SettingsPage() {
 
                 {activeTab === 'templates' && (
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
-                    <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-4xl-base-content/5 border border-base-content/10 w-fit">
-                      {[
-                        { id: 'ResetPassword', label: 'Şifre Sıfırlama', icon: Lock },
-                        { id: 'EmailConfirmation', label: 'E-posta Doğrulama', icon: CheckCircle2 },
-                        { id: 'AuthorApproval', label: 'Yazar Onayı', icon: Zap },
-                        { id: 'SupportResponse', label: 'Destek Yanıtı', icon: Mail },
-                        { id: 'PaymentReceipt', label: 'Ödeme Makbuzu', icon: CreditCard },
-                      ].map((mTab) => {
-                        const isMActive = activeMailTab === mTab.id;
+                    <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-4xl bg-base-content/5 border border-base-content/10 w-fit">
+                      {emailTemplates.map((tpl) => {
+                        const isMActive = selectedTemplateId === tpl.id;
                         return (
                           <button
-                            key={mTab.id}
-                            onClick={() => setActiveMailTab(mTab.id)}
+                            key={tpl.id}
+                            onClick={() => setSelectedTemplateId(tpl.id)}
                             className={`flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${isMActive ? "bg-primary text-primary-content shadow-lg shadow-primary/20 scale-105" : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/60"}`}
                           >
-                            <mTab.icon className="h-3.5 w-3.5" />
-                            {mTab.label}
+                            {tpl.name}
                           </button>
                         );
                       })}
                     </div>
-                    <div className="glass-island rounded-[3.5rem] p-10 bg-base-content/2">
-                      <AdvancedTemplateEditor
-                        label={activeMailTab}
-                        name={activeMailTab}
-                        variables={activeMailTab === 'ResetPassword' ? "{USER_NAME}, {RESET_LINK}, {RESET_URL}" : activeMailTab === 'EmailConfirmation' ? "{USER_NAME}, {CONFIRM_LINK}, {CONFIRM_URL}" : activeMailTab === 'AuthorApproval' ? "{AUTHOR_NAME}, {SETTINGS_LINK}" : activeMailTab === 'SupportResponse' ? "{USER_NAME}, {TICKET_TITLE}, {RESPONSE_MESSAGE}, {TICKET_LINK}" : "{USER_NAME}, {PACKAGE_NAME}, {AMOUNT}, {CURRENCY}, {ORDER_ID}, {DATE}"}
-                        placeholder="İçeriği düzenleyin..."
-                        localSettings={localSettings}
-                        handleInputChange={handleInputChange}
-                        saveSettings={saveSettings}
-                        isSaving={isSaving}
-                        isLoading={isLoading}
-                      />
-                    </div>
+                    {selectedTemplateId && emailTemplates.find(t => t.id === selectedTemplateId) && (
+                      <div className="glass-island rounded-[3.5rem] p-10 bg-base-content/2">
+                        <AdvancedTemplateEditor
+                          template={emailTemplates.find(t => t.id === selectedTemplateId)!}
+                          onUpdate={handleTemplateUpdate}
+                          onSave={saveTemplate}
+                          isSaving={isSaving}
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 

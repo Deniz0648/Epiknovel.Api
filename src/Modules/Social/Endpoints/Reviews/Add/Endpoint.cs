@@ -14,7 +14,6 @@ public record Request
 {
     public Guid BookId { get; init; }
     public string Content { get; init; } = string.Empty;
-    public double Rating { get; init; } // 1-5
 }
 
 public class Endpoint(SocialDbContext dbContext, IMediator mediator, Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider) : Endpoint<Request, Result<Guid>>
@@ -25,7 +24,7 @@ public class Endpoint(SocialDbContext dbContext, IMediator mediator, Epiknovel.S
         Options(x => x.RequireRateLimiting("SocialPolicy"));
         Summary(s => {
             s.Summary = "Kitap incelemesi ekle";
-            s.Description = "Kullanıcıların bir kitap hakkında puan verip detaylı inceleme yazmasını sağlar (Dakikada 15 işlem limiti).";
+            s.Description = "Kullanıcıların bir kitap hakkında detaylı inceleme yazmasını sağlar (Dakikada 15 işlem limiti).";
         });
     }
 
@@ -50,7 +49,6 @@ public class Endpoint(SocialDbContext dbContext, IMediator mediator, Epiknovel.S
         var review = await dbContext.Reviews
             .FirstOrDefaultAsync(r => r.BookId == req.BookId && r.UserId == userId, ct);
 
-        double? oldRating = null;
         bool isUpdate = review != null;
         if (!isUpdate)
         {
@@ -61,28 +59,19 @@ public class Endpoint(SocialDbContext dbContext, IMediator mediator, Epiknovel.S
             };
             dbContext.Reviews.Add(review);
         }
-        else 
-        {
-            oldRating = review!.Rating;
-        }
 
         // 4. İncelemeyi Kaydet (XSS Koruması)
         var sanitizer = new Ganss.Xss.HtmlSanitizer();
         review.Content = sanitizer.Sanitize(req.Content);
-        review.Rating = Math.Clamp(req.Rating, 1, 5);
         review.CreatedAt = DateTime.UtcNow; 
 
         await dbContext.SaveChangesAsync(ct);
 
-        // Domain Event'i yayınla (Books modülünün ortalama puanı güncellemesi için)
-        // Tabakaları ayırmak için her durumda 'ReviewCreatedEvent' (veya isterseniz 'ReviewUpdatedEvent') fırlatıyoruz.
-        // Books modülündeki handler her iki durumu da puanı yeniden hesaplayarak yönetebilir.
+        // Domain Event'i yayınla
         await mediator.Publish(new ReviewCreatedEvent(
             review.Id,
             review.BookId,
             review.UserId,
-            review.Rating,
-            oldRating, // Eski puanı (varsa) gönder
             review.Content,
             review.CreatedAt), ct);
 

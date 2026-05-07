@@ -17,7 +17,8 @@ public record Request
 
 public class Endpoint(
     WalletDbContext dbContext, 
-    INotificationService notificationService) : Endpoint<Request, Result<string>>
+    INotificationService notificationService,
+    IUserAccountProvider userAccountProvider) : Endpoint<Request, Result<string>>
 {
     public override void Configure()
     {
@@ -54,16 +55,25 @@ public class Endpoint(
 
             await dbContext.SaveChangesAsync(ct);
 
-            // Kullanıcıya Bildirim ve Mail Gönder
-            var subject = "Epiknovel - Faturanız Hazır";
-            var body = $"Merhaba, {order.PricePaid} TL tutarındaki Coin alımınıza ait faturanız oluşturulmuştur. Hesabınızdan indirebilirsiniz.";
-            
-            await notificationService.SendEmailAsync(order.BuyerEmail, subject, body, ct);
+            // Kullanıcıya Bildirim ve Mail Gönder (Şablon Kullanarak)
+            var (email, displayName) = await userAccountProvider.GetUserBasicInfoAsync(order.UserId, ct);
+            var buyerName = displayName ?? order.BuyerEmail;
+            var invoiceLink = $"/profile/orders/{order.Id}";
+
+            await notificationService.SendTemplatedEmailAsync(order.BuyerEmail, "InvoiceCreatedEmail", new Dictionary<string, string>
+            {
+                { "UserName", buyerName },
+                { "Amount", $"{order.PricePaid} TL" },
+                { "ActionLink", invoiceLink }
+            }, ct);
+
+            var systemNotificationBody = $"{order.PricePaid} TL tutarındaki Coin alımınıza ait faturanız oluşturulmuştur. Hesabınızdan indirebilirsiniz.";
+
             await notificationService.SendSystemNotificationAsync(
                 order.UserId, 
                 "Faturanız Yüklendi", 
-                body, 
-                $"/profile/orders/{order.Id}", 
+                systemNotificationBody, 
+                invoiceLink, 
                 ct);
 
             await Send.ResponseAsync(Result<string>.Success("Fatura başarıyla yüklendi ve kullanıcı bilgilendirildi."), 200, ct);

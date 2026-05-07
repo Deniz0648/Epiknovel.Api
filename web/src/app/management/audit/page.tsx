@@ -109,25 +109,8 @@ export default function AuditLogsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Area */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-           <h1 className="text-2xl font-black uppercase italic tracking-tight text-base-content sm:text-3xl">Sistem Gunlukleri</h1>
-           <p className="text-sm font-medium text-base-content/40">Sistem genelindeki tum degisiklik ve islemlerin kayitlari</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-           <button 
-             onClick={() => fetchLogs()} 
-             className="glass-frame flex h-10 w-10 items-center justify-center text-base-content/60 transition hover:bg-primary/10 hover:text-primary active:scale-95"
-           >
-              <Activity className="h-5 w-5" />
-           </button>
-        </div>
-      </div>
-
       {/* Filters Bar */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 items-center">
          <div className="relative group">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-base-content/30 group-focus-within:text-primary transition-colors" />
             <form onSubmit={handleSearch}>

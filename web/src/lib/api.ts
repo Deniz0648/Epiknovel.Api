@@ -99,18 +99,26 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const makeRequest = async (currentOptions: RequestOptions) => {
-    return fetch(`${API_BASE_URL}${path}`, {
-      ...rest,
-      method,
-      body,
-      cache: "no-store",
-      credentials: rest.credentials ?? "include",
-      headers: {
-        ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
-        ...(currentOptions.token ? { Authorization: `Bearer ${currentOptions.token}` } : {}),
-        ...headers,
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 saniye timeout
+
+    try {
+      return await fetch(`${API_BASE_URL}${path}`, {
+        ...rest,
+        method,
+        body,
+        cache: "no-store",
+        credentials: rest.credentials ?? "include",
+        headers: {
+          ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
+          ...(currentOptions.token ? { Authorization: `Bearer ${currentOptions.token}` } : {}),
+          ...headers,
+        },
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
 
   // İyileştirme: Eğer arka planda aktif bir token yenileme işlemi varsa bekle.

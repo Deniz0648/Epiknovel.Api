@@ -10,6 +10,8 @@ using FastEndpoints.Security;
 using Epiknovel.Modules.Identity.Data;
 using Microsoft.Extensions.Configuration;
 using System.Security.Claims;
+using Epiknovel.Shared.Core.Interfaces.Management;
+using Epiknovel.Shared.Core.Interfaces;
 
 namespace Epiknovel.Modules.Identity.Endpoints.ConfirmEmail;
 
@@ -17,7 +19,9 @@ namespace Epiknovel.Modules.Identity.Endpoints.ConfirmEmail;
 public class Endpoint(
     UserManager<User> userManager, 
     IdentityDbContext dbContext,
-    IConfiguration configuration) : Endpoint<Request, Result<Response>>
+    IConfiguration configuration,
+    IEmailTemplateService emailTemplateService,
+    INotificationService notificationService) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -83,6 +87,23 @@ public class Endpoint(
 
         dbContext.UserSessions.Add(session);
         await dbContext.SaveChangesAsync(ct);
+
+        // --- HOŞ GELDİN MAİLİ GÖNDER (Doğrulama Sonrası) ---
+        try 
+        {
+            var variables = new Dictionary<string, string>
+            {
+                { "{UserName}", user.UserName ?? user.Email! }
+            };
+
+            var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("WelcomeEmail", variables, ct);
+            await notificationService.SendEmailAsync(user.Email!, subject, body, ct);
+        }
+        catch (Exception ex)
+        {
+            // Mail gönderimi asıl işlemi (onaylama) durdurmamalı
+            Console.WriteLine($"[WELCOME_EMAIL_ERROR] Failed to send welcome email to {user.Email}: {ex.Message}");
+        }
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

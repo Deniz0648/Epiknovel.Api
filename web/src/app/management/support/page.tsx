@@ -151,14 +151,7 @@ export default function SupportManagementPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-120px)] flex-col gap-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-black uppercase italic tracking-tight text-base-content/80">Support Management</h1>
-          <p className="text-sm font-medium text-base-content/40 mt-1">Gelen destek taleplerini yönetin ve yanıtlayın.</p>
-        </div>
-      </div>
-
+    <div className="flex h-[calc(100vh-120px)] flex-col gap-6 pt-4">
       <div className="flex flex-1 gap-6 overflow-hidden min-h-0">
         {/* Ticket List Sidebar */}
         <div className="flex w-full flex-col gap-4 sm:w-80 lg:w-96">

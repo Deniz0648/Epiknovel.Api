@@ -1,14 +1,10 @@
 using FastEndpoints;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Shared.Core.Constants;
+using Epiknovel.Shared.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Management.Endpoints.System.Emails.Templates;
-
-public class ApiResponse
-{
-    public List<TemplateSummary> Items { get; set; } = [];
-}
 
 public class TemplateSummary
 {
@@ -16,18 +12,18 @@ public class TemplateSummary
     public string Name { get; set; } = string.Empty;
     public string Key { get; set; } = string.Empty;
     public string Subject { get; set; } = string.Empty;
+    public string Body { get; set; } = string.Empty;
     public string Variables { get; set; } = string.Empty;
     public bool IsActive { get; set; }
 }
 
-public class List : EndpointWithoutRequest<ApiResponse>
+public class ApiResponse
 {
-    private readonly ManagementDbContext dbContext;
-    public List(ManagementDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
+    public List<TemplateSummary> Items { get; set; } = [];
+}
 
+public class List(ManagementDbContext dbContext) : EndpointWithoutRequest<Result<ApiResponse>>
+{
     public override void Configure()
     {
         Get("/management/system/emails/templates");
@@ -44,11 +40,12 @@ public class List : EndpointWithoutRequest<ApiResponse>
                 Name = t.Name,
                 Key = t.Key,
                 Subject = t.Subject,
+                Body = t.Body,
                 Variables = t.Variables,
                 IsActive = t.IsActive
             })
             .ToListAsync(ct);
 
-        await Send.ResponseAsync(new ApiResponse { Items = templates }, cancellation: ct);
+        await Send.ResponseAsync(Result<ApiResponse>.Success(new ApiResponse { Items = templates }), cancellation: ct);
     }
 }

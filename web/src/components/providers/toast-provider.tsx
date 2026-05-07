@@ -90,7 +90,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ pushToast }}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[90] flex justify-center px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-90 flex justify-center px-4">
         <div className="flex w-full max-w-lg flex-col gap-3">
           {items.map((item) => {
             const styles = resolveToastStyles(item.tone);
@@ -108,6 +108,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   <p className="text-sm font-black text-base-content/90">{item.title}</p>
                   {item.description ? (
                     <p className="mt-1 text-sm leading-relaxed text-base-content/68">{item.description}</p>
+                  ) : null}
+                  {item.action ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        item.action?.onClick();
+                        removeToast(item.id);
+                      }}
+                      className="mt-3 inline-flex h-8 items-center rounded-xl bg-primary px-3 text-[10px] font-black uppercase tracking-widest text-primary-content transition hover:bg-primary/90"
+                    >
+                      {item.action.label}
+                    </button>
                   ) : null}
                 </div>
                 <button

@@ -38,7 +38,7 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
           reads: item.viewCount >= 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : item.viewCount.toString(),
           slug: item.slug
         }));
-        setBooks(mappedBooks);
+        setBooks(mappedBooks.slice(0, 6));
       } catch (error) {
         console.error("Popular books could not be loaded", error);
       } finally {
@@ -88,7 +88,7 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
               {activeBook.category}
             </p>
             <h3 className="text-3xl font-black leading-[1.08]">{activeBook.title}</h3>
-            <p className="text-base leading-relaxed text-base-content/75">{activeBook.description}</p>
+            <p className="line-clamp-4 text-base leading-relaxed text-base-content/75">{activeBook.description}</p>
           </div>
 
           <div className="mt-4 space-y-3">

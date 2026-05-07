@@ -122,10 +122,24 @@ export async function backendFetch(
         console.log(`[BACKEND_FETCH] ${method} ${url} | Token: [${maskedToken}]`);
     }
 
-    return fetch(url, {
-        ...rest,
-        method,
-        headers: finalHeaders,
-        cache: "no-store",
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 saniye timeout (Build süreci için kritik)
+
+    try {
+        const response = await fetch(url, {
+            cache: "no-store",
+            ...rest,
+            method,
+            headers: finalHeaders,
+            signal: controller.signal,
+        });
+        return response;
+    } catch (err: any) {
+        if (err.name === 'AbortError') {
+            console.error(`[BACKEND_FETCH] TIMEOUT for ${url}`);
+        }
+        throw err;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }

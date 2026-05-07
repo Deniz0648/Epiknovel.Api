@@ -12,6 +12,7 @@ public class UsersDbContext(DbContextOptions<UsersDbContext> options, IEncryptio
     public DbSet<UserSlugHistory> UserSlugHistories => Set<UserSlugHistory>();
     public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<Follow> Follows => Set<Follow>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
     public DbSet<Epiknovel.Shared.Core.Domain.OutboxMessage> OutboxMessages => Set<Epiknovel.Shared.Core.Domain.OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -58,6 +59,13 @@ public class UsersDbContext(DbContextOptions<UsersDbContext> options, IEncryptio
         });
 
         modelBuilder.Entity<UserAddress>(b => b.ToTable("UserAddresses"));
+        
+        modelBuilder.Entity<NotificationPreference>(entity =>
+        {
+            entity.ToTable("NotificationPreferences", "users");
+            entity.HasKey(x => x.Id);
+            entity.HasIndex(x => x.UserId).IsUnique();
+        });
 
         modelBuilder.Entity<Epiknovel.Shared.Core.Domain.OutboxMessage>(b => {
              b.ToTable("OutboxMessages");

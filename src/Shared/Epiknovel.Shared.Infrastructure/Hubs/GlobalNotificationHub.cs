@@ -11,12 +11,23 @@ public class GlobalNotificationHub : Hub
     
     public override async Task OnConnectedAsync()
     {
-        // İsteğe bağlı: Logger.LogInformation($"User {Context.UserIdentifier} connected.");
-        await base.OnConnectedAsync();
-    }
+        if (Context.User?.Identity?.IsAuthenticated == true)
+        {
+            var userId = Context.UserIdentifier;
+            
+            if (Context.User.IsInRole("Admin") || Context.User.IsInRole("SuperAdmin"))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "Admins");
+                Console.WriteLine($"[HUB_GROUP] User {userId} added to Admins group.");
+            }
+            
+            if (Context.User.IsInRole("Mod"))
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "Moderators");
+                Console.WriteLine($"[HUB_GROUP] User {userId} added to Moderators group.");
+            }
+        }
 
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        await base.OnDisconnectedAsync(exception);
+        await base.OnConnectedAsync();
     }
 }

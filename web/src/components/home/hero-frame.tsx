@@ -224,10 +224,10 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
             />
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Link
               href={activeBookHref}
-              className="btn btn-primary rounded-full px-7 shadow-lg shadow-primary/30"
+              className="btn btn-primary h-12 rounded-full px-7 shadow-lg shadow-primary/30"
             >
               <Play className="h-4 w-4 fill-current" aria-hidden="true" />
               Simdi Oku
@@ -235,7 +235,7 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
             <AddToLibraryButton
               bookId={activeSlide.id}
               bookStatus={activeSlide.status}
-              className="w-auto min-w-48"
+              className="h-12 w-auto min-w-48"
             />
           </div>
 

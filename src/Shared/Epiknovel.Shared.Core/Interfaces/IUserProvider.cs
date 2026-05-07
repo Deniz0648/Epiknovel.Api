@@ -12,6 +12,7 @@ public interface IUserProvider
 
     Task<Guid?> GetUserIdBySlugAsync(string slug, CancellationToken ct = default);
     Task<Dictionary<Guid, string>> GetSlugsByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
+    Task<Dictionary<Guid, bool>> GetPaidAuthorStatusByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
     Task<Dictionary<Guid, string>> GetDisplayNamesByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);
 
     Task<Dictionary<Guid, string?>> GetAvatarsByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default);

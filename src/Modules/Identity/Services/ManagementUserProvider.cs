@@ -151,9 +151,43 @@ public class ManagementUserProvider(
         if (!await ValidateHierarchyAsync(targetUser))
             return false;
 
-        // Generating a reset token and sending it (Placeholder for email integration)
         var token = await userManager.GeneratePasswordResetTokenAsync(targetUser);
-        // TODO: Fire a domain event to send the email via the Notification service.
+        
+        // Publish event to send email
+        await mediator.Publish(new PasswordResetRequestedEvent(targetUser.Id, targetUser.Email!, token), ct);
+        
+        return true;
+    }
+
+    public async Task<bool> TogglePaidAuthorAsync(Guid userId, bool status, CancellationToken ct = default)
+    {
+        var targetUser = await userManager.FindByIdAsync(userId.ToString());
+        if (targetUser == null) return false;
+
+        if (!await ValidateHierarchyAsync(targetUser))
+            return false;
+
+        // 1. Update Profile status via UserProvider
+        await userProvider.SetPaidAuthorStatusAsync(userId, status, null, ct);
+
+        // 2. If enabling paid author, ensure they have the Author role too for base permissions
+        if (status)
+        {
+            var roles = await userManager.GetRolesAsync(targetUser);
+            if (!roles.Contains(RoleNames.Author))
+            {
+                await userManager.AddToRoleAsync(targetUser, RoleNames.Author);
+                await userProvider.SetAuthorStatusAsync(userId, true, ct);
+            }
+        }
+
+        // 3. Notify
+        var description = status 
+            ? "Hesabınıza ücretli yazarlık yetkisi tanımlandı. Artık eserlerinizden gelir elde edebilirsiniz." 
+            : "Ücretli yazarlık yetkiniz geri alındı.";
+            
+        await mediator.Publish(new UserRoleUpdatedEvent(targetUser.Id, "PaidAuthorToggle", description), ct);
+
         return true;
     }
 
@@ -180,7 +214,7 @@ public class ManagementUserProvider(
         };
     }
 
-    public async Task<List<UserManagementDto>> GetPaginatedUsersAsync(DateTime? cursor, int take, string? searchString, CancellationToken ct = default)
+    public async Task<List<UserManagementDto>> GetPaginatedUsersAsync(DateTime? cursor, int take, string? searchString, bool? isBanned, string? role, CancellationToken ct = default)
     {
         var query = userManager.Users.AsNoTracking();
 
@@ -196,6 +230,27 @@ public class ManagementUserProvider(
                 (u.Email != null && u.Email.ToLower().Contains(search)) || 
                 (u.DisplayName != null && u.DisplayName.ToLower().Contains(search)) ||
                 (u.UserName != null && u.UserName.ToLower().Contains(search)));
+        }
+
+        if (isBanned.HasValue)
+        {
+            if (isBanned.Value)
+                query = query.Where(u => u.IsBanned || (u.LockoutEnd.HasValue && u.LockoutEnd.Value > DateTimeOffset.UtcNow));
+            else
+                query = query.Where(u => !u.IsBanned && (!u.LockoutEnd.HasValue || u.LockoutEnd.Value <= DateTimeOffset.UtcNow));
+        }
+
+        // Role filter: join UserRoles
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var roleEntity = await identityDbContext.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Name == role, ct);
+            if (roleEntity != null)
+            {
+                var userIdsWithRole = identityDbContext.UserRoles.AsNoTracking()
+                    .Where(ur => ur.RoleId == roleEntity.Id)
+                    .Select(ur => ur.UserId);
+                query = query.Where(u => userIdsWithRole.Contains(u.Id));
+            }
         }
 
         var users = await query
@@ -218,15 +273,16 @@ public class ManagementUserProvider(
 
         var userIds = users.Select(x => x.Id).ToList();
         var slugs = await userProvider.GetSlugsByUserIdsAsync(userIds, ct);
+        var paidStatus = await userProvider.GetPaidAuthorStatusByUserIdsAsync(userIds, ct);
 
         var userRoleRows = await (
             from userRole in identityDbContext.UserRoles.AsNoTracking()
-            join role in identityDbContext.Roles.AsNoTracking() on userRole.RoleId equals role.Id
+            join r in identityDbContext.Roles.AsNoTracking() on userRole.RoleId equals r.Id
             where userIds.Contains(userRole.UserId)
             select new
             {
                 userRole.UserId,
-                RoleName = role.Name
+                RoleName = r.Name
             })
             .ToListAsync(ct);
 
@@ -241,6 +297,7 @@ public class ManagementUserProvider(
         {
             userDto.Roles = rolesByUserId.TryGetValue(userDto.Id, out var roles) ? roles : [];
             userDto.Slug = slugs.TryGetValue(userDto.Id, out var slug) ? slug : string.Empty;
+            userDto.IsPaidAuthor = paidStatus.TryGetValue(userDto.Id, out var isPaid) && isPaid;
         }
 
         return users;
@@ -267,6 +324,7 @@ public class ManagementUserProvider(
             Slug = slugs.TryGetValue(userId, out var slug) ? slug : string.Empty,
             CreatedAt = user.CreatedAt,
             IsBanned = user.IsBanned || (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTimeOffset.UtcNow),
+            IsPaidAuthor = await userProvider.IsPaidAuthorAsync(userId, ct),
             Roles = roles.ToList(),
             TokenBalance = balance,
             RecentTransactions = transactions,

@@ -35,3 +35,9 @@ public record SupportResponseReceivedEvent(
     string TicketTitle, 
     string ResponseMessage, 
     string TicketLink) : INotification;
+
+public record PasswordResetRequestedEvent(Guid UserId, string Email, string ResetToken) : INotification;
+
+public record AuthorApplicationSubmittedEvent(Guid UserId, string UserName) : INotification;
+
+public record PaidAuthorApplicationSubmittedEvent(Guid UserId, string UserName) : INotification;

@@ -1,11 +1,15 @@
 using Epiknovel.Modules.Management.Data;
+using Epiknovel.Modules.Management.Domain;
 using Epiknovel.Shared.Core.Interfaces.Management;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Epiknovel.Modules.Management.Services;
 
-public class EmailTemplateService(ManagementDbContext dbContext, ILogger<EmailTemplateService> logger) : IEmailTemplateService
+public class EmailTemplateService(
+    ManagementDbContext dbContext, 
+    ISystemSettingProvider settingProvider,
+    ILogger<EmailTemplateService> logger) : IEmailTemplateService
 {
     public async Task<string> RenderTemplateAsync(string key, Dictionary<string, string> variables, CancellationToken ct = default)
     {
@@ -15,23 +19,47 @@ public class EmailTemplateService(ManagementDbContext dbContext, ILogger<EmailTe
 
     public async Task<(string Subject, string Body)> GetRenderedEmailAsync(string key, Dictionary<string, string> variables, CancellationToken ct = default)
     {
+        string subject;
+        string body;
+
         var template = await dbContext.EmailTemplates
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Key == key, ct);
 
         if (template == null)
         {
-            logger.LogWarning($"Email template with key '{key}' not found.");
-            return ("Epiknovel Notification", "A notification has been sent regarding your account. Please check the portal for details.");
+            // 🔄 Veritabanında yoksa varsayılanlardan (Hardcoded) al
+            if (DefaultTemplates.Templates.TryGetValue(key, out var defaultTpl))
+            {
+                subject = defaultTpl.Subject;
+                body = defaultTpl.Body;
+                logger.LogInformation($"Email template with key '{key}' not found in DB. Using hardcoded default.");
+            }
+            else
+            {
+                logger.LogWarning($"Email template with key '{key}' not found in DB or Defaults.");
+                subject = "Epiknovel Bildirimi";
+                body = "Hesabınızla ilgili bir bildirim gönderildi. Lütfen detaylar için portala göz atın.";
+            }
+        }
+        else
+        {
+            subject = template.Subject;
+            body = template.Body;
         }
 
-        string subject = template.Subject;
-        string body = template.Body;
+        // Global Değişkenleri Ekle
+        var siteUrl = await settingProvider.GetSettingValueAsync("SITE_Url", ct) ?? "https://epiknovel.com";
+        if (!variables.ContainsKey("{SiteUrl}"))
+        {
+            variables["{SiteUrl}"] = siteUrl;
+        }
 
+        // Değişkenleri yerleştir
         foreach (var variable in variables)
         {
-            subject = subject.Replace(variable.Key, variable.Value);
-            body = body.Replace(variable.Key, variable.Value);
+            subject = subject.Replace(variable.Key, variable.Value ?? "");
+            body = body.Replace(variable.Key, variable.Value ?? "");
         }
 
         return (subject, body);

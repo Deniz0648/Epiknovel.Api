@@ -8,9 +8,16 @@ import { SettingsProvider } from "@/components/providers/settings-provider";
 import { backendApiRequest } from "@/lib/backend-api";
 import { resolveMediaUrl } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
-    const settings = await backendApiRequest<Record<string, string>>("/Settings/public", { cache: "no-store" });
+    const settings = await backendApiRequest<Record<string, string>>("/Settings/public", { 
+      next: { 
+        revalidate: 3600, // 1 saat önbelleğe al
+        tags: ["settings"] 
+      } 
+    });
     const siteName = settings?.SITE_Name || "EpikNovel";
     const slogan = settings?.SITE_Slogan || "Modern Okuma Platformu";
     const favicon = resolveMediaUrl(settings?.SITE_FaviconUrl) || "/favicon.svg";

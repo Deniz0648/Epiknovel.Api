@@ -6,12 +6,19 @@ using Epiknovel.Shared.Core.Models;
 
 using Epiknovel.Shared.Core.Interfaces.Management;
 
+using MediatR;
+using Epiknovel.Shared.Core.Events;
+
 namespace Epiknovel.Modules.Management.Services;
 
 public class AuthorApplicationService(
     ManagementDbContext dbContext,
     ISystemSettingProvider settings,
-    IUserProvider userProvider) : IAuthorApplicationService
+    IUserProvider userProvider,
+    IEmailTemplateService emailTemplateService,
+    INotificationService notificationService,
+    IUserAccountProvider userAccountProvider,
+    IMediator mediator) : IAuthorApplicationService
 {
     // ... (existing Submit methods remain)
     
@@ -160,6 +167,32 @@ public class AuthorApplicationService(
         }
 
         await dbContext.SaveChangesAsync(ct);
+
+        // --- BİLDİRİM GÖNDER ---
+        try 
+        {
+            var (email, displayName) = await userAccountProvider.GetUserBasicInfoAsync(application.UserId, ct);
+            if (!string.IsNullOrEmpty(email))
+            {
+                var variables = new Dictionary<string, string>
+                {
+                    { "UserName", displayName ?? email },
+                    { "ActionLink", "/author/dashboard" }, // Onay durumunda yönlendirme
+                    { "Reason", reason ?? "Şartlar sağlanamadı." }
+                };
+
+                var templateKey = approve ? "AuthorApplicationApprovedEmail" : "AuthorApplicationRejectedEmail";
+                var (subject, body) = await emailTemplateService.GetRenderedEmailAsync(templateKey, variables, ct);
+                
+                await notificationService.SendEmailAsync(email, subject, body, ct);
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log it but don't fail the transaction
+            Console.WriteLine($"[AUTHOR_APP_EMAIL_ERROR] {ex.Message}");
+        }
+
         return Result<string>.Success(approve ? "Başvuru onaylandı ve kullanıcı yazar yapıldı." : "Başvuru reddedildi.");
     }
 
@@ -197,6 +230,10 @@ public class AuthorApplicationService(
         dbContext.AuthorApplications.Add(application);
         await dbContext.SaveChangesAsync(ct);
 
+        // 🚀 ADMİNLERE BİLDİRİM GÖNDER (Event-driven)
+        var (email, name) = await userAccountProvider.GetUserBasicInfoAsync(userId, ct);
+        await mediator.Publish(new AuthorApplicationSubmittedEvent(userId, name ?? "Yeni Kullanıcı"), ct);
+
         return Result<string>.Success("Yazarlık başvurunuz başarıyla alındı.");
     }
 
@@ -208,7 +245,7 @@ public class AuthorApplicationService(
         string bankName,
         CancellationToken ct = default)
     {
-        // 🚀 GLOBAL SETTING CHECK
+        // ... (setting check remains)
         var allowApplications = await settings.GetSettingValueAsync<bool>("CONTENT_AllowAuthorApplications", ct);
         if (!allowApplications)
         {
@@ -235,6 +272,10 @@ public class AuthorApplicationService(
 
         dbContext.PaidAuthorApplications.Add(application);
         await dbContext.SaveChangesAsync(ct);
+
+        // 🚀 ADMİNLERE BİLDİRİM GÖNDER (Event-driven)
+        var (email, name) = await userAccountProvider.GetUserBasicInfoAsync(userId, ct);
+        await mediator.Publish(new PaidAuthorApplicationSubmittedEvent(userId, name ?? "Yeni Kullanıcı"), ct);
 
         return Result<string>.Success("Ücretli yazarlık başvurunuz başarıyla alındı.");
     }

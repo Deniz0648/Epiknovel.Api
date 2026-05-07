@@ -1,6 +1,7 @@
 using FastEndpoints;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Shared.Core.Constants;
+using Epiknovel.Shared.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Management.Endpoints.System.Emails.Templates;
@@ -20,14 +21,8 @@ public class Response
     public string Variables { get; set; } = string.Empty;
 }
 
-public class Get : Endpoint<GetRequest, Response>
+public class Get(ManagementDbContext dbContext) : Endpoint<GetRequest, Result<Response>>
 {
-    private readonly ManagementDbContext dbContext;
-    public Get(ManagementDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
-
     public override void Configure()
     {
         Get("/management/system/emails/templates/{Id}");
@@ -43,17 +38,17 @@ public class Get : Endpoint<GetRequest, Response>
 
         if (t == null)
         {
-            await Send.NotFoundAsync(ct);
+            await Send.ResponseAsync(Result<Response>.Failure("Template not found"), 404, ct);
             return;
         }
 
-        await Send.ResponseAsync(new Response {
+        await Send.ResponseAsync(Result<Response>.Success(new Response {
             Id = t.Id,
             Name = t.Name,
             Key = t.Key,
             Subject = t.Subject,
             Body = t.Body,
             Variables = t.Variables
-        }, cancellation: ct);
+        }), cancellation: ct);
     }
 }

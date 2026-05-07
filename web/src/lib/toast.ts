@@ -5,6 +5,10 @@ export type ToastPayload = {
   description?: string;
   tone?: ToastTone;
   durationMs?: number;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 };
 
 const TOAST_EVENT_NAME = "epiknovel:toast";

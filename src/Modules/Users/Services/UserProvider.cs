@@ -56,6 +56,21 @@ public class UserProvider(UsersDbContext dbContext, IMediator mediator, Microsof
             .ToDictionaryAsync(x => x.UserId, x => x.Slug, ct);
     }
 
+    public async Task<Dictionary<Guid, bool>> GetPaidAuthorStatusByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default)
+    {
+        var ids = userIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await dbContext.UserProfiles
+            .AsNoTracking()
+            .Where(p => ids.Contains(p.UserId))
+            .Select(p => new { p.UserId, p.IsPaidAuthor })
+            .ToDictionaryAsync(x => x.UserId, x => x.IsPaidAuthor, ct);
+    }
+
     public async Task<Dictionary<Guid, string>> GetDisplayNamesByUserIdsAsync(IEnumerable<Guid> userIds, CancellationToken ct = default)
     {
         var ids = userIds.Distinct().ToList();

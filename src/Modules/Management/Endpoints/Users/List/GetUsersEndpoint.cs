@@ -10,7 +10,10 @@ public record GetUsersRequest
     public DateTime? Cursor { get; init; }
     public int Take { get; init; } = 50;
     public string? Search { get; init; }
+    public bool? IsBanned { get; init; }
+    public string? Role { get; init; }
 }
+
 
 public class GetUsersEndpoint(IManagementUserProvider userProvider) : Endpoint<GetUsersRequest, Result<List<UserManagementDto>>>
 {
@@ -28,7 +31,7 @@ public class GetUsersEndpoint(IManagementUserProvider userProvider) : Endpoint<G
     public override async Task HandleAsync(GetUsersRequest req, CancellationToken ct)
     {
         var take = Math.Min(req.Take, 100);
-        var users = await userProvider.GetPaginatedUsersAsync(req.Cursor, take, req.Search, ct);
+        var users = await userProvider.GetPaginatedUsersAsync(req.Cursor, take, req.Search, req.IsBanned, req.Role, ct);
         
         await Send.ResponseAsync(Result<List<UserManagementDto>>.Success(users), 200, ct);
     }

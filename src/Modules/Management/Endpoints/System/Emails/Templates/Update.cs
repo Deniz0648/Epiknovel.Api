@@ -1,6 +1,7 @@
 using FastEndpoints;
 using Epiknovel.Modules.Management.Data;
 using Epiknovel.Shared.Core.Constants;
+using Epiknovel.Shared.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Management.Endpoints.System.Emails.Templates;
@@ -12,14 +13,8 @@ public class UpdateRequest
     public string Body { get; set; } = string.Empty;
 }
 
-public class Update : Endpoint<UpdateRequest>
+public class Update(ManagementDbContext dbContext) : Endpoint<UpdateRequest, Result<bool>>
 {
-    private readonly ManagementDbContext dbContext;
-    public Update(ManagementDbContext dbContext)
-    {
-        this.dbContext = dbContext;
-    }
-
     public override void Configure()
     {
         Put("/management/system/emails/templates/{Id}");
@@ -33,7 +28,7 @@ public class Update : Endpoint<UpdateRequest>
         
         if (template == null)
         {
-            await Send.NotFoundAsync(ct);
+            await Send.ResponseAsync(Result<bool>.Failure("Template not found"), 404, ct);
             return;
         }
 
@@ -42,6 +37,6 @@ public class Update : Endpoint<UpdateRequest>
         template.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(ct);
-        await Send.NoContentAsync(ct);
+        await Send.ResponseAsync(Result<bool>.Success(true), 200, ct);
     }
 }

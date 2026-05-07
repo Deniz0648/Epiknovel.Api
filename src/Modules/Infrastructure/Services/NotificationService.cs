@@ -3,6 +3,7 @@ using Epiknovel.Modules.Infrastructure.Data;
 using Epiknovel.Modules.Infrastructure.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Services;
+using Epiknovel.Shared.Core.Interfaces.Management;
 
 using Epiknovel.Shared.Infrastructure.Hubs;
 using Microsoft.AspNetCore.SignalR;
@@ -12,6 +13,7 @@ namespace Epiknovel.Modules.Infrastructure.Services;
 public class NotificationService(
     InfrastructureDbContext dbContext, 
     IEmailService emailService,
+    IEmailTemplateService emailTemplateService,
     IHubContext<GlobalNotificationHub> hubContext) : INotificationService
 {
     public async Task BroadcastCommentAsync(Guid userId, Guid? bookId, Guid? chapterId, string? paragraphId, CancellationToken ct = default)
@@ -27,7 +29,13 @@ public class NotificationService(
     }
     public async Task SendEmailAsync(string email, string subject, string message, CancellationToken ct = default)
     {
-        await emailService.SendEmailAsync(email, subject, message);
+        await emailService.SendEmailAsync(email, subject, message, ct);
+    }
+
+    public async Task SendTemplatedEmailAsync(string toEmail, string templateKey, Dictionary<string, string> variables, CancellationToken ct = default)
+    {
+        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync(templateKey, variables, ct);
+        await emailService.SendEmailAsync(toEmail, subject, body, ct);
     }
 
     public async Task SendSystemNotificationAsync(Guid userId, string title, string message, string? actionUrl, CancellationToken ct = default)

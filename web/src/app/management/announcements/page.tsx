@@ -142,16 +142,7 @@ export default function AnnouncementsManagementPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-base-content flex items-center gap-3">
-            <div className="bg-primary/10 p-2.5 rounded-2xl">
-              <Bell className="h-7 w-7 text-primary" />
-            </div>
-            Duyuru Yönetimi
-          </h1>
-          <p className="text-base-content/60 mt-1 ml-14">Sistem genelindeki duyuruları ve bildirimleri yönetin.</p>
-        </div>
+      <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 mb-8 pt-4">
         {!showEditor && (
           <button onClick={handleCreate} className="btn btn-primary rounded-2xl gap-2 shadow-lg shadow-primary/20 h-12 px-6">
             <Plus className="h-5 w-5" />

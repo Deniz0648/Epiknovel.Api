@@ -36,11 +36,13 @@ export default function UserManagementPage() {
   const [userDetails, setUserDetails] = useState<any>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
+  const [roleFilter, setRoleFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   async function loadUsers(initial = true) {
     if (initial) setIsLoading(true);
     try {
-      const url = `/management/users?take=20${initial ? "" : cursor ? `&cursor=${cursor}` : ""}${searchQuery ? `&search=${searchQuery}` : ""}`;
+      const url = `/management/users?take=20${initial ? "" : cursor ? `&cursor=${cursor}` : ""}${searchQuery ? `&search=${searchQuery}` : ""}${roleFilter ? `&role=${roleFilter}` : ""}${statusFilter ? `&isBanned=${statusFilter === "banned"}` : ""}`;
       const data = await apiRequest<any[]>(url);
 
       if (initial) {
@@ -67,7 +69,7 @@ export default function UserManagementPage() {
       loadUsers(true);
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, roleFilter, statusFilter]);
 
   async function loadUserDetails(userId: string) {
     setIsLoadingDetails(true);
@@ -143,6 +145,34 @@ export default function UserManagementPage() {
       showToast({ title: "Hata", description: "Yetki güncellenemedi.", tone: "error" });
     }
   }
+  
+  async function handleResetPassword(userId: string) {
+    if (!confirm("Kullanıcıya şifre sıfırlama e-postası göndermek istediğinize emin misiniz?")) return;
+    
+    try {
+      await apiRequest(`/management/users/${userId}/reset-password`, { method: "POST" });
+      showToast({ title: "Başarılı", description: "Sıfırlama e-postası tetiklendi.", tone: "success" });
+    } catch (err) {
+      showToast({ title: "Hata", description: "İşlem başarısız.", tone: "error" });
+    }
+  }
+
+  async function handleTogglePaidAuthor(userId: string, status: boolean) {
+    const actionText = status ? "vermek" : "almak";
+    if (!confirm(`Kullanıcıya ücretli yazarlık yetkisi ${actionText} istediğinize emin misiniz?`)) return;
+    
+    try {
+      await apiRequest(`/management/users/${userId}/toggle-paid-author`, {
+        method: "POST",
+        body: JSON.stringify({ userId, status })
+      });
+      showToast({ title: "Başarılı", description: "Ücretli yazarlık durumu güncellendi.", tone: "success" });
+      loadUsers(true);
+      if (userDetails?.id === userId) loadUserDetails(userId);
+    } catch (err) {
+      showToast({ title: "Hata", description: "İşlem başarısız.", tone: "error" });
+    }
+  }
 
   const getRoleBadgeColor = (role: string) => {
     switch (role.toLowerCase()) {
@@ -155,14 +185,7 @@ export default function UserManagementPage() {
   };
 
   return (
-    <div className="flex h-full lg:h-[calc(100vh-120px)] flex-col gap-4 lg:gap-6 p-2 md:p-4 lg:p-0">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black uppercase italic tracking-tight text-base-content/80">User Management</h1>
-          <p className="text-[10px] md:text-sm font-medium text-base-content/40 mt-0.5 md:mt-1">Platformdaki tüm kullanıcıları yönetin ve izleyin.</p>
-        </div>
-      </div>
-
+    <div className="flex h-full lg:h-[calc(100vh-120px)] flex-col gap-4 lg:gap-6 p-2 md:p-4 lg:p-0 pt-4">
       <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
         {/* User Table Card */}
         <div className={`flex flex-col flex-1 rounded-3xl md:rounded-[2.5rem] border border-base-content/5 bg-base-100/50 backdrop-blur-md overflow-hidden ${selectedUser ? "hidden" : "flex"}`}>
@@ -177,9 +200,38 @@ export default function UserManagementPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="btn btn-ghost btn-sm rounded-xl">
-              <Filter className="h-4 w-4 mr-2" /> Filter
-            </button>
+            
+            <div className="flex gap-2">
+              <select 
+                className="h-11 rounded-xl border border-base-content/10 bg-base-100 px-3 text-[10px] font-black uppercase outline-none transition focus:border-primary/30 min-w-[120px]"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+              >
+                <option value="">TÜM ROLLER</option>
+                <option value="Admin">ADMIN</option>
+                <option value="Mod">MODERATÖR</option>
+                <option value="Author">YAZAR</option>
+                <option value="User">KULLANICI</option>
+              </select>
+
+              <select 
+                className="h-11 rounded-xl border border-base-content/10 bg-base-100 px-3 text-[10px] font-black uppercase outline-none transition focus:border-primary/30 min-w-[120px]"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">TÜM DURUMLAR</option>
+                <option value="active">AKTİF</option>
+                <option value="banned">YASAKLI</option>
+              </select>
+
+              <button 
+                onClick={() => { setSearchQuery(""); setRoleFilter(""); setStatusFilter(""); }}
+                className="btn btn-ghost h-11 min-h-0 px-4 rounded-xl border border-base-content/10 bg-base-100 hover:bg-base-content/5"
+                title="Filtreleri Temizle"
+              >
+                <Filter className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar">
@@ -332,26 +384,44 @@ export default function UserManagementPage() {
                   </div>
                 </div>
 
-                {/* Role Assignment Section */}
+                {/* Management Actions */}
                 <div className="w-full pt-6 border-t border-base-content/5">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 mb-4 text-left">YETKİ SEVİYESİNİ GÜNCELLE</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 mb-4 text-left">HIZLI İŞLEMLER</p>
                   <div className="flex flex-wrap gap-2">
-                    {["User", "Author", "Mod", "Admin", "SuperAdmin"].map((r) => {
-                      const roles = userDetails?.roles || selectedUser?.roles || [];
-                      const isActive = roles.includes(r);
-                      return (
-                        <button
-                          key={r}
-                          onClick={() => handleToggleRole(selectedUser.id, r)}
-                          className={`flex-1 min-w-[80px] px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-tighter transition-all border ${isActive
-                            ? `${getRoleBadgeColor(r)} border-transparent shadow-lg shadow-primary/20`
-                            : "bg-base-content/5 border-base-content/5 hover:bg-base-content/10 text-base-content/40"
-                            }`}
-                        >
-                          {r}
-                        </button>
-                      );
-                    })}
+                    <button
+                      onClick={() => handleResetPassword(selectedUser.id)}
+                      className="flex-1 min-w-[140px] px-4 py-3 rounded-2xl bg-base-content/5 border border-base-content/5 hover:bg-primary/10 hover:text-primary transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                    >
+                      <Mail className="h-4 w-4" /> Şifre Sıfırlama
+                    </button>
+                    
+                    <button
+                      onClick={() => handleTogglePaidAuthor(selectedUser.id, !selectedUser.isPaidAuthor)}
+                      className={`flex-1 min-w-[140px] px-4 py-3 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 ${
+                        selectedUser.isPaidAuthor 
+                        ? "bg-warning/10 border-warning/20 text-warning hover:bg-warning/20" 
+                        : "bg-base-content/5 border-base-content/5 hover:bg-success/10 hover:text-success hover:border-success/20"
+                      }`}
+                    >
+                      <Shield className="h-4 w-4" /> 
+                      {selectedUser.isPaidAuthor ? "Ücretli Yazarlığı Al" : "Ücretli Yazarlık Ver"}
+                    </button>
+
+                    {selectedUser.isBanned ? (
+                      <button
+                        onClick={() => handleUnban(selectedUser.id)}
+                        className="flex-1 min-w-[140px] px-4 py-3 rounded-2xl bg-success/10 border border-success/20 text-success hover:bg-success/20 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <Unlock className="h-4 w-4" /> Yasağı Kaldır
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleBan(selectedUser.id)}
+                        className="flex-1 min-w-[140px] px-4 py-3 rounded-2xl bg-error/10 border border-error/20 text-error hover:bg-error/20 transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        <Ban className="h-4 w-4" /> Kullanıcıyı Yasakla
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

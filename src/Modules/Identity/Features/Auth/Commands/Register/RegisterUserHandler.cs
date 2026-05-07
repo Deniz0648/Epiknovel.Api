@@ -43,12 +43,11 @@ public class RegisterUserHandler(
         // 📧 CENTRAL TEMPLATE: EmailConfirmation
         var variables = new Dictionary<string, string>
         {
-            { "{USER_NAME}", user.DisplayName ?? "Üye" },
-            { "{CONFIRM_LINK}", confirmationLink },
-            { "{CONFIRM_URL}", confirmationLink }
+            { "{UserName}", user.DisplayName ?? "Üye" },
+            { "{ActionLink}", confirmationLink }
         };
 
-        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("EmailConfirmation", variables, ct);
+        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("EmailVerification", variables, ct);
         await emailService.SendEmailAsync(user.Email!, subject, body, ct);
 
         // 3. Add Default Role

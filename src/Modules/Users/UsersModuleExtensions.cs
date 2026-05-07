@@ -15,12 +15,13 @@ public static class UsersModuleExtensions
             options.UseNpgsql(connectionString, x => 
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "users")
                  .EnableRetryOnFailure())
-                 .ConfigureWarnings(w => w.Ignore(20100, 20605))
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605, Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
                  .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         // 1. Services Register
         services.AddScoped<IFileUsageProvider, UsersFileUsageProvider>();
-        services.AddScoped<IUserSearchProvider, UserSearchProvider>();
+        services.AddScoped<Epiknovel.Shared.Core.Interfaces.IUserSearchProvider, Services.UserSearchProvider>();
+        services.AddScoped<Epiknovel.Shared.Core.Interfaces.Users.INotificationPreferenceProvider, Services.NotificationPreferenceProvider>();
         services.AddScoped<IUserProvider, UserProvider>();
 
         return services;

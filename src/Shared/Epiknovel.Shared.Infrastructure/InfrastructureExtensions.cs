@@ -95,18 +95,40 @@ public static class InfrastructureExtensions
         // 1.3 Güvenlik: CORS Politikası
         services.AddCors(options =>
         {
+            // ═══════════════════════════════════════════════════════════
+            // 🔧 DEVELOPMENT: Tüm local origin'lere izin verir
+            // Production'a geçerken bu bloğu yorum satırına al,
+            // alttaki PRODUCTION bloğunun yorumunu kaldır.
+            // ═══════════════════════════════════════════════════════════
             options.AddPolicy("AllowAll", builder =>
             {
                 builder.WithOrigins(
                            "https://localhost:3000", "http://localhost:3000",
                            "https://127.0.0.1:3000", "http://127.0.0.1:3000",
                            "https://localhost", "http://localhost",
-                           "http://192.168.0.19:3000", "https://192.168.0.19:3000", // Kullanıcının mevcut IP'si
-                           "https://127.0.0.1", "http://127.0.0.1")
+                           "http://192.168.0.19:3000", "https://192.168.0.19:3000",
+                           "https://127.0.0.1", "http://127.0.0.1",
+                           "https://epiknovel.com", "http://epiknovel.com",
+                           "https://test.epiknovel.com", "http://test.epiknovel.com")
                        .AllowAnyMethod()
                        .AllowAnyHeader()
                        .AllowCredentials();
             });
+
+            // ═══════════════════════════════════════════════════════════
+            // 🚀 PRODUCTION: Sadece bilinen domain'lere izin verir
+            // Yayına alırken üstteki DEVELOPMENT bloğunu yorum satırına al,
+            // bu bloğun yorumunu kaldır.
+            // ═══════════════════════════════════════════════════════════
+            // options.AddPolicy("AllowAll", builder =>
+            // {
+            //     builder.WithOrigins(
+            //                "https://epiknovel.com",
+            //                "https://test.epiknovel.com")
+            //            .AllowAnyMethod()
+            //            .AllowAnyHeader()
+            //            .AllowCredentials();
+            // });
         });
 
 
@@ -248,7 +270,7 @@ public static class InfrastructureExtensions
 
         services.AddScoped<IFileService, LocalFileService>();
         services.AddScoped<ISlugService, SlugService>();
-        services.AddScoped<IEmailService, ConsoleEmailService>();
+        // IEmailService registration removed here to allow SmtpEmailService from Modules.Infrastructure to take precedence
         services.AddSingleton<IDiscordAlertService, DiscordAlertService>();
         services.AddHttpClient();
         services.AddScoped<IPermissionService, PermissionService>();
@@ -335,6 +357,9 @@ public static class InfrastructureExtensions
 
         // 7. SignalR & Redis Backplane
         services.AddSignalR()
+                .AddJsonProtocol(options => {
+                    options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+                })
                 .AddStackExchangeRedis(redisConn, options => {
                     options.Configuration.AbortOnConnectFail = false;
                 });

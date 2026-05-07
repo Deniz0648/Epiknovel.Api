@@ -27,13 +27,15 @@ type NotificationsContextValue = {
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
-function normalizeRealtimePayload(payload: unknown): { title?: string; message?: string } | null {
+function normalizeRealtimePayload(payload: any): { title?: string; message?: string } | null {
   if (!payload || typeof payload !== "object") {
     return null;
   }
 
-  const title = "title" in payload && typeof payload.title === "string" ? payload.title : undefined;
-  const message = "message" in payload && typeof payload.message === "string" ? payload.message : undefined;
+  // Hem camelCase hem de PascalCase desteği (SignalR tarafındaki olası farklılıklar için)
+  const title = (payload.title || payload.Title) as string | undefined;
+  const message = (payload.message || payload.Message) as string | undefined;
+
   return title || message ? { title, message } : null;
 }
 
@@ -152,12 +154,20 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
       const payload = normalizeRealtimePayload(message.args[0]);
       const marker = `${message.target}:${payload?.title ?? ""}:${payload?.message ?? ""}`;
+      
       if (lastRealtimeMarkerRef.current !== marker) {
         lastRealtimeMarkerRef.current = marker;
+        
+        const url = (message.args[0] as any)?.url || (message.args[0] as any)?.Url;
+
         showToast({
           title: payload?.title ?? "Yeni bildirim",
           description: payload?.message ?? "Bildirimlerin guncellendi.",
           tone: "info",
+          action: url ? {
+            label: "Incele",
+            onClick: () => window.location.href = url
+          } : undefined
         });
       }
 

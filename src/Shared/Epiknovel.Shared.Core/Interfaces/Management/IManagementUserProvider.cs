@@ -6,8 +6,10 @@ public interface IManagementUserProvider
     Task<bool> UnbanUserAsync(Guid userId, CancellationToken ct = default);
     Task<bool> UpdateUserRoleAsync(Guid userId, IEnumerable<string> roles, CancellationToken ct = default);
     Task<bool> TriggerPasswordResetAsync(Guid userId, CancellationToken ct = default);
-    Task<List<UserManagementDto>> GetPaginatedUsersAsync(DateTime? cursor, int take, string? searchString, CancellationToken ct = default);
+    Task<List<UserManagementDto>> GetPaginatedUsersAsync(DateTime? cursor, int take, string? searchString, bool? isBanned, string? role, CancellationToken ct = default);
+
     Task<UserManagementDetailDto?> GetUserDetailsAsync(Guid userId, CancellationToken ct = default);
+    Task<bool> TogglePaidAuthorAsync(Guid userId, bool status, CancellationToken ct = default);
     Task<Guid?> GetSuperAdminIdAsync(CancellationToken ct = default);
 }
 
@@ -19,6 +21,7 @@ public class UserManagementDto
     public string Slug { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public bool IsBanned { get; set; }
+    public bool IsPaidAuthor { get; set; }
     public List<string> Roles { get; set; } = new();
 }
 

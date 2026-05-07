@@ -10,6 +10,12 @@ public class DummyNotificationService : INotificationService
         return Task.CompletedTask;
     }
 
+    public Task SendTemplatedEmailAsync(string toEmail, string templateKey, Dictionary<string, string> variables, CancellationToken ct = default)
+    {
+        Console.WriteLine($"[TEMPLATED EMAIL] To: {toEmail} | Template: {templateKey}");
+        return Task.CompletedTask;
+    }
+
     public Task SendSystemNotificationAsync(Guid userId, string title, string message, string? link = null, CancellationToken ct = default)
     {
         Console.WriteLine($"[NOTIFICATION] User: {userId} | Title: {title} | Link: {link}");

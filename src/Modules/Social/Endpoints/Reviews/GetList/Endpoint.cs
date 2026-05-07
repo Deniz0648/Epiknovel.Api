@@ -23,7 +23,6 @@ public record ReviewResponse
     public string UserName { get; set; } = string.Empty;
     public string? UserAvatar { get; set; }
     public string Content { get; init; } = string.Empty;
-    public double Rating { get; set; }
     public int LikeCount { get; init; }
     public bool IsEditorChoice { get; init; }
     public Guid BookId { get; init; }
@@ -60,7 +59,6 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
                 Id = r.Id,
                 UserId = r.UserId,
                 Content = r.Content,
-                Rating = r.Rating,
                 LikeCount = r.LikeCount,
                 IsEditorChoice = r.IsEditorChoice,
                 BookId = r.BookId,
@@ -81,7 +79,6 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
                     Id = c.Id,
                     UserId = c.UserId,
                     Content = c.Content,
-                    Rating = 5.0, // Yorumlar için varsayılan tam puan (Editör seçimi olduğu için)
                     LikeCount = c.LikeCount,
                     IsEditorChoice = true,
                     BookId = c.BookId ?? Guid.Empty,
@@ -128,11 +125,6 @@ public class Endpoint(SocialDbContext dbContext, IBookProvider bookProvider, IUs
                 {
                     item.BookTitle = bookInfo.Title;
                     item.BookSlug = bookInfo.Slug;
-                    // Eğer Rating varsayılan 5.0 ise (Comment'lerden gelenler gibi), kitabın gerçek ortalamasını kullan
-                    if (item.Rating >= 4.99) 
-                    {
-                        item.Rating = bookInfo.AverageRating;
-                    }
                 }
                 item.UserName = userNames.GetValueOrDefault(item.UserId, "Bilinmeyen Kullanıcı");
                 item.UserAvatar = userAvatars.GetValueOrDefault(item.UserId);

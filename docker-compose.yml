@@ -52,6 +52,13 @@ services:
       Jwt__Secret: ${JWT_SECRET}
       API_KEY: ${API_KEY}
       MEDIATR_LICENSE_KEY: ${MEDIATR_LICENSE_KEY}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      SMTP_ENABLE_SSL: ${SMTP_ENABLE_SSL}
 
   # 💻 Kullanıcı Arayüzü (Next.js)
   epiknovel_web:
@@ -73,5 +80,4 @@ volumes:
   postgres_data:
   redis_data:
   epiknovel_keys:
-
 

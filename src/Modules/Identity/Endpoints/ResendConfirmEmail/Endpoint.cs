@@ -12,7 +12,9 @@ namespace Epiknovel.Modules.Identity.Endpoints.ResendConfirmEmail;
 [AuditLog("E-posta Onay Baglantisi Tekrar Gonderildi")]
 public class Endpoint(
     UserManager<User> userManager,
-    IEmailService emailService) : EndpointWithoutRequest<Result<Response>>
+    IEmailService emailService,
+    Epiknovel.Shared.Core.Interfaces.Management.ISystemSettingProvider settingProvider,
+    Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService emailTemplateService) : EndpointWithoutRequest<Result<Response>>
 {
     public override void Configure()
     {
@@ -49,13 +51,18 @@ public class Endpoint(
         }
 
         var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
-        var confirmationLink = BuildConfirmationLink(HttpContext.Request, user.Id, token);
+        var baseUrl = await settingProvider.GetSettingValueAsync("SITE_Url", ct) ?? "http://localhost:3000";
+        var confirmationLink = BuildConfirmationLink(baseUrl, user.Id, token);
 
-        await emailService.SendEmailAsync(
-            user.Email,
-            "Epiknovel - Hesabinizi Onaylayin",
-            $"Kaydinizi tamamlamak icin lutfen su linke tiklayin: {confirmationLink}",
-            ct);
+        // 📧 TEMPLATE: EmailVerification
+        var variables = new Dictionary<string, string>
+        {
+            { "{UserName}", user.DisplayName ?? "Üye" },
+            { "{ActionLink}", confirmationLink }
+        };
+
+        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("EmailVerification", variables, ct);
+        await emailService.SendEmailAsync(user.Email, subject, body, ct);
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {
@@ -63,10 +70,9 @@ public class Endpoint(
         }), 200, ct);
     }
 
-    private static string BuildConfirmationLink(HttpRequest request, Guid userId, string token)
+    private static string BuildConfirmationLink(string baseUrl, Guid userId, string token)
     {
         var encodedToken = Uri.EscapeDataString(token);
-        var baseUrl = $"{request.Scheme}://{request.Host}";
-        return $"{baseUrl}/confirm-email?userId={userId}&token={encodedToken}";
+        return $"{baseUrl.TrimEnd('/')}/confirm-email?userId={userId}&token={encodedToken}";
     }
 }

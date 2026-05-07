@@ -195,16 +195,8 @@ export default function CompliancePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header & Tabs */}
+      {/* Tabs */}
       <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <h1 className="text-3xl font-black uppercase italic tracking-tight text-base-content/80">
-            Icerik Denetimi
-          </h1>
-          <p className="text-sm font-medium text-base-content/40 mt-1">
-            Platformdaki tum iceriklerin (kitap, kategori, sss) yonetim ve denetim merkezi.
-          </p>
-        </div>
 
         <div className="flex items-center gap-2 overflow-x-auto rounded-2xl bg-base-content/5 p-1 no-scrollbar">
           {tabs.map((tab) => {

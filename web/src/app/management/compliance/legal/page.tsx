@@ -172,16 +172,7 @@ export default function LegalManagementPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black tracking-tight text-base-content flex items-center gap-3">
-            <div className="bg-primary/10 p-2.5 rounded-2xl">
-              <FileText className="h-7 w-7 text-primary" />
-            </div>
-            Resmi Belgeler & Sözleşmeler
-          </h1>
-          <p className="text-base-content/60 mt-1 ml-14">Sitenin yasal metinlerini ve versiyonlarını yönetin.</p>
-        </div>
+      <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 mb-8 pt-4">
         <div className="flex gap-3">
           <button 
             onClick={handleSeedTemplates} 

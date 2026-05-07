@@ -3,20 +3,21 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  AlertTriangle, BookOpenText, Camera, MailCheck, PencilLine, 
-  Quote, Shield, Sparkles, UserPlus2, Users, UserRound, Wallet, 
-  ArrowDownRight, ArrowUpRight, Clock, ChevronLeft, ChevronRight, 
-  History, Loader2, Search, Download, FileText
+import {
+  AlertTriangle, BookOpenText, Camera, MailCheck, PencilLine,
+  Quote, Shield, Sparkles, UserPlus2, Users, UserRound, Wallet,
+  ArrowDownRight, ArrowUpRight, Clock, ChevronLeft, ChevronRight,
+  History, Loader2, Search, Download, FileText, Bell
 } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { resendConfirmEmail, updateMyAvatar, updateMyUserProfile } from "@/lib/auth";
 import { getWalletTransactions, getMyOrders, type TransactionDto, type OrderDto, OrderStatus } from "@/lib/wallet";
 import { AvatarCropperModal } from "@/components/account/avatar-cropper-modal";
 import { SecurityDashboard } from "@/components/account/security-dashboard";
+import { NotificationSettings } from "@/components/account/notification-settings";
 import { useAuth } from "@/components/providers/auth-provider";
 
-type ProfileTab = "profile" | "security" | "wallet" | "billing" | "orders";
+type ProfileTab = "profile" | "security" | "wallet" | "billing" | "orders" | "notifications";
 
 function WalletHistory() {
   const [transactions, setTransactions] = useState<TransactionDto[]>([]);
@@ -48,8 +49,8 @@ function WalletHistory() {
       loadTransactions();
     }, 400);
 
-    return () => { 
-      isMounted = false; 
+    return () => {
+      isMounted = false;
       clearTimeout(timer);
     };
   }, [page, searchQuery]);
@@ -57,18 +58,18 @@ function WalletHistory() {
   const totalPages = Math.ceil(totalCount / pageSize);
 
   if (isLoading) return <div className="glass-frame p-10 flex flex-col items-center gap-4"><Loader2 className="w-8 h-8 animate-spin text-primary" /><p className="text-xs font-black uppercase tracking-widest opacity-40">Yukleniyor...</p></div>;
-  
+
   if (error) return <article className="glass-frame p-6 border-error/20 bg-error/5 text-error text-center font-bold">{error}</article>;
 
   return (
-    <article className="glass-frame relative overflow-hidden border border-primary/15 bg-gradient-to-br from-base-100/90 via-base-100/80 to-primary/5 p-6 shadow-2xl xl:col-span-2">
+    <article className="glass-frame relative overflow-hidden border border-primary/15 bg-linear-to-br from-base-100/90 via-base-100/80 to-primary/5 p-6 shadow-2xl xl:col-span-2">
       <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-primary/10 blur-3xl opacity-50" />
       <div className="pointer-events-none absolute -left-12 bottom-0 h-44 w-44 rounded-full bg-secondary/10 blur-3xl opacity-30" />
 
       <div className="relative z-10 space-y-7">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-base-content/5 pb-7">
           <div className="flex items-center gap-4">
-            <div className="p-4 rounded-[1.5rem] bg-primary/12 text-primary shadow-lg shadow-primary/10">
+            <div className="p-4 rounded-3xl bg-primary/12 text-primary shadow-lg shadow-primary/10">
               <Wallet className="w-8 h-8" />
             </div>
             <div>
@@ -76,13 +77,13 @@ function WalletHistory() {
               <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">Cüzdan Geçmişi</h2>
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-base-content/20 group-focus-within:text-primary transition-colors" />
-              <input 
-                type="text" 
-                placeholder="İşlem detaylarında ara..." 
+              <input
+                type="text"
+                placeholder="İşlem detaylarında ara..."
                 value={searchQuery}
                 onChange={(e) => {
                   setSearchQuery(e.target.value);
@@ -96,46 +97,46 @@ function WalletHistory() {
 
         {transactions.length === 0 ? (
           <div className="py-32 flex flex-col items-center justify-center gap-4 opacity-40">
-             <History className="w-12 h-12" />
-             <p className="text-sm font-bold uppercase tracking-widest italic">Herhangi bir kayıt bulunamadı.</p>
+            <History className="w-12 h-12" />
+            <p className="text-sm font-bold uppercase tracking-widest italic">Herhangi bir kayıt bulunamadı.</p>
           </div>
         ) : (
           <div className="grid gap-2">
             <div className="hidden lg:grid grid-cols-[1fr_120px_160px] gap-4 px-5 py-3 text-[10px] font-black uppercase tracking-widest text-base-content/30 border-b border-base-content/5 mb-2">
-               <span>İşlem Bilgisi</span>
-               <span className="text-center">Tutar</span>
-               <span className="text-right">Tarih</span>
+              <span>İşlem Bilgisi</span>
+              <span className="text-center">Tutar</span>
+              <span className="text-right">Tarih</span>
             </div>
-            
+
             <div className="space-y-2">
               {transactions.map((tx) => {
                 const isNegative = tx.amount < 0;
                 return (
                   <div key={tx.id} className="group flex flex-col lg:grid lg:grid-cols-[1fr_120px_160px] lg:items-center gap-4 p-4 lg:p-3 px-5 rounded-[1.4rem] bg-base-content/2 hover:bg-base-100/40 transition-all border border-transparent hover:border-primary/15">
                     <div className="flex items-center gap-4 min-w-0">
-                       <div className={`hidden sm:flex p-2.5 rounded-xl shrink-0 ${isNegative ? "bg-error/10 text-error" : "bg-success/10 text-success"}`}>
-                          {isNegative ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                       </div>
-                       <div className="min-w-0">
-                          <p className="text-sm font-bold italic truncate leading-tight group-hover:text-primary transition-colors">{tx.description}</p>
-                          <span className={`text-[8px] font-black uppercase px-2 py-0.5 mt-1 inline-block rounded border ${isNegative ? "bg-error/5 border-error/10 text-error/60" : "bg-success/5 border-success/10 text-success/60"}`}>
-                            {tx.type}
-                          </span>
-                       </div>
+                      <div className={`hidden sm:flex p-2.5 rounded-xl shrink-0 ${isNegative ? "bg-error/10 text-error" : "bg-success/10 text-success"}`}>
+                        {isNegative ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold italic truncate leading-tight group-hover:text-primary transition-colors">{tx.description}</p>
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 mt-1 inline-block rounded border ${isNegative ? "bg-error/5 border-error/10 text-error/60" : "bg-success/5 border-success/10 text-success/60"}`}>
+                          {tx.type}
+                        </span>
+                      </div>
                     </div>
-                    
+
                     <div className="text-center">
-                       <p className={`text-lg font-black tracking-tight ${isNegative ? "text-error" : "text-success"}`}>
-                         {isNegative ? "" : "+"}{tx.amount.toLocaleString("tr-TR")} <span className="text-[10px] ml-1 opacity-50">C</span>
-                       </p>
+                      <p className={`text-lg font-black tracking-tight ${isNegative ? "text-error" : "text-success"}`}>
+                        {isNegative ? "" : "+"}{tx.amount.toLocaleString("tr-TR")} <span className="text-[10px] ml-1 opacity-50">C</span>
+                      </p>
                     </div>
 
                     <div className="text-right">
-                       <span className="text-[10px] font-bold text-base-content/30 flex items-center justify-end gap-1.5 whitespace-nowrap">
-                          <Clock className="w-3 h-3" />
-                          {new Date(tx.createdAt).toLocaleDateString("tr-TR")}
-                          <span className="opacity-50">{new Date(tx.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
-                       </span>
+                      <span className="text-[10px] font-bold text-base-content/30 flex items-center justify-end gap-1.5 whitespace-nowrap">
+                        <Clock className="w-3 h-3" />
+                        {new Date(tx.createdAt).toLocaleDateString("tr-TR")}
+                        <span className="opacity-50">{new Date(tx.createdAt).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}</span>
+                      </span>
                     </div>
                   </div>
                 );
@@ -145,31 +146,31 @@ function WalletHistory() {
         )}
 
         <footer className="pt-7 border-t border-base-content/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-           <div className="px-5 py-2 rounded-full bg-base-100/40 border border-base-content/5 shadow-inner">
-             <span className="text-[10px] font-black uppercase tracking-widest italic opacity-50">Toplam {totalCount} işlem kaydı listeleniyor</span>
-           </div>
+          <div className="px-5 py-2 rounded-full bg-base-100/40 border border-base-content/5 shadow-inner">
+            <span className="text-[10px] font-black uppercase tracking-widest italic opacity-50">Toplam {totalCount} işlem kaydı listeleniyor</span>
+          </div>
 
-           {totalPages > 1 && (
-             <div className="join p-1 rounded-2xl border border-base-content/10 bg-base-100/20 shadow-lg">
-                <button 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={page === 1}
-                  className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <div className="join-item flex items-center px-4 text-[10px] font-black uppercase tracking-widest italic opacity-60">
-                  {page} / {totalPages}
-                </div>
-                <button 
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))} 
-                  disabled={page === totalPages}
-                  className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-             </div>
-           )}
+          {totalPages > 1 && (
+            <div className="join p-1 rounded-2xl border border-base-content/10 bg-base-100/20 shadow-lg">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <div className="join-item flex items-center px-4 text-[10px] font-black uppercase tracking-widest italic opacity-60">
+                {page} / {totalPages}
+              </div>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </footer>
       </div>
     </article>
@@ -207,13 +208,13 @@ function OrderHistory() {
   if (error) return <article className="glass-frame p-6 border-error/20 bg-error/5 text-error text-center font-bold">{error}</article>;
 
   return (
-    <article className="glass-frame relative overflow-hidden border border-secondary/15 bg-gradient-to-br from-base-100/90 via-base-100/80 to-secondary/5 p-6 shadow-2xl xl:col-span-2">
+    <article className="glass-frame relative overflow-hidden border border-secondary/15 bg-linear-to-br from-base-100/90 via-base-100/80 to-secondary/5 p-6 shadow-2xl xl:col-span-2">
       <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-secondary/10 blur-3xl opacity-50" />
-      
+
       <div className="relative z-10 space-y-7">
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-base-content/5 pb-7">
           <div className="flex items-center gap-4">
-            <div className="p-4 rounded-[1.5rem] bg-secondary/12 text-secondary shadow-lg shadow-secondary/10">
+            <div className="p-4 rounded-3xl bg-secondary/12 text-secondary shadow-lg shadow-secondary/10">
               <History className="w-8 h-8" />
             </div>
             <div>
@@ -221,25 +222,25 @@ function OrderHistory() {
               <h2 className="text-3xl font-black italic uppercase tracking-tighter leading-none">Sipariş Geçmişi</h2>
             </div>
           </div>
-          
+
           <div className="px-5 py-2 rounded-full bg-base-100/40 border border-base-content/5 shadow-inner">
-             <span className="text-[10px] font-black uppercase tracking-widest italic opacity-50">Toplam {totalCount} ödeme kaydı</span>
+            <span className="text-[10px] font-black uppercase tracking-widest italic opacity-50">Toplam {totalCount} ödeme kaydı</span>
           </div>
         </header>
 
         {orders.length === 0 ? (
           <div className="py-24 flex flex-col items-center justify-center gap-4 opacity-40">
-             <BookOpenText className="w-12 h-12" />
-             <p className="text-sm font-bold uppercase tracking-widest italic text-center">Henüz herhangi bir finansal işlem kaydınız bulunmuyor.</p>
+            <BookOpenText className="w-12 h-12" />
+            <p className="text-sm font-bold uppercase tracking-widest italic text-center">Henüz herhangi bir finansal işlem kaydınız bulunmuyor.</p>
           </div>
         ) : (
           <div className="grid gap-3">
             {orders.map((order) => {
-              const statusColor = order.status === OrderStatus.Paid ? "text-success bg-success/10 border-success/20" : 
-                                order.status === OrderStatus.Pending ? "text-warning bg-warning/10 border-warning/20" : 
-                                "text-error bg-error/10 border-error/20";
-              const statusText = order.status === OrderStatus.Paid ? "Ödendi" : 
-                               order.status === OrderStatus.Pending ? "Bekliyor" : "Hata";
+              const statusColor = order.status === OrderStatus.Paid ? "text-success bg-success/10 border-success/20" :
+                order.status === OrderStatus.Pending ? "text-warning bg-warning/10 border-warning/20" :
+                  "text-error bg-error/10 border-error/20";
+              const statusText = order.status === OrderStatus.Paid ? "Ödendi" :
+                order.status === OrderStatus.Pending ? "Bekliyor" : "Hata";
 
               return (
                 <div key={order.id} className="group grid grid-cols-1 md:grid-cols-[1fr_auto_auto] items-center gap-6 p-5 rounded-[1.6rem] bg-base-content/2 hover:bg-base-100/60 transition-all border border-transparent hover:border-secondary/15">
@@ -250,23 +251,23 @@ function OrderHistory() {
                     <div>
                       <h4 className="font-black text-lg truncate leading-tight">{order.packageName}</h4>
                       <div className="mt-1 flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest opacity-40">
-                         <span>#{order.id.slice(0, 8)}</span>
-                         <span>•</span>
-                         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString("tr-TR")}</span>
+                        <span>#{order.id.slice(0, 8)}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(order.createdAt).toLocaleDateString("tr-TR")}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-start md:items-end gap-1">
-                     <p className="text-xl font-black italic">₺{order.pricePaid.toLocaleString("tr-TR")}</p>
-                     <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${statusColor}`}>
-                        {statusText}
-                     </span>
+                    <p className="text-xl font-black italic">₺{order.pricePaid.toLocaleString("tr-TR")}</p>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase border ${statusColor}`}>
+                      {statusText}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2">
                     {order.invoiceDocumentId ? (
-                      <a 
+                      <a
                         href={`/api/compliance/documents/${order.invoiceDocumentId}/download`}
                         className="btn btn-secondary btn-sm rounded-xl px-4 font-black uppercase italic text-[10px]"
                         target="_blank"
@@ -285,13 +286,13 @@ function OrderHistory() {
         )}
 
         {totalPages > 1 && (
-           <footer className="pt-6 border-t border-base-content/5 flex justify-center">
-              <div className="join p-1 rounded-2xl border border-base-content/10 bg-base-100/20 shadow-lg">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"><ChevronLeft className="w-4 h-4" /></button>
-                <div className="join-item flex items-center px-4 text-[10px] font-black uppercase tracking-widest italic opacity-60">{page} / {totalPages}</div>
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"><ChevronRight className="w-4 h-4" /></button>
-              </div>
-           </footer>
+          <footer className="pt-6 border-t border-base-content/5 flex justify-center">
+            <div className="join p-1 rounded-2xl border border-base-content/10 bg-base-100/20 shadow-lg">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"><ChevronLeft className="w-4 h-4" /></button>
+              <div className="join-item flex items-center px-4 text-[10px] font-black uppercase tracking-widest italic opacity-60">{page} / {totalPages}</div>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="join-item btn btn-ghost btn-sm h-10 w-10 min-h-0 rounded-xl"><ChevronRight className="w-4 h-4" /></button>
+            </div>
+          </footer>
         )}
       </div>
     </article>
@@ -303,7 +304,7 @@ function BillingAddressForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     fullName: profile?.billingAddress?.fullName ?? profile?.displayName ?? "",
     country: profile?.billingAddress?.country ?? "Turkey",
@@ -352,55 +353,55 @@ function BillingAddressForm() {
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-2">
-           <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Ad Soyad / Ticari Ünvan</label>
-           <input name="fullName" value={formData.fullName} onChange={handleChange} className="input input-bordered w-full rounded-2xl" required />
+          <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Ad Soyad / Ticari Ünvan</label>
+          <input name="fullName" value={formData.fullName} onChange={handleChange} className="input input-bordered w-full rounded-2xl" required />
         </div>
 
         <div>
-           <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">TC Kimlik No</label>
-           <input name="identityNumber" value={formData.identityNumber} onChange={handleChange} className="input input-bordered w-full rounded-2xl" placeholder="Bireysel fatura için zorunludur" />
+          <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">TC Kimlik No</label>
+          <input name="identityNumber" value={formData.identityNumber} onChange={handleChange} className="input input-bordered w-full rounded-2xl" placeholder="Bireysel fatura için zorunludur" />
         </div>
 
         <div>
-           <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Telefon</label>
-           <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="input input-bordered w-full rounded-2xl" placeholder="+90 5xx ..." required />
+          <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Telefon</label>
+          <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} className="input input-bordered w-full rounded-2xl" placeholder="+90 5xx ..." required />
         </div>
 
         <div>
-           <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Şehir</label>
-           <input name="city" value={formData.city} onChange={handleChange} className="input input-bordered w-full rounded-2xl" required />
+          <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Şehir</label>
+          <input name="city" value={formData.city} onChange={handleChange} className="input input-bordered w-full rounded-2xl" required />
         </div>
 
         <div>
-           <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">İlçe</label>
-           <input name="district" value={formData.district} onChange={handleChange} className="input input-bordered w-full rounded-2xl" required />
+          <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">İlçe</label>
+          <input name="district" value={formData.district} onChange={handleChange} className="input input-bordered w-full rounded-2xl" required />
         </div>
 
         <div className="md:col-span-2">
-           <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Adres Detayı</label>
-           <textarea name="addressLine" value={formData.addressLine} onChange={handleChange} className="textarea textarea-bordered w-full rounded-2xl h-24" required />
+          <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Adres Detayı</label>
+          <textarea name="addressLine" value={formData.addressLine} onChange={handleChange} className="textarea textarea-bordered w-full rounded-2xl h-24" required />
         </div>
 
         <div className="border-t border-base-content/5 pt-4 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-           <div className="md:col-span-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-2">Kurumsal Bilgiler (Opsiyonel)</p>
-           </div>
-           <div>
-              <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Vergi Dairesi</label>
-              <input name="taxOffice" value={formData.taxOffice} onChange={handleChange} className="input input-bordered w-full rounded-2xl" />
-           </div>
-           <div>
-              <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Vergi Numarası</label>
-              <input name="taxNumber" value={formData.taxNumber} onChange={handleChange} className="input input-bordered w-full rounded-2xl" />
-           </div>
+          <div className="md:col-span-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 mb-2">Kurumsal Bilgiler (Opsiyonel)</p>
+          </div>
+          <div>
+            <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Vergi Dairesi</label>
+            <input name="taxOffice" value={formData.taxOffice} onChange={handleChange} className="input input-bordered w-full rounded-2xl" />
+          </div>
+          <div>
+            <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Vergi Numarası</label>
+            <input name="taxNumber" value={formData.taxNumber} onChange={handleChange} className="input input-bordered w-full rounded-2xl" />
+          </div>
         </div>
 
         <div className="md:col-span-2 pt-6">
-           <button type="submit" disabled={isSubmitting} className="btn btn-primary w-full rounded-2xl h-14 font-black uppercase italic shadow-lg shadow-primary/20">
-              {isSubmitting ? <span className="loading loading-spinner" /> : "Fatura Bilgilerini Kaydet"}
-           </button>
-           {message && <p className="mt-4 text-sm font-bold text-success text-center">{message}</p>}
-           {error && <p className="mt-4 text-sm font-bold text-error text-center">{error}</p>}
+          <button type="submit" disabled={isSubmitting} className="btn btn-primary w-full rounded-2xl h-14 font-black uppercase italic shadow-lg shadow-primary/20">
+            {isSubmitting ? <span className="loading loading-spinner" /> : "Fatura Bilgilerini Kaydet"}
+          </button>
+          {message && <p className="mt-4 text-sm font-bold text-success text-center">{message}</p>}
+          {error && <p className="mt-4 text-sm font-bold text-error text-center">{error}</p>}
         </div>
       </form>
     </article>
@@ -502,6 +503,7 @@ export function ProfileDashboard() {
       else if (hash === "#wallet") setActiveTab("wallet");
       else if (hash === "#billing") setActiveTab("billing");
       else if (hash === "#orders") setActiveTab("orders");
+      else if (hash === "#notifications") setActiveTab("notifications");
       else setActiveTab("profile");
     };
 
@@ -519,6 +521,7 @@ export function ProfileDashboard() {
       else if (tab === "wallet") hash = "#wallet";
       else if (tab === "billing") hash = "#billing";
       else if (tab === "orders") hash = "#orders";
+      else if (tab === "notifications") hash = "#notifications";
       window.history.replaceState(null, "", hash);
     }
   }
@@ -670,14 +673,14 @@ export function ProfileDashboard() {
         </article>
       ) : null}
 
-      <article className="glass-frame relative overflow-hidden border border-primary/20 bg-gradient-to-br from-base-100/92 via-base-100/85 to-primary/8 p-5 shadow-2xl shadow-primary/10 sm:p-7">
+      <article className="glass-frame relative overflow-hidden border border-primary/20 bg-linear-to-br from-base-100/92 via-base-100/85 to-primary/8 p-5 shadow-2xl shadow-primary/10 sm:p-7">
         <div className="pointer-events-none absolute -left-24 -top-24 h-56 w-56 rounded-full bg-primary/18 blur-3xl" />
         <div className="pointer-events-none absolute -right-12 bottom-0 h-44 w-44 rounded-full bg-secondary/18 blur-3xl" />
 
         <div className="relative z-10 grid gap-6 xl:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] xl:items-start">
           <div className="flex flex-col items-center gap-4 rounded-[1.9rem] border border-base-content/12 bg-base-100/20 p-5 text-center xl:items-start xl:text-left">
             <div className="relative">
-              <div className="absolute -inset-1 rounded-[2.5rem] bg-gradient-to-br from-primary/45 via-secondary/30 to-transparent blur-md" />
+              <div className="absolute -inset-1 rounded-[2.5rem] bg-linear-to-br from-primary/45 via-secondary/30 to-transparent blur-md" />
               {avatarPreviewUrl || profile.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -702,7 +705,7 @@ export function ProfileDashboard() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-[1.5rem] border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
+            <div className="rounded-3xl border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
               <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-base-content/50">
                 <BookOpenText className="h-3.5 w-3.5 text-primary" />
                 Eser
@@ -711,7 +714,7 @@ export function ProfileDashboard() {
               <p className="mt-1 text-sm text-base-content/66">toplam eser</p>
             </div>
 
-            <div className="rounded-[1.5rem] border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
+            <div className="rounded-3xl border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
               <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-base-content/50">
                 <UserPlus2 className="h-3.5 w-3.5 text-primary" />
                 Takip
@@ -720,7 +723,7 @@ export function ProfileDashboard() {
               <p className="mt-1 text-sm text-base-content/66">takip ettigin yazar</p>
             </div>
 
-            <div className="rounded-[1.5rem] border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
+            <div className="rounded-3xl border border-base-content/12 bg-base-100/20 p-4 backdrop-blur-sm">
               <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-base-content/50">
                 <Users className="h-3.5 w-3.5 text-primary" />
                 Takipci
@@ -755,7 +758,7 @@ export function ProfileDashboard() {
               </button>
             </div>
 
-            <div className="sm:col-span-3 rounded-[1.6rem] border border-primary/15 bg-gradient-to-r from-base-100/26 via-base-100/18 to-primary/8 p-4">
+            <div className="sm:col-span-3 rounded-[1.6rem] border border-primary/15 bg-linear-to-r from-base-100/26 via-base-100/18 to-primary/8 p-4">
               <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-base-content/48">
                 <Quote className="h-3.5 w-3.5 text-primary" />
                 Profil Notu
@@ -814,36 +817,44 @@ export function ProfileDashboard() {
             <Shield className="h-4 w-4" />
             Güvenlik
           </button>
+          <button
+            type="button"
+            onClick={() => switchTab("notifications")}
+            className={`btn rounded-full px-5 ${activeTab === "notifications" ? "btn-primary" : "bg-base-100/20"}`}
+          >
+            <Bell className="h-4 w-4" />
+            Bildirimler
+          </button>
         </div>
       </div>
 
       {activeTab === "profile" && (
         <div id="profile" className="grid gap-6">
-          <article className="glass-frame relative overflow-hidden p-8 border border-primary/10 bg-gradient-to-br from-base-100 to-primary/5 shadow-xl">
-             <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                <div>
-                   <h2 className="text-3xl font-black italic uppercase leading-tight tracking-tighter">Profil Özetin</h2>
-                   <p className="mt-2 text-sm font-bold text-base-content/40 uppercase tracking-widest leading-relaxed">Platform üzerindeki etkileşiminin özeti</p>
+          <article className="glass-frame relative overflow-hidden p-8 border border-primary/10 bg-linear-to-br from-base-100 to-primary/5 shadow-xl">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+              <div>
+                <h2 className="text-3xl font-black italic uppercase leading-tight tracking-tighter">Profil Özetin</h2>
+                <p className="mt-2 text-sm font-bold text-base-content/40 uppercase tracking-widest leading-relaxed">Platform üzerindeki etkileşiminin özeti</p>
+              </div>
+
+              <div className="stats shadow-lg bg-base-100/50 border border-base-content/5 rounded-3xl overflow-hidden">
+                <div className="stat px-8 py-6">
+                  <div className="stat-figure text-primary">
+                    <BookOpenText className="w-8 h-8" />
+                  </div>
+                  <div className="stat-title text-[10px] font-black uppercase tracking-widest opacity-60">Okunan Bölüm</div>
+                  <div className="stat-value text-3xl font-black">1.2k</div>
                 </div>
-                
-                <div className="stats shadow-lg bg-base-100/50 border border-base-content/5 rounded-3xl overflow-hidden">
-                   <div className="stat px-8 py-6">
-                      <div className="stat-figure text-primary">
-                        <BookOpenText className="w-8 h-8" />
-                      </div>
-                      <div className="stat-title text-[10px] font-black uppercase tracking-widest opacity-60">Okunan Bölüm</div>
-                      <div className="stat-value text-3xl font-black">1.2k</div>
-                    </div>
-                    
-                    <div className="stat px-8 py-6 border-l border-base-content/5">
-                      <div className="stat-figure text-secondary">
-                        <Wallet className="w-8 h-8" />
-                      </div>
-                      <div className="stat-title text-[10px] font-black uppercase tracking-widest opacity-60">Harcanan Jeton</div>
-                      <div className="stat-value text-3xl font-black">2.4k</div>
-                    </div>
+
+                <div className="stat px-8 py-6 border-l border-base-content/5">
+                  <div className="stat-figure text-secondary">
+                    <Wallet className="w-8 h-8" />
+                  </div>
+                  <div className="stat-title text-[10px] font-black uppercase tracking-widest opacity-60">Harcanan Jeton</div>
+                  <div className="stat-value text-3xl font-black">2.4k</div>
                 </div>
-             </div>
+              </div>
+            </div>
           </article>
         </div>
       )}
@@ -872,6 +883,12 @@ export function ProfileDashboard() {
         </div>
       )}
 
+      {activeTab === "notifications" && (
+        <div id="notifications" className="scroll-mt-32">
+          <NotificationSettings />
+        </div>
+      )}
+
 
       {avatarFile ? (
         <AvatarCropperModal
@@ -887,7 +904,7 @@ export function ProfileDashboard() {
       ) : null}
 
       {isEditModalOpen ? (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-base-content/38 p-4 backdrop-blur-md">
+        <div className="fixed inset-0 z-70 flex items-center justify-center bg-base-content/38 p-4 backdrop-blur-md">
           <div className="glass-frame w-full max-w-2xl p-6 sm:p-7">
             <div className="flex items-start justify-between gap-4">
               <div>

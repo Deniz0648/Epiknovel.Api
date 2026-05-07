@@ -65,6 +65,9 @@ public static class IdentityModuleExtensions
             options.TokenLifespan = TimeSpan.FromHours(3);
         });
 
+        // Services
+        services.AddScoped<IUserAccountProvider, Services.UserAccountProvider>();
+        
         return services;
     }
 

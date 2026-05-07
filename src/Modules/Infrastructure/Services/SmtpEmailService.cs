@@ -14,29 +14,37 @@ public class SmtpEmailService(
     {
         try 
         {
-            // Veritabanından SMTP Ayarlarını Çek
-            var host = await settingProvider.GetSettingValueAsync("SMTP_Host", ct) ?? "localhost";
-            var port = await settingProvider.GetSettingValueAsync<int>("SMTP_Port", ct);
-            if (port == 0) port = 587;
+            // Standart SMTP Ayarlarını Çek
+            var host = await GetSettingOrEnvAsync("SMTP_Host", "SMTP_HOST", "localhost");
+            var portStr = await GetSettingOrEnvAsync("SMTP_Port", "SMTP_PORT", "587");
+            var port = int.TryParse(portStr, out var p) ? p : 587;
             
-            var userName = await settingProvider.GetSettingValueAsync("SMTP_Username", ct);
-            var password = await settingProvider.GetSettingValueAsync("SMTP_Password", ct);
-            var fromEmail = await settingProvider.GetSettingValueAsync("SMTP_FromEmail", ct) ?? "no-reply@epiknovel.com";
-            var fromName = await settingProvider.GetSettingValueAsync("SMTP_FromName", ct) ?? "Epiknovel";
-            var enableSsl = await settingProvider.GetSettingValueAsync<bool>("SMTP_EnableSsl", ct);
+            var userName = await GetSettingOrEnvAsync("SMTP_Username", "SMTP_USERNAME", null);
+            var password = await GetSettingOrEnvAsync("SMTP_Password", "SMTP_PASSWORD", null);
+            var fromEmail = await GetSettingOrEnvAsync("SMTP_FromEmail", "SMTP_FROM_EMAIL", "no-reply@epiknovel.com");
+            var fromName = await GetSettingOrEnvAsync("SMTP_FromName", "SMTP_FROM_NAME", "Epiknovel");
+            
+            var sslStr = await GetSettingOrEnvAsync("SMTP_EnableSsl", "SMTP_ENABLE_SSL", "true");
+            // Port 587 ise SSL her zaman true olmalı (Gmail vb. için zorunlu)
+            var enableSsl = (sslStr?.ToLower() == "true") || (port == 587);
 
             // Eğer ayarlar boşsa (Yeni kurulum), Console üzerinden log bas (Failsafe)
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
             {
-                logger.LogWarning("SMTP Settings are not configured. Logging email to console instead.");
+                logger.LogWarning("SMTP Settings are not configured (Username/Password missing). Logging email to console instead.");
                 logger.LogInformation($"[SIMULATED EMAIL] To: {to} | Subject: {subject} | Body: {body}");
                 return;
             }
 
+            logger.LogInformation($"[SMTP] Attempting to send email to {to} via {host}:{port} (SSL: {enableSsl})");
+
             using var client = new SmtpClient(host, port)
             {
+                UseDefaultCredentials = false,
                 Credentials = new NetworkCredential(userName, password),
-                EnableSsl = enableSsl
+                EnableSsl = enableSsl,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                Timeout = 20000 // 20 saniye timeout
             };
 
             var mailMessage = new MailMessage
@@ -46,16 +54,26 @@ public class SmtpEmailService(
                 Body = body,
                 IsBodyHtml = true
             };
-            
             mailMessage.To.Add(to);
 
             await client.SendMailAsync(mailMessage, ct);
-            logger.LogInformation($"Email sent successfully to {to}");
+            logger.LogInformation($"[SMTP] Email successfully sent to {to}");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, $"Failed to send email to {to}");
             throw; // Üst katmanda (Outbox vb.) işlenmesi için fırlat
         }
+    }
+    
+    private async Task<string?> GetSettingOrEnvAsync(string dbKey, string envKey, string? defaultValue, CancellationToken ct = default)
+    {
+        var dbValue = await settingProvider.GetSettingValueAsync(dbKey, ct);
+        if (!string.IsNullOrEmpty(dbValue)) return dbValue;
+
+        var envValue = Environment.GetEnvironmentVariable(envKey);
+        if (!string.IsNullOrEmpty(envValue)) return envValue;
+
+        return defaultValue;
     }
 }

@@ -13,7 +13,7 @@ public static class SocialModuleExtensions
             options.UseNpgsql(connectionString, x => 
                 x.MigrationsHistoryTable("__EFMigrationsHistory", "social")
                  .EnableRetryOnFailure())
-                 .ConfigureWarnings(w => w.Ignore(20100, 20605))
+                 .ConfigureWarnings(w => w.Ignore(20100, 20605, Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning))
                  .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
 
         services.AddScoped<Epiknovel.Shared.Core.Interfaces.IReadingProgressProvider, Services.ReadingProgressProvider>();
