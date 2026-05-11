@@ -105,7 +105,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
   return (
     <main className="relative overflow-hidden">
       <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
-        <section className="glass-frame space-y-5 p-5 sm:p-7">
+        <section className="glass-frame space-y-6 px-4 py-6 sm:p-7">
           <div className="breadcrumbs text-xs font-semibold text-base-content/50 mb-1">
             <ul>
               <li><Link href="/" className="hover:text-primary transition-colors flex items-center"><Home className="w-3.5 h-3.5 mr-1.5" /> Ana Sayfa</Link></li>
@@ -113,8 +113,8 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
               <li className="text-base-content/40">{detail.title}</li>
             </ul>
           </div>
-
-          <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-7">
+ 
+          <div className="grid items-stretch justify-items-center gap-6 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-7 lg:justify-items-stretch">
             <div className="mx-auto w-full max-w-70 lg:mx-0 lg:max-w-none">
               <div className="glass-frame relative aspect-2/3 overflow-hidden p-1.5">
                 <div className="relative h-full w-full overflow-hidden rounded-[1.1rem]">
@@ -131,9 +131,9 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                 </div>
               </div>
             </div>
-
-            <div className="flex min-h-full flex-col space-y-3.5">
-              <div className="flex flex-wrap gap-2">
+ 
+            <div className="flex min-h-full w-full flex-col items-center space-y-4 text-center lg:items-start lg:text-left">
+              <div className="flex flex-wrap justify-center gap-2 lg:justify-start">
                 <span className="rounded-full border border-base-content/14 bg-base-100/34 px-2.5 py-1 text-[11px] font-semibold">
                   {detail.workType}
                 </span>
@@ -162,8 +162,8 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                 </p>
               </div>
 
-              <div className="grid gap-3 rounded-2xl border border-base-content/12 bg-base-100/20 p-3.5 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="space-y-1.5">
+              <div className="grid w-full gap-3 rounded-2xl border border-base-content/12 bg-base-100/20 p-3.5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1.5 text-center lg:text-left">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
                     Mevcut Puan
                   </p>
@@ -172,25 +172,27 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                     <span className="text-base-content">{detail.rating.toFixed(1)}</span>
                   </p>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 text-center lg:text-left">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
                     Puanlama
                   </p>
-                  <RatingStars 
-                    bookId={detail.id} 
-                    initialRating={detail.rating}
-                    myRating={detail.userRating}
-                    onRatingUpdated={(newAvg, newVoteCount, newMyRating) => {
-                       setDetail(prev => prev ? ({ 
-                          ...prev, 
-                          rating: newAvg, 
-                          voteCount: newVoteCount,
-                          userRating: newMyRating 
-                       }) : null);
-                    }}
-                  />
+                  <div className="flex justify-center lg:justify-start">
+                    <RatingStars 
+                      bookId={detail.id} 
+                      initialRating={detail.rating}
+                      myRating={detail.userRating}
+                      onRatingUpdated={(newAvg, newVoteCount, newMyRating) => {
+                         setDetail(prev => prev ? ({ 
+                            ...prev, 
+                            rating: newAvg, 
+                            voteCount: newVoteCount,
+                            userRating: newMyRating 
+                         }) : null);
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 text-center lg:text-left">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
                     Okunma
                   </p>
@@ -199,7 +201,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                     {detail.reads.toLocaleString("tr-TR")}
                   </p>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 text-center lg:text-left">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
                     Bolum Sayisi
                   </p>
@@ -219,7 +221,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                 </p>
               </div>
 
-              <div className="flex w-full items-center gap-3 pt-4">
+              <div className="flex w-full items-center justify-center gap-3 pt-4 lg:justify-start">
                 {chapters.length > 0 ? (
                   <Link 
                     href={`/read/${bookSlug}/${chapters[0].slug}`} 
@@ -255,14 +257,14 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
           isLoadingChapters={isLoadingChapters}
         />
 
-        <section className="glass-frame p-4 sm:p-5">
-          <div className="mb-3 flex items-center gap-2">
+        <section className="glass-frame p-5 sm:p-6">
+          <div className="mb-4 flex items-center justify-center gap-2 lg:justify-start">
             <Tag className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-black uppercase tracking-[0.08em] text-base-content/82">
               Etiketler
             </h2>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap justify-center gap-2 lg:justify-start">
             {detail.tags.map((tag) => (
               <span
                 key={tag}
