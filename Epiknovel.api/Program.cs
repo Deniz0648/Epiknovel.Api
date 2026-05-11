@@ -24,14 +24,24 @@ using Epiknovel.Modules.Management.Data;
 using Epiknovel.Modules.Compliance.Data;
 using Epiknovel.Modules.Infrastructure.Data;
 using Epiknovel.Modules.Management.Hubs;
+using Serilog;
 
 DotNetEnv.Env.Load();
+
+// 📊 Logging: Serilog & Seq Configuration
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.Seq(Environment.GetEnvironmentVariable("SEQ_URL") ?? "http://localhost:5341")
+    .CreateLogger();
 
 // 🛡️ HARDENING: Npgsql & PostgreSQL 17 Compatibility Switches
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 // 1. .env ve Yapılandırma
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? "super-secret-key-2026";

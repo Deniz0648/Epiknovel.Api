@@ -11,7 +11,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # Postgres 18+ için doğru mount dizini:
+      - postgres_data_v18:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
       interval: 5s
@@ -73,11 +74,42 @@ services:
       - epiknovel_api
     environment:
       - NODE_ENV=production
-      - API_BASE_URL=http://epiknovel_api:8080/api
-      - NEXT_PUBLIC_COOKIE_SECURE=${NEXT_PUBLIC_COOKIE_SECURE}
+      - API_BASE_URL=https://api.epiknovel.com/api
+      - NEXT_PUBLIC_COOKIE_SECURE=true
+
+  # 🛡️ Ters Proxy (Caddy)
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    container_name: epiknovel_proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - epiknovel_api
+      - epiknovel_web
+      - seq
+
+  # 📊 Log Yönetimi (Seq)
+  seq:
+    image: datalust/seq:latest
+    restart: always
+    container_name: epiknovel_logs
+    environment:
+      - ACCEPT_EULA=Y
+      - SEQ_FIRSTRUN_ADMINPASSWORD=${SEQ_ADMIN_PASSWORD}
+    volumes:
+      - seq_data:/data
 
 volumes:
-  postgres_data:
+  postgres_data_v18:
   redis_data:
   epiknovel_keys:
-
+  caddy_data:
+  caddy_config:
+  seq_data:

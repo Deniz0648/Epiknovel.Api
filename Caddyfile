@@ -1,0 +1,42 @@
+{
+    # HTTP/3 desteği varsayılan olarak açıktır. 
+    # Port 443/UDP üzerinden erişilebilir olmalıdır.
+    # 'servers' bloğundaki hatalı 'protocol' kısmı kaldırıldı.
+}
+
+# Frontend - Test
+test.epiknovel.com {
+    reverse_proxy epiknovel_web:3000
+    
+    # Sıkıştırma ve Güvenlik Başlıkları
+    encode zstd gzip
+    header {
+        # HSTS (H3 için önemli)
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+}
+
+# Backend API
+api.epiknovel.com {
+    reverse_proxy epiknovel_api:8080
+    
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        Access-Control-Allow-Origin "https://test.epiknovel.com"
+        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        Access-Control-Allow-Headers "Content-Type, Authorization"
+    }
+}
+
+# Logs (Seq)
+logs.epiknovel.com {
+    # Konteyner isminiz epiknovel_logs olduğu için burayı güncelledik
+    # Seq varsayılan olarak 80 portundan hizmet verir (veya 5341 API için)
+    reverse_proxy epiknovel_logs:80
+    
+    encode zstd gzip
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+}
