@@ -97,22 +97,8 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
             })
             .ToListAsync(ct);
 
-        foreach (var book in books)
-        {
-            book.Chapters = await dbContext.Chapters
-                .AsNoTracking()
-                .Where(c => c.BookId == book.Id)
-                .OrderByDescending(c => c.Order)
-                .Select(c => new Epiknovel.Shared.Core.Interfaces.Management.UserChapterDto
-                {
-                    Id = c.Id,
-                    Title = c.Title,
-                    Price = c.Price,
-                    IsFree = c.IsFree,
-                    CreatedAt = c.CreatedAt
-                })
-                .ToListAsync(ct);
-        }
+        // Performance Optimization: Removed chapter loading to prevent browser lag for high-volume authors.
+        // The management panel now only displays book metadata and total chapter counts.
 
         var totalChapters = await dbContext.Chapters.CountAsync(x => x.UserId == authorId, ct);
 
@@ -211,5 +197,28 @@ public class BookProvider(BooksDbContext dbContext) : IBookProvider
             .Where(b => bookIdList.Contains(b.Id))
             .Select(b => new { b.Id, b.Title, b.Slug, b.AverageRating })
             .ToDictionaryAsync(x => x.Id, x => (x.Title, x.Slug, x.AverageRating), ct);
+    }
+    public async Task<int> GetAuthorTotalChaptersCountAsync(Guid authorId, CancellationToken ct = default)
+    {
+        return await dbContext.Chapters.CountAsync(x => x.UserId == authorId, ct);
+    }
+
+    public async Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserBookDto>> GetAuthorBooksPaginatedAsync(Guid authorId, int page, int take, CancellationToken ct = default)
+    {
+        return await dbContext.Books
+            .AsNoTracking()
+            .Where(x => x.AuthorId == authorId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((page - 1) * take)
+            .Take(take)
+            .Select(x => new Epiknovel.Shared.Core.Interfaces.Management.UserBookDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Status = x.Status.ToString(),
+                CreatedAt = x.CreatedAt,
+                ChapterCount = x.Chapters.Count()
+            })
+            .ToListAsync(ct);
     }
 }

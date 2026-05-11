@@ -9,4 +9,8 @@ public interface IWalletProvider
     Task<bool> HasUserUnlockedChapterAsync(Guid userId, Guid chapterId, CancellationToken ct = default);
     Task<(decimal balance, List<Epiknovel.Shared.Core.Interfaces.Management.WalletTransactionDto> recentTransactions)> GetWalletSummaryAsync(Guid userId, int transactionCount = 10, CancellationToken ct = default);
     Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetUserUnlockedChaptersAsync(Guid userId, CancellationToken ct = default);
+    
+    // 📄 Paginated Lists
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetUserUnlockedChaptersPaginatedAsync(Guid userId, int page, int take, CancellationToken ct = default);
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.WalletTransactionDto>> GetUserTransactionsPaginatedAsync(Guid userId, int page, int take, CancellationToken ct = default);
 }

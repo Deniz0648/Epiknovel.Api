@@ -141,7 +141,7 @@ export default function AnnouncementsManagementPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 mb-8 pt-4">
         {!showEditor && (
           <button onClick={handleCreate} className="btn btn-primary rounded-2xl gap-2 shadow-lg shadow-primary/20 h-12 px-6">
@@ -339,56 +339,98 @@ export default function AnnouncementsManagementPage() {
               <button onClick={handleCreate} className="btn btn-outline btn-primary rounded-xl px-8">İlk Duyuruyu Oluştur</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {announcements.map(item => {
-                const isPublished = !item.publishedAt || new Date(item.publishedAt) <= new Date();
-                return (
-                  <div key={item.id} className="glass-frame p-0 overflow-hidden flex flex-col group hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1 border-base-content/5">
-                    {item.imageUrl && (
-                      <div className="h-40 overflow-hidden relative">
-                        <img src={item.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                        {item.isPinned && (
-                          <div className="absolute top-4 left-4 bg-primary text-primary-content px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-[10px] font-black shadow-lg">
-                            <Pin className="h-3 w-3" />
-                            SABİTLENMİŞ
-                          </div>
-                        )}
-                        {!isPublished && (
-                          <div className="absolute top-4 right-4 bg-amber-500 text-white px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-[10px] font-black shadow-lg">
-                            <Clock className="h-3 w-3" />
-                            İLERİ TARİHLİ
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div className="p-6 flex-1 flex flex-col">
-                      {!item.imageUrl && item.isPinned && (
-                         <div className="mb-4 text-primary flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest">
-                            <Pin className="h-3 w-3" />
-                            SABİTLENMİŞ DUYURU
-                         </div>
-                      )}
-                      <h4 className="text-lg font-black tracking-tight mb-2 line-clamp-1">{item.title}</h4>
-                      <p className="text-sm text-base-content/60 line-clamp-2 mb-6 flex-1">{item.content.replace(/<[^>]*>/g, '')}</p>
+            <div className="glass-frame p-0 overflow-hidden border-base-content/5">
+              <div className="overflow-x-auto">
+                <table className="table w-full border-separate border-spacing-0">
+                  <thead>
+                    <tr className="bg-base-content/2 text-[10px] font-black uppercase tracking-[0.15em] text-base-content/50 border-b border-base-content/10">
+                      <th className="py-5 pl-8">DUYURU BAŞLIĞI</th>
+                      <th>YAYIN TARİHİ</th>
+                      <th>BİTİŞ TARİHİ</th>
+                      <th>DURUM</th>
+                      <th className="text-right pr-8">İŞLEMLER</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-semibold text-sm">
+                    {announcements.map(item => {
+                      const isPublished = !item.publishedAt || new Date(item.publishedAt) <= new Date();
+                      const isExpired = item.expiresAt && new Date(item.expiresAt) < new Date();
                       
-                      <div className="flex items-center justify-between pt-4 border-t border-base-content/5 mt-auto">
-                        <div className="flex items-center gap-2 text-[10px] font-bold opacity-40">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(item.publishedAt || item.createdAt).toLocaleDateString("tr-TR")}
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => handleDelete(item.id)} className="btn btn-ghost btn-xs btn-square text-error hover:bg-error/10">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                          <button onClick={() => handleEdit(item)} className="btn btn-ghost btn-xs btn-square hover:bg-primary/10 hover:text-primary">
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                      return (
+                        <tr key={item.id} className="hover:bg-base-content/2 transition-colors border-b border-base-content/5 last:border-0 group">
+                          <td className="py-4 pl-8">
+                            <div className="flex items-center gap-4">
+                              {item.imageUrl ? (
+                                <div className="h-10 w-16 rounded-lg overflow-hidden border border-base-content/10 shrink-0">
+                                  <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <div className="h-10 w-16 rounded-lg bg-base-content/5 border border-base-content/5 flex items-center justify-center shrink-0">
+                                  <Bell className="h-4 w-4 opacity-20" />
+                                </div>
+                              )}
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold tracking-tight line-clamp-1">{item.title}</span>
+                                  {item.isPinned && (
+                                    <Pin className="h-3 w-3 text-primary" />
+                                  )}
+                                </div>
+                                <span className="text-[10px] opacity-40 font-medium line-clamp-1">{item.content.replace(/<[^>]*>/g, '')}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="opacity-60 text-xs">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(item.publishedAt || item.createdAt).toLocaleDateString("tr-TR")}
+                            </div>
+                          </td>
+                          <td className="opacity-60 text-xs">
+                            {item.expiresAt ? (
+                               <div className="flex items-center gap-2">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(item.expiresAt).toLocaleDateString("tr-TR")}
+                               </div>
+                            ) : (
+                              <span className="text-[10px] uppercase tracking-widest opacity-30 italic">Süresiz</span>
+                            )}
+                          </td>
+                          <td>
+                            {!item.isActive ? (
+                              <span className="badge badge-ghost rounded-lg font-black text-[9px] uppercase tracking-wider h-6 border-none bg-base-content/10">PASİF</span>
+                            ) : isExpired ? (
+                              <span className="badge badge-error badge-outline rounded-lg font-black text-[9px] uppercase tracking-wider h-6">SÜRESİ DOLDU</span>
+                            ) : !isPublished ? (
+                              <span className="badge badge-warning rounded-lg font-black text-[9px] uppercase tracking-wider h-6 border-none">PLANLANDI</span>
+                            ) : (
+                              <span className="badge badge-success rounded-lg font-black text-[9px] uppercase tracking-wider h-6 border-none text-success-content">YAYINDA</span>
+                            )}
+                          </td>
+                          <td className="text-right pr-8">
+                            <div className="flex justify-end gap-2">
+                              <button 
+                                onClick={() => handleEdit(item)}
+                                className="btn btn-ghost btn-sm btn-square hover:bg-primary/10 hover:text-primary transition-all"
+                                title="Düzenle"
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(item.id)}
+                                className="btn btn-ghost btn-sm btn-square hover:bg-error/10 hover:text-error transition-all"
+                                title="Sil"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

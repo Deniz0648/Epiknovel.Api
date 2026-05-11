@@ -59,7 +59,7 @@ export function UpdatesFeed({
           <h3 className="text-base font-bold sm:text-xl">Son Duyurular</h3>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-4 xl:gap-2.5">
+        <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-6 xl:gap-2.5">
           {announcements.map((item) => (
             <div
               key={`${item.title}-${item.date}`}

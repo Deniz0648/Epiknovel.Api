@@ -76,4 +76,9 @@ public interface IBookProvider
     /// N+1 problemini önlemek için kullanılır.
     /// </summary>
     Task<Dictionary<Guid, (string Title, string Slug, double AverageRating)>> GetBookBasicsByIdsAsync(IEnumerable<Guid> bookIds, CancellationToken ct = default);
+    Task<int> GetAuthorTotalChaptersCountAsync(Guid authorId, CancellationToken ct = default);
+    /// <summary>
+    /// Verilen yazarın kitaplarını sayfalama ile döndürür.
+    /// </summary>
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserBookDto>> GetAuthorBooksPaginatedAsync(Guid authorId, int page, int take, CancellationToken ct = default);
 }

@@ -132,14 +132,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function restoreSession() {
       try {
+        console.log("[AUTH] Restoring session...");
         const session = await getValidSession();
+        console.log("[AUTH] Session restored:", session ? "Logged In" : "Not Logged In");
         if (cancelled || !session) {
           return;
         }
 
         setProfile(session);
+      } catch (err) {
+        console.error("[AUTH] Restore session error:", err);
       } finally {
         if (!cancelled) {
+          console.log("[AUTH] Setting isLoading to false");
           setIsLoading(false);
         }
       }

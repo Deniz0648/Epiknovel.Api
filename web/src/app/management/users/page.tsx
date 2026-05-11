@@ -39,6 +39,18 @@ export default function UserManagementPage() {
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
+  const [booksPage, setBooksPage] = useState(1);
+  const [hasMoreBooks, setHasMoreBooks] = useState(true);
+  const [isLoadingMoreBooks, setIsLoadingMoreBooks] = useState(false);
+
+  const [purchasesPage, setPurchasesPage] = useState(1);
+  const [hasMorePurchases, setHasMorePurchases] = useState(true);
+  const [isLoadingMorePurchases, setIsLoadingMorePurchases] = useState(false);
+
+  const [txPage, setTxPage] = useState(1);
+  const [hasMoreTx, setHasMoreTx] = useState(true);
+  const [isLoadingMoreTx, setIsLoadingMoreMoreTx] = useState(false);
+
   async function loadUsers(initial = true) {
     if (initial) setIsLoading(true);
     try {
@@ -73,14 +85,86 @@ export default function UserManagementPage() {
 
   async function loadUserDetails(userId: string) {
     setIsLoadingDetails(true);
+    setBooksPage(1);
+    setHasMoreBooks(true);
+    setPurchasesPage(1);
+    setHasMorePurchases(true);
+    setTxPage(1);
+    setHasMoreTx(true);
+
     try {
       const data = await apiRequest<any>(`/management/users/${userId}`);
       setUserDetails(data);
+      
+      if ((data.books || []).length < 10) setHasMoreBooks(false);
+      if ((data.purchasedChapters || []).length < 10) setHasMorePurchases(false);
+      if ((data.recentTransactions || []).length < 10) setHasMoreTx(false);
+
     } catch (err) {
       console.error("Kullanıcı detaylari yuklenirken hata:", err);
       showToast({ title: "Hata", description: "Kullanıcı detayları yüklenemedi.", tone: "error" });
     } finally {
       setIsLoadingDetails(false);
+    }
+  }
+
+  async function loadMoreBooks() {
+    if (!userDetails || isLoadingMoreBooks) return;
+    setIsLoadingMoreBooks(true);
+    try {
+      const nextPage = booksPage + 1;
+      const data = await apiRequest<any[]>(`/management/users/${userDetails.id}/books?page=${nextPage}&take=10`);
+      if (data.length < 10) setHasMoreBooks(false);
+      
+      setUserDetails((prev: any) => ({
+        ...prev,
+        books: [...(prev.books || []), ...data]
+      }));
+      setBooksPage(nextPage);
+    } catch (err) {
+      showToast({ title: "Hata", description: "Daha fazla kitap yüklenemedi.", tone: "error" });
+    } finally {
+      setIsLoadingMoreBooks(false);
+    }
+  }
+
+  async function loadMorePurchases() {
+    if (!userDetails || isLoadingMorePurchases) return;
+    setIsLoadingMorePurchases(true);
+    try {
+      const nextPage = purchasesPage + 1;
+      const data = await apiRequest<any[]>(`/management/users/${userDetails.id}/purchases?page=${nextPage}&take=20`);
+      if (data.length < 20) setHasMorePurchases(false);
+      
+      setUserDetails((prev: any) => ({
+        ...prev,
+        purchasedChapters: [...(prev.purchasedChapters || []), ...data]
+      }));
+      setPurchasesPage(nextPage);
+    } catch (err) {
+      showToast({ title: "Hata", description: "Daha fazla satın alım yüklenemedi.", tone: "error" });
+    } finally {
+      setIsLoadingMorePurchases(false);
+    }
+  }
+
+  async function loadMoreTransactions() {
+    if (!userDetails || isLoadingMoreTx) return;
+    setIsLoadingMoreMoreTx(true);
+    try {
+      const nextPage = txPage + 1;
+      const data = await apiRequest<any[]>(`/management/users/${userDetails.id}/transactions?page=${nextPage}&take=20`);
+      if (data.length < 20) setHasMoreTx(false);
+      
+      setUserDetails((prev: any) => ({
+        ...prev,
+        recentTransactions: [...(prev.recentTransactions || []), ...data]
+      }));
+      setTxPage(nextPage);
+    } catch (err) {
+      showToast({ title: "Hata", description: "Daha fazla işlem yüklenemedi.", tone: "error" });
+    } finally {
+      setIsLoadingMoreMoreTx(false);
     }
   }
 
@@ -336,7 +420,7 @@ export default function UserManagementPage() {
         {/* User Detail Info Panel */}
         <div className={`flex-1 flex-col gap-6 overflow-y-auto no-scrollbar ${selectedUser ? "flex" : "hidden"}`}>
           {selectedUser ? (
-            <div className="flex flex-col gap-6 pb-20 max-w-5xl mx-auto w-full">
+            <div className="flex flex-col gap-6 pb-20 w-full">
               {/* Back Button */}
               <button
                 onClick={() => setSelectedUser(null)}
@@ -381,6 +465,30 @@ export default function UserManagementPage() {
                     <div className={`text-xs font-bold ${selectedUser.isBanned ? "text-error italic" : "text-success"}`}>
                       {selectedUser.isBanned ? "YASAKLI" : "AKTİF"}
                     </div>
+                  </div>
+                </div>
+
+                {/* Role Management */}
+                <div className="w-full pt-4 border-t border-base-content/5 mb-6 text-left">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 mb-3">YETKİ YÖNETİMİ</p>
+                  <div className="flex flex-wrap gap-2">
+                    {["SuperAdmin", "Admin", "Mod", "Author", "User"].map((role) => {
+                      const isActive = (userDetails?.roles || selectedUser?.roles || []).includes(role);
+                      return (
+                        <button
+                          key={role}
+                          onClick={() => handleToggleRole(selectedUser.id, role)}
+                          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border flex items-center gap-2 ${
+                            isActive 
+                            ? "bg-primary text-primary-content border-primary shadow-lg shadow-primary/20" 
+                            : "bg-base-content/5 text-base-content/40 border-base-content/10 hover:border-primary/30 hover:text-primary"
+                          }`}
+                        >
+                          {isActive ? <Shield className="h-3 w-3" /> : <ShieldOff className="h-3 w-3" />}
+                          {role}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -441,8 +549,6 @@ export default function UserManagementPage() {
                 <div className="space-y-3">
                   {isLoadingDetails ? (
                     <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
-                  ) : userDetails?.recentTransactions?.length === 0 ? (
-                    <div className="text-center py-6 text-[10px] font-medium opacity-20 italic uppercase tracking-widest">İşlem geçmişi yok.</div>
                   ) : (
                     userDetails?.recentTransactions?.map((tx: any) => (
                       <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl bg-base-content/2 border border-base-content/5 hover:bg-base-content/5 transition-colors">
@@ -457,6 +563,17 @@ export default function UserManagementPage() {
                     ))
                   )}
                 </div>
+
+                {hasMoreTx && (userDetails?.recentTransactions?.length || 0) > 0 && (
+                  <button
+                    onClick={loadMoreTransactions}
+                    disabled={isLoadingMoreTx}
+                    className="w-full mt-4 py-2 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isLoadingMoreTx ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronRight className="h-3 w-3 rotate-90" />}
+                    DAHA FAZLA İŞLEM YÜKLE
+                  </button>
+                )}
               </div>
 
               {/* Work History (Grouped by Book) */}
@@ -468,8 +585,6 @@ export default function UserManagementPage() {
                 <div className="flex flex-col gap-4">
                   {isLoadingDetails ? (
                     <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
-                  ) : userDetails?.books?.length === 0 ? (
-                    <div className="text-center py-6 text-[10px] font-medium opacity-20 italic uppercase tracking-widest">Yayınlanan kitap yok.</div>
                   ) : (
                     userDetails?.books?.map((book: any) => (
                       <div key={book.id} className="rounded-3xl border border-base-content/5 bg-base-content/2 overflow-hidden">
@@ -481,32 +596,21 @@ export default function UserManagementPage() {
                           <div className="text-[9px] font-bold text-base-content/30 uppercase tracking-widest">{book.chapterCount} BÖLÜM YAYINDA</div>
                         </div>
 
-                        {book.chapters?.length > 0 && (
-                          <div className="p-2 space-y-1">
-                            {book.chapters.slice(0, 5).map((chap: any) => (
-                              <div key={chap.id} className="flex items-center justify-between px-3 py-2 rounded-xl hover:bg-primary/5 transition-colors group">
-                                <span className="text-[10px] font-medium text-base-content/60 group-hover:text-base-content transition italic line-clamp-1">{chap.title}</span>
-                                <div className="flex items-center gap-2">
-                                  {chap.isFree ? (
-                                    <span className="text-[8px] font-black text-success/50 uppercase">Free</span>
-                                  ) : (
-                                    <span className="text-[8px] font-black text-warning/50 uppercase">{chap.price} C</span>
-                                  )}
-                                  <span className="text-[8px] font-medium text-base-content/20">{new Date(chap.createdAt).toLocaleDateString("tr-TR")}</span>
-                                </div>
-                              </div>
-                            ))}
-                            {book.chapters.length > 5 && (
-                              <div className="text-center p-1 text-[8px] font-black text-base-content/20 uppercase tracking-tighter">
-                                + {book.chapters.length - 5} Diğer Bölüm
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </div>
                     ))
                   )}
                 </div>
+
+                {hasMoreBooks && (userDetails?.books?.length || 0) > 0 && (
+                  <button
+                    onClick={loadMoreBooks}
+                    disabled={isLoadingMoreBooks}
+                    className="w-full mt-4 py-2 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isLoadingMoreBooks ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronRight className="h-3 w-3 rotate-90" />}
+                    DAHA FAZLA KİTAP YÜKLE
+                  </button>
+                )}
               </div>
 
               {/* Purchased Chapters */}
@@ -518,8 +622,6 @@ export default function UserManagementPage() {
                 <div className="flex flex-col gap-3">
                   {isLoadingDetails ? (
                     <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
-                  ) : userDetails?.purchasedChapters?.length === 0 ? (
-                    <div className="text-center py-6 text-[10px] font-medium opacity-20 italic uppercase tracking-widest">Henüz bir satın alım yok.</div>
                   ) : (
                     userDetails?.purchasedChapters?.map((purchase: any) => (
                       <div key={purchase.chapterId} className="p-4 rounded-3xl bg-base-content/2 border border-base-content/5 hover:bg-base-content/5 transition-colors">
@@ -537,6 +639,17 @@ export default function UserManagementPage() {
                     ))
                   )}
                 </div>
+
+                {hasMorePurchases && (userDetails?.purchasedChapters?.length || 0) > 0 && (
+                  <button
+                    onClick={loadMorePurchases}
+                    disabled={isLoadingMorePurchases}
+                    className="w-full mt-4 py-2 text-[9px] font-black uppercase tracking-widest text-primary/40 hover:text-primary transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isLoadingMorePurchases ? <Loader2 className="h-3 w-3 animate-spin" /> : <ChevronRight className="h-3 w-3 rotate-90" />}
+                    DAHA FAZLA SATIN ALIM YÜKLE
+                  </button>
+                )}
               </div>
             </div>
           ) : (

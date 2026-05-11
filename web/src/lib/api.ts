@@ -100,7 +100,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   const makeRequest = async (currentOptions: RequestOptions) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 saniye timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
 
     try {
       return await fetch(`${API_BASE_URL}${path}`, {

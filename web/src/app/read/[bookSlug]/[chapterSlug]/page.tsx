@@ -322,6 +322,7 @@ export default function ReaderPage() {
               <button onClick={() => { setIsCommentsOpen(true); setCommentType('chapter'); }} className="text-base-content/40 hover:text-primary transition-all"><MessageSquare size={19} /></button>
               <button className="text-base-content/40 hover:text-primary transition-all"><Share2 size={19} /></button>
               <button onClick={() => setIsSettingsOpen(true)} className="text-base-content/40 hover:text-primary transition-all hover:rotate-90"><Settings size={19} /></button>
+              <Link href="/" className="text-base-content/40 hover:text-primary transition-all"><Home size={19} /></Link>
             </div>
           </div>
         </motion.div>

@@ -123,7 +123,9 @@ export async function backendFetch(
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 saniye timeout (Build süreci için kritik)
+    // Build sırasında 5 saniye, normal çalışma anında 60 saniye timeout
+    const timeoutDuration = process.env.NODE_ENV === 'production' && typeof window === 'undefined' ? 5000 : 60000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutDuration);
 
     try {
         const response = await fetch(url, {

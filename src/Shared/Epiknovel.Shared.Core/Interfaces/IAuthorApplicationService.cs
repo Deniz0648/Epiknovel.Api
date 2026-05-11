@@ -23,6 +23,7 @@ public interface IAuthorApplicationService
     Task<Result<AuthorApplicationDto?>> GetUserActiveApplicationAsync(Guid userId, CancellationToken ct = default);
     Task<Result<PaidAuthorApplicationDto?>> GetUserActivePaidAuthorApplicationAsync(Guid userId, CancellationToken ct = default);
     Task<Result<string>> ProcessAuthorApplicationAsync(Guid applicationId, bool approve, string? reason = null, CancellationToken ct = default);
+    Task<Result<bool>> SyncAuthorStatusAsync(Guid userId, bool status, CancellationToken ct = default);
 }
 
 public class AuthorApplicationDto

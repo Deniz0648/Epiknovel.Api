@@ -279,5 +279,50 @@ public class AuthorApplicationService(
 
         return Result<string>.Success("Ücretli yazarlık başvurunuz başarıyla alındı.");
     }
+
+    public async Task<Result<bool>> SyncAuthorStatusAsync(Guid userId, bool status, CancellationToken ct = default)
+    {
+        if (status)
+        {
+            // Approve LAST pending/unapproved
+            var lastPendingApp = await dbContext.AuthorApplications
+                .Where(a => a.UserId == userId && a.Status == ApplicationStatus.Pending)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (lastPendingApp != null)
+                lastPendingApp.Status = ApplicationStatus.Approved;
+
+            var lastPendingPaidApp = await dbContext.PaidAuthorApplications
+                .Where(a => a.UserId == userId && a.Status == ApplicationStatus.Pending)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (lastPendingPaidApp != null)
+                lastPendingPaidApp.Status = ApplicationStatus.Approved;
+        }
+        else
+        {
+            // Reject LAST approved
+            var lastApprovedApp = await dbContext.AuthorApplications
+                .Where(a => a.UserId == userId && a.Status == ApplicationStatus.Approved)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (lastApprovedApp != null)
+                lastApprovedApp.Status = ApplicationStatus.Rejected;
+
+            var lastApprovedPaidApp = await dbContext.PaidAuthorApplications
+                .Where(a => a.UserId == userId && a.Status == ApplicationStatus.Approved)
+                .OrderByDescending(a => a.CreatedAt)
+                .FirstOrDefaultAsync(ct);
+
+            if (lastApprovedPaidApp != null)
+                lastApprovedPaidApp.Status = ApplicationStatus.Rejected;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+        return Result<bool>.Success(true);
+    }
 }
 

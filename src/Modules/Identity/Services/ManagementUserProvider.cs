@@ -19,7 +19,8 @@ public class ManagementUserProvider(
     IUserProvider userProvider,
     IMediator mediator,
     Epiknovel.Shared.Core.Interfaces.Wallet.IWalletProvider walletProvider,
-    Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider) : IManagementUserProvider
+    Epiknovel.Shared.Core.Interfaces.Books.IBookProvider bookProvider,
+    IAuthorApplicationService authorApplicationService) : IManagementUserProvider
 {
     private static readonly Dictionary<string, int> RoleRanks = new()
     {
@@ -181,7 +182,10 @@ public class ManagementUserProvider(
             }
         }
 
-        // 3. Notify
+        // 3. Sync Applications
+        await authorApplicationService.SyncAuthorStatusAsync(userId, status, ct);
+
+        // 4. Notify
         var description = status 
             ? "Hesabınıza ücretli yazarlık yetkisi tanımlandı. Artık eserlerinizden gelir elde edebilirsiniz." 
             : "Ücretli yazarlık yetkiniz geri alındı.";
@@ -312,8 +316,9 @@ public class ManagementUserProvider(
         var slugs = await userProvider.GetSlugsByUserIdsAsync(new[] { userId }, ct);
         
         var (balance, transactions) = await walletProvider.GetWalletSummaryAsync(userId, 10, ct);
-        var (books, totalChapters) = await bookProvider.GetAuthorBooksSummaryAsync(userId, ct);
-        var purchases = await walletProvider.GetUserUnlockedChaptersAsync(userId, ct);
+        var books = await bookProvider.GetAuthorBooksPaginatedAsync(userId, 1, 10, ct);
+        var totalChapters = await bookProvider.GetAuthorTotalChaptersCountAsync(userId, ct);
+        var purchases = await walletProvider.GetUserUnlockedChaptersPaginatedAsync(userId, 1, 10, ct);
         var enrichedPurchases = await bookProvider.GetChapterTitlesByChaptersAsync(purchases, ct);
 
         return new UserManagementDetailDto
@@ -334,6 +339,22 @@ public class ManagementUserProvider(
         };
     }
 
+    public async Task<List<UserBookDto>> GetUserBooksAsync(Guid userId, int page, int take, CancellationToken ct = default)
+    {
+        return await bookProvider.GetAuthorBooksPaginatedAsync(userId, page, take, ct);
+    }
+
+    public async Task<List<UserPurchasedChapterDto>> GetUserPurchasedChaptersAsync(Guid userId, int page, int take, CancellationToken ct = default)
+    {
+        var purchases = await walletProvider.GetUserUnlockedChaptersPaginatedAsync(userId, page, take, ct);
+        return await bookProvider.GetChapterTitlesByChaptersAsync(purchases, ct);
+    }
+
+    public async Task<List<WalletTransactionDto>> GetUserTransactionsAsync(Guid userId, int page, int take, CancellationToken ct = default)
+    {
+        return await walletProvider.GetUserTransactionsPaginatedAsync(userId, page, take, ct);
+    }
+
     public async Task<Guid?> GetSuperAdminIdAsync(CancellationToken ct = default)
     {
         var superAdminRole = await identityDbContext.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Name == RoleNames.SuperAdmin, ct);
@@ -341,5 +362,20 @@ public class ManagementUserProvider(
 
         var superAdminUserRole = await identityDbContext.UserRoles.AsNoTracking().FirstOrDefaultAsync(ur => ur.RoleId == superAdminRole.Id, ct);
         return superAdminUserRole?.UserId;
+    }
+
+    public async Task<List<UserPurchasedChapterDto>> GetUserUnlockedChaptersAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await walletProvider.GetUserUnlockedChaptersAsync(userId, ct);
+    }
+
+    public async Task<List<WalletTransactionDto>> GetUserTransactionsPaginatedAsync(Guid userId, int page, int take, CancellationToken ct = default)
+    {
+        return await walletProvider.GetUserTransactionsPaginatedAsync(userId, page, take, ct);
+    }
+
+    public async Task<List<UserPurchasedChapterDto>> GetUserUnlockedChaptersPaginatedAsync(Guid userId, int page, int take, CancellationToken ct = default)
+    {
+        return await walletProvider.GetUserUnlockedChaptersPaginatedAsync(userId, page, take, ct);
     }
 }

@@ -73,6 +73,24 @@ type SettingItem = {
 
 type TabType = 'site' | 'economy' | 'pos' | 'smtp' | 'content' | 'templates' | 'rewards';
 
+const HARDCODED_TEMPLATES = [
+  { key: "WelcomeEmail", name: "Hoş Geldin", variables: "{{DisplayName}}, {{SiteName}}, {{LoginLink}}" },
+  { key: "EmailVerification", name: "E-Posta Doğrulama", variables: "{{DisplayName}}, {{ConfirmLink}}" },
+  { key: "EmailChange", name: "E-Posta Değiştirme", variables: "{{DisplayName}}, {{EmailChangeLink}}" },
+  { key: "PasswordReset", name: "Şifre Sıfırlama", variables: "{{DisplayName}}, {{ResetLink}}" },
+  { key: "NewChapterEmail", name: "Yeni Bölüm Bildirimi", variables: "{{DisplayName}}, {{BookTitle}}, {{ChapterTitle}}, {{BookLink}}" },
+  { key: "NewReviewEmail", name: "Yeni İnceleme Bildirimi", variables: "{{DisplayName}}, {{ReviewerName}}, {{BookTitle}}, {{ReviewLink}}" },
+  { key: "NewCommentEmail", name: "Yeni Yorum Bildirimi", variables: "{{DisplayName}}, {{CommenterName}}, {{ContentTitle}}, {{CommentLink}}" },
+  { key: "NewFollower", name: "Yeni Takipçi Bildirimi", variables: "{{DisplayName}}, {{FollowerName}}, {{ProfileLink}}" },
+  { key: "SupportResponse", name: "Destek Yanıtı", variables: "{{DisplayName}}, {{TicketId}}, {{ResponseContent}}" },
+  { key: "InvoiceCreatedEmail", name: "Fatura Bildirimi", variables: "{{DisplayName}}, {{InvoiceId}}, {{Amount}}, {{InvoiceLink}}" },
+  { key: "OrderConfirmation", name: "Sipariş Onayı", variables: "{{DisplayName}}, {{OrderId}}, {{Items}}" },
+  { key: "AuthorApplicationApprovedEmail", name: "Yazar Onay", variables: "{{DisplayName}}" },
+  { key: "AuthorApplicationRejectedEmail", name: "Yazar Red", variables: "{{DisplayName}}" },
+  { key: "PaidAuthorApplicationApprovedEmail", name: "Ücretli Yazar Onay", variables: "{{DisplayName}}" },
+  { key: "PaidAuthorApplicationRejectedEmail", name: "Ücretli Yazar Red", variables: "{{DisplayName}}" },
+];
+
 // --- Alt Bileşenler (Focus Hatasını Önlemek İçin Dışarı Taşındı) ---
 const InputField = ({ label, value, onChange, placeholder, type = "text", description }: { label: string, value: string, onChange: (val: string) => void, placeholder: string, type?: string, description?: string }) => {
   const [showPassword, setShowPassword] = useState(false);
@@ -258,7 +276,7 @@ export default function SettingsPage() {
   const [activeTab, _setActiveTab] = useState<TabType>(currentTab);
   const [settings, setSettings] = useState<SettingItem[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>(HARDCODED_TEMPLATES[0].key);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
@@ -305,9 +323,6 @@ export default function SettingsPage() {
     try {
       const data = await apiRequest<{ items: EmailTemplate[] }>('/management/system/emails/templates');
       setEmailTemplates(data.items);
-      if (data.items.length > 0 && !selectedTemplateId) {
-        setSelectedTemplateId(data.items[0].id);
-      }
     } catch (error) {
       toast.error({ description: "Şablonlar yüklenemedi." });
     }
@@ -340,22 +355,39 @@ export default function SettingsPage() {
   };
 
   const saveTemplate = async () => {
-    if (!selectedTemplateId) return;
-    const template = emailTemplates.find(t => t.id === selectedTemplateId);
-    if (!template) return;
+    const hardcoded = HARDCODED_TEMPLATES.find(t => t.key === selectedTemplateKey);
+    if (!hardcoded) return;
 
+    const existing = emailTemplates.find(t => t.key === selectedTemplateKey);
+    
     setIsSaving(true);
     try {
-      await apiRequest<boolean>(`/management/system/emails/templates/${selectedTemplateId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          id: template.id,
-          subject: template.subject,
-          body: template.body
-        })
-      });
+      if (existing?.id) {
+        await apiRequest<boolean>(`/management/system/emails/templates/${existing.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            id: existing.id,
+            subject: existing.subject,
+            body: existing.body
+          })
+        });
+      } else {
+        // Create new
+        await apiRequest<boolean>(`/management/system/emails/templates`, {
+          method: 'POST',
+          body: JSON.stringify({
+            key: selectedTemplateKey,
+            name: hardcoded.name,
+            subject: existing?.subject || "",
+            body: existing?.body || "",
+            variables: hardcoded.variables,
+            isActive: true
+          })
+        });
+      }
 
       toast.success({ description: "Şablon başarıyla güncellendi." });
+      fetchTemplates();
     } catch (error) {
       toast.error({ description: "Şablon kaydedilemedi." });
     } finally {
@@ -364,9 +396,24 @@ export default function SettingsPage() {
   };
 
   const handleTemplateUpdate = (subject: string, body: string) => {
-    setEmailTemplates(prev => prev.map(t =>
-      t.id === selectedTemplateId ? { ...t, subject, body } : t
-    ));
+    setEmailTemplates(prev => {
+      const exists = prev.some(t => t.key === selectedTemplateKey);
+      if (exists) {
+        return prev.map(t => t.key === selectedTemplateKey ? { ...t, subject, body } : t);
+      } else {
+        // Add a temporary local template
+        const hardcoded = HARDCODED_TEMPLATES.find(t => t.key === selectedTemplateKey)!;
+        return [...prev, {
+          id: "",
+          key: selectedTemplateKey,
+          name: hardcoded.name,
+          subject,
+          body,
+          variables: hardcoded.variables,
+          isActive: true
+        }];
+      }
+    });
   };
 
   const renderSectionHeader = (title: string, desc: string, icon: any) => (
@@ -515,12 +562,12 @@ export default function SettingsPage() {
                 {activeTab === 'templates' && (
                   <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 space-y-8">
                     <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-4xl bg-base-content/5 border border-base-content/10 w-fit">
-                      {emailTemplates.map((tpl) => {
-                        const isMActive = selectedTemplateId === tpl.id;
+                      {HARDCODED_TEMPLATES.map((tpl) => {
+                        const isMActive = selectedTemplateKey === tpl.key;
                         return (
                           <button
-                            key={tpl.id}
-                            onClick={() => setSelectedTemplateId(tpl.id)}
+                            key={tpl.key}
+                            onClick={() => setSelectedTemplateKey(tpl.key)}
                             className={`flex items-center gap-2 px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest transition-all ${isMActive ? "bg-primary text-primary-content shadow-lg shadow-primary/20 scale-105" : "text-base-content/40 hover:bg-base-content/5 hover:text-base-content/60"}`}
                           >
                             {tpl.name}
@@ -528,14 +575,28 @@ export default function SettingsPage() {
                         );
                       })}
                     </div>
-                    {selectedTemplateId && emailTemplates.find(t => t.id === selectedTemplateId) && (
+                    {selectedTemplateKey && (
                       <div className="glass-island rounded-[3.5rem] p-10 bg-base-content/2">
-                        <AdvancedTemplateEditor
-                          template={emailTemplates.find(t => t.id === selectedTemplateId)!}
-                          onUpdate={handleTemplateUpdate}
-                          onSave={saveTemplate}
-                          isSaving={isSaving}
-                        />
+                        {(() => {
+                          const hardcoded = HARDCODED_TEMPLATES.find(t => t.key === selectedTemplateKey)!;
+                          const template = emailTemplates.find(t => t.key === selectedTemplateKey) || {
+                            id: "",
+                            key: selectedTemplateKey,
+                            name: hardcoded.name,
+                            subject: "",
+                            body: "",
+                            variables: hardcoded.variables,
+                            isActive: true
+                          };
+                          return (
+                            <AdvancedTemplateEditor
+                              template={template}
+                              onUpdate={handleTemplateUpdate}
+                              onSave={saveTemplate}
+                              isSaving={isSaving}
+                            />
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

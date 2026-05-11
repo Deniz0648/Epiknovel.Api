@@ -79,8 +79,19 @@ export function AddToLibraryButton({ bookId, bookStatus, className }: AddToLibra
   };
 
   useEffect(() => {
-    if (bookId && !isAuthLoading) {
-      checkLibraryStatus();
+    if (!bookId) {
+      setIsLoading(false);
+      return;
+    }
+
+    if (!isAuthLoading) {
+      if (!profile) {
+        setIsLoading(false);
+        setLibraryEntryId(null);
+        setLibraryStatus(null);
+      } else {
+        checkLibraryStatus();
+      }
     }
   }, [bookId, profile, isAuthLoading]);
 
@@ -177,13 +188,19 @@ export function AddToLibraryButton({ bookId, bookStatus, className }: AddToLibra
 
   return (
     <div className={`dropdown dropdown-end ${className}`}>
-      <div
+      <button
         tabIndex={0}
-        role="button"
+        type="button"
         className={`flex h-12 w-full items-center justify-between rounded-2xl border px-6 transition-all duration-500 shadow-sm ${libraryEntryId
-            ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 shadow-primary/5"
-            : "border-base-content/15 bg-base-100/30 hover:bg-base-100/50 hover:border-base-content/25"
+          ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 shadow-primary/5"
+          : "border-base-content/15 bg-base-100/30 hover:bg-base-100/50 hover:border-base-content/25"
           } ${isLoading || isActionLoading ? "opacity-50 pointer-events-none" : ""}`}
+        onClick={(e) => {
+          if (!profile) {
+            e.preventDefault();
+            handleLibraryAction(0); // Trigger login toast
+          }
+        }}
       >
         <div className="flex items-center gap-3">
           {isLoading || isActionLoading ? (
@@ -202,7 +219,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className }: AddToLibra
         </div>
 
         <ChevronDown className="h-4 w-4 opacity-30 group-hover:opacity-100 transition-opacity" />
-      </div>
+      </button>
 
       <ul tabIndex={0} className="dropdown-content z-100 menu p-2 shadow-2xl bg-base-200/95 border border-base-content/10 rounded-2xl w-full mt-2 font-semibold backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
         <li className="menu-title text-[9px] font-black uppercase tracking-[0.15em] opacity-40 px-3 py-2">DURUMU GÜNCELLE</li>

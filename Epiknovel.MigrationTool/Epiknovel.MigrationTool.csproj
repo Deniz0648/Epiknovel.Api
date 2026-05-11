@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Epiknovel.MigrationTool</AssemblyName>
+    <RootNamespace>Epiknovel.MigrationTool</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Modules\Identity\Epiknovel.Modules.Identity.csproj" />
+    <ProjectReference Include="..\src\Modules\Users\Epiknovel.Modules.Users.csproj" />
+    <ProjectReference Include="..\src\Modules\Books\Epiknovel.Modules.Books.csproj" />
+    <ProjectReference Include="..\src\Modules\Social\Epiknovel.Modules.Social.csproj" />
+    <ProjectReference Include="..\src\Modules\Search\Epiknovel.Modules.Search.csproj" />
+    <ProjectReference Include="..\src\Modules\Wallet\Epiknovel.Modules.Wallet.csproj" />
+    <ProjectReference Include="..\src\Modules\Management\Epiknovel.Modules.Management.csproj" />
+    <ProjectReference Include="..\src\Modules\Compliance\Epiknovel.Modules.Compliance.csproj" />
+    <ProjectReference Include="..\src\Modules\Infrastructure\Epiknovel.Modules.Infrastructure.csproj" />
+    <ProjectReference Include="..\src\Shared\Epiknovel.Shared.Infrastructure\Epiknovel.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

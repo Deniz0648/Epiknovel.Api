@@ -8,9 +8,20 @@ public interface IManagementUserProvider
     Task<bool> TriggerPasswordResetAsync(Guid userId, CancellationToken ct = default);
     Task<List<UserManagementDto>> GetPaginatedUsersAsync(DateTime? cursor, int take, string? searchString, bool? isBanned, string? role, CancellationToken ct = default);
 
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetUserUnlockedChaptersAsync(Guid userId, CancellationToken ct = default);
+    
+    // 📄 Paginated Lists
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.UserPurchasedChapterDto>> GetUserUnlockedChaptersPaginatedAsync(Guid userId, int page, int take, CancellationToken ct = default);
+    Task<List<Epiknovel.Shared.Core.Interfaces.Management.WalletTransactionDto>> GetUserTransactionsPaginatedAsync(Guid userId, int page, int take, CancellationToken ct = default);
+
     Task<UserManagementDetailDto?> GetUserDetailsAsync(Guid userId, CancellationToken ct = default);
     Task<bool> TogglePaidAuthorAsync(Guid userId, bool status, CancellationToken ct = default);
     Task<Guid?> GetSuperAdminIdAsync(CancellationToken ct = default);
+
+    // 📄 Paginated Lists for Details Panel
+    Task<List<UserBookDto>> GetUserBooksAsync(Guid userId, int page, int take, CancellationToken ct = default);
+    Task<List<UserPurchasedChapterDto>> GetUserPurchasedChaptersAsync(Guid userId, int page, int take, CancellationToken ct = default);
+    Task<List<WalletTransactionDto>> GetUserTransactionsAsync(Guid userId, int page, int take, CancellationToken ct = default);
 }
 
 public class UserManagementDto

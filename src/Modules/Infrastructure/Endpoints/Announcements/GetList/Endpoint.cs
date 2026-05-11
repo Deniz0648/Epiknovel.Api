@@ -5,6 +5,11 @@ using Epiknovel.Shared.Core.Models;
 
 namespace Epiknovel.Modules.Infrastructure.Endpoints.Announcements.GetList;
 
+public class Request
+{
+    public int? PageSize { get; set; }
+}
+
 public class Response
 {
     public List<AnnouncementDto> Items { get; set; } = [];
@@ -21,7 +26,7 @@ public class AnnouncementDto
     public DateTime CreatedAt { get; set; }
 }
 
-public class Endpoint(InfrastructureDbContext dbContext) : EndpointWithoutRequest<Result<Response>>
+public class Endpoint(InfrastructureDbContext dbContext) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -35,7 +40,7 @@ public class Endpoint(InfrastructureDbContext dbContext) : EndpointWithoutReques
         });
     }
 
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(Request req, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
 
@@ -46,7 +51,7 @@ public class Endpoint(InfrastructureDbContext dbContext) : EndpointWithoutReques
                 && (x.ExpiresAt == null || x.ExpiresAt > now))
             .OrderByDescending(x => x.IsPinned)
             .ThenByDescending(x => x.PublishedAt ?? x.CreatedAt)
-            .Take(100)
+            .Take(req.PageSize ?? 6)
             .Select(x => new AnnouncementDto
             {
                 Id = x.Id,

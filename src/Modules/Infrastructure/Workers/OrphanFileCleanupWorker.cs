@@ -56,6 +56,14 @@ public class OrphanFileCleanupWorker(
                 foreach (var filePath in physicalFiles)
                 {
                     var fileName = Path.GetFileName(filePath);
+                    
+                    // ✨ Manuel yönetilen ikon ve logo klasörlerini temizlikten muaf tut
+                    if (filePath.Contains($"{Path.DirectorySeparatorChar}icons{Path.DirectorySeparatorChar}") || 
+                        filePath.Contains($"{Path.DirectorySeparatorChar}logos{Path.DirectorySeparatorChar}"))
+                    {
+                        continue;
+                    }
+
                     if (!usedFiles.Contains(fileName))
                     {
                         // HENÜZ yüklenmiş ama henüz veritabanına kaydedilmemiş olabilir (Transaction devam ediyor veya form açık)

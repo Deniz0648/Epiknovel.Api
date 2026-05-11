@@ -427,7 +427,6 @@ export function ProfileDashboard() {
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [confirmEmailMessage, setConfirmEmailMessage] = useState<string | null>(null);
   const [confirmEmailError, setConfirmEmailError] = useState<string | null>(null);
   const [isConfirmEmailSubmitting, setIsConfirmEmailSubmitting] = useState(false);
@@ -505,6 +504,9 @@ export function ProfileDashboard() {
       else if (hash === "#orders") setActiveTab("orders");
       else if (hash === "#notifications") setActiveTab("notifications");
       else setActiveTab("profile");
+
+      // Sayfanın aşağı kaymasını engellemek için en üste zorla
+      window.scrollTo(0, 0);
     };
 
     syncTabWithHash();
@@ -732,31 +734,7 @@ export function ProfileDashboard() {
               <p className="mt-1 text-sm text-base-content/66">seni takip eden okur</p>
             </div>
 
-            <div className="sm:col-span-3 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(true)}
-                className="btn btn-primary rounded-full border-0 px-6 shadow-lg shadow-primary/28"
-              >
-                <PencilLine className="h-4 w-4" />
-                Profili Düzenle
-              </button>
-
-              <label className="btn rounded-full border border-base-content/12 bg-base-100/24 px-6 hover:bg-base-100/34">
-                <Camera className="h-4 w-4" />
-                {isAvatarUploading ? "Yükleniyor" : "Avatar Güncelle"}
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={isAvatarUploading} />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => switchTab("orders")}
-                className="btn rounded-full border border-base-content/12 bg-base-100/24 px-6 hover:bg-base-100/34"
-              >
-                <History className="h-4 w-4" />
-                Siparişlerim
-              </button>
-            </div>
+            {/* Header buttons removed */}
 
             <div className="sm:col-span-3 rounded-[1.6rem] border border-primary/15 bg-linear-to-r from-base-100/26 via-base-100/18 to-primary/8 p-4">
               <p className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.16em] text-base-content/48">
@@ -829,62 +807,137 @@ export function ProfileDashboard() {
       </div>
 
       {activeTab === "profile" && (
-        <div id="profile" className="grid gap-6">
-          <article className="glass-frame relative overflow-hidden p-8 border border-primary/10 bg-linear-to-br from-base-100 to-primary/5 shadow-xl">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-              <div>
-                <h2 className="text-3xl font-black italic uppercase leading-tight tracking-tighter">Profil Özetin</h2>
-                <p className="mt-2 text-sm font-bold text-base-content/40 uppercase tracking-widest leading-relaxed">Platform üzerindeki etkileşiminin özeti</p>
-              </div>
+        <div id="tab-profile" className="grid gap-6 xl:grid-cols-3">
+          <div className="xl:col-span-2 space-y-6">
+            <article className="glass-frame p-8 border border-primary/10 bg-linear-to-br from-base-100 to-primary/5 shadow-xl">
+              <header className="mb-8 flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+                  <UserRound className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black italic uppercase tracking-tight">Kişisel Bilgiler</h2>
+                  <p className="text-[10px] font-bold text-base-content/40 uppercase tracking-widest mt-1">Profilinde görünecek genel bilgilerini buradan düzenle</p>
+                </div>
+              </header>
 
-              <div className="stats shadow-lg bg-base-100/50 border border-base-content/5 rounded-3xl overflow-hidden">
-                <div className="stat px-8 py-6">
-                  <div className="stat-figure text-primary">
-                    <BookOpenText className="w-8 h-8" />
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="label text-[10px] font-black uppercase tracking-widest opacity-50">Görünen Ad</label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      className="input input-bordered h-12 w-full rounded-2xl border-base-content/18 bg-base-100/28 font-bold"
+                      placeholder="Adını belirle..."
+                      required
+                    />
                   </div>
-                  <div className="stat-title text-[10px] font-black uppercase tracking-widest opacity-60">Okunan Bölüm</div>
-                  <div className="stat-value text-3xl font-black">1.2k</div>
+
+                  <div className="md:col-span-2">
+                    <label className="label text-[10px] font-black uppercase tracking-widest opacity-50 flex justify-between">
+                      <span>Biyografi</span>
+                      <span className="opacity-40">{bio.length}/280</span>
+                    </label>
+                    <textarea
+                      value={bio}
+                      onChange={(event) => setBio(event.target.value)}
+                      rows={4}
+                      maxLength={280}
+                      className="textarea textarea-bordered min-h-32 w-full rounded-2xl border-base-content/18 bg-base-100/28 text-sm leading-relaxed"
+                      placeholder="Okurlara kendinden kısaca bahset..."
+                    />
+                  </div>
                 </div>
 
-                <div className="stat px-8 py-6 border-l border-base-content/5">
-                  <div className="stat-figure text-secondary">
-                    <Wallet className="w-8 h-8" />
+                {error && <article className="p-4 rounded-2xl bg-error/10 border border-error/20 text-error text-xs font-bold">{error}</article>}
+                {message && <article className="p-4 rounded-2xl bg-success/10 border border-success/20 text-success text-xs font-bold">{message}</article>}
+
+                <div className="flex justify-end pt-2">
+                  <button type="submit" disabled={isSubmitting} className="btn btn-primary rounded-full px-10 h-12 shadow-lg shadow-primary/20 font-black uppercase italic">
+                    {isSubmitting ? <span className="loading loading-spinner loading-xs" /> : "Değişiklikleri Kaydet"}
+                  </button>
+                </div>
+              </form>
+            </article>
+          </div>
+
+          <aside className="space-y-6">
+            <article className="glass-frame relative overflow-hidden p-6 border border-primary/10 bg-linear-to-br from-base-100 to-primary/5">
+              <h2 className="text-sm font-black italic uppercase tracking-tighter mb-4 opacity-50">Profil Özetin</h2>
+              <div className="grid gap-4">
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-base-100/30 border border-base-content/5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                      <BookOpenText className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Okunan</span>
                   </div>
-                  <div className="stat-title text-[10px] font-black uppercase tracking-widest opacity-60">Harcanan Jeton</div>
-                  <div className="stat-value text-3xl font-black">2.4k</div>
+                  <span className="text-xl font-black">1.2k</span>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-base-100/30 border border-base-content/5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-secondary/10 text-secondary">
+                      <Wallet className="w-4 h-4" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Harcanan</span>
+                  </div>
+                  <span className="text-xl font-black">2.4k</span>
                 </div>
               </div>
-            </div>
-          </article>
+              <p className="mt-4 text-[9px] font-bold text-center opacity-30 uppercase tracking-widest italic">Veriler yakında güncellenecek</p>
+
+              <div className="mt-6 pt-6 border-t border-base-content/5">
+                <label className="btn btn-sm w-full rounded-xl border border-primary/20 bg-primary/5 hover:bg-primary/10 text-[10px] font-black uppercase tracking-widest italic h-10">
+                  <Camera className="h-3.5 w-3.5" />
+                  {isAvatarUploading ? "Yükleniyor..." : "Avatarı Değiştir"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={isAvatarUploading} />
+                </label>
+                {avatarError ? <p className="mt-2 text-[10px] font-bold text-error text-center">{avatarError}</p> : null}
+                {avatarMessage ? <p className="mt-2 text-[10px] font-bold text-success text-center">{avatarMessage}</p> : null}
+              </div>
+            </article>
+
+            <article className="glass-frame p-6 border border-warning/20 bg-warning/5">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-warning shrink-0" />
+                <div>
+                  <h4 className="text-xs font-black uppercase text-warning mb-1">Hesap Güvenliği</h4>
+                  <p className="text-[10px] font-bold opacity-60 leading-relaxed">Profil bilgilerini güncel tutman hesap güvenliğin için önemlidir.</p>
+                </div>
+              </div>
+            </article>
+          </aside>
         </div>
       )}
 
       {activeTab === "orders" && (
-        <div id="orders" className="scroll-mt-32">
+        <div id="tab-orders">
           <OrderHistory />
         </div>
       )}
 
       {activeTab === "security" && (
-        <div id="security" className="scroll-mt-32">
+        <div id="tab-security">
           <SecurityDashboard />
         </div>
       )}
 
       {activeTab === "wallet" && (
-        <div id="wallet" className="scroll-mt-32">
+        <div id="tab-wallet">
           <WalletHistory />
         </div>
       )}
 
       {activeTab === "billing" && (
-        <div id="billing" className="scroll-mt-32">
+        <div id="tab-billing">
           <BillingAddressForm />
         </div>
       )}
 
       {activeTab === "notifications" && (
-        <div id="notifications" className="scroll-mt-32">
+        <div id="tab-notifications">
           <NotificationSettings />
         </div>
       )}
@@ -902,67 +955,11 @@ export function ProfileDashboard() {
           onConfirm={handleAvatarUpload}
         />
       ) : null}
-
-      {isEditModalOpen ? (
-        <div className="fixed inset-0 z-70 flex items-center justify-center bg-base-content/38 p-4 backdrop-blur-md">
-          <div className="glass-frame w-full max-w-2xl p-6 sm:p-7">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-base-content/45">Profil Duzenleme</p>
-                <h2 className="mt-2 text-2xl font-black">Gorunen Bilgileri Guncelle</h2>
-              </div>
-              <button type="button" onClick={() => setIsEditModalOpen(false)} className="btn btn-ghost btn-sm rounded-full px-4">
-                Kapat
-              </button>
-            </div>
-
-            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-              <label className="form-control w-full">
-                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-base-content/55">
-                  Gorunen Ad
-                </span>
-                <input
-                  type="text"
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  className="input input-bordered h-12 w-full rounded-2xl border-base-content/18 bg-base-100/28"
-                  required
-                />
-              </label>
-
-              <label className="form-control w-full">
-                <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-base-content/55">
-                  Biyografi
-                </span>
-                <textarea
-                  value={bio}
-                  onChange={(event) => setBio(event.target.value)}
-                  rows={6}
-                  maxLength={280}
-                  className="textarea textarea-bordered min-h-40 w-full rounded-2xl border-base-content/18 bg-base-100/28"
-                  placeholder="Okurlara kendinden kisaca bahset."
-                />
-              </label>
-
-              {error ? <p className="text-sm font-medium text-error">{error}</p> : null}
-
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-base-content/60">{bio.length}/280 karakter</p>
-                <div className="flex gap-2">
-                  <button type="button" onClick={() => setIsEditModalOpen(false)} className="btn rounded-full px-5">
-                    Iptal
-                  </button>
-                  <button type="submit" disabled={isSubmitting} className="btn btn-primary rounded-full px-6">
-                    {isSubmitting ? "Kaydediliyor" : "Kaydet"}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
 
+function setIsEditModalOpen(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
 

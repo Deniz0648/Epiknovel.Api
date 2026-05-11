@@ -171,7 +171,7 @@ export default function LegalManagementPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-end items-start md:items-center gap-4 mb-8 pt-4">
         <div className="flex gap-3">
           <button 

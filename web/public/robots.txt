@@ -1,0 +1,31 @@
+User-agent: *
+Allow: /
+Allow: /Books
+Allow: /community
+Allow: /announcements
+Allow: /support
+
+# Exclude Reader (Chapter content)
+Disallow: /read/
+
+# Exclude Authentication & Protected areas
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /confirm-email
+Disallow: /confirm-change-email
+
+# Exclude Private/User areas
+Disallow: /account/
+Disallow: /wallet/
+Disallow: /notifications/
+Disallow: /subscription/
+Disallow: /management/
+Disallow: /author/
+Disallow: /Library/
+
+# Exclude API
+Disallow: /api/
+
+Sitemap: https://epiknovel.com/sitemap.xml
