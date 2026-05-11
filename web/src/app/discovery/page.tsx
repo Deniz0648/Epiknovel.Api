@@ -1,0 +1,19 @@
+import { Metadata } from "next";
+import DiscoveryView from "../../components/book/discovery-view";
+
+export const metadata: Metadata = {
+  title: "Keşfet - Binlerce Hikaye Seni Bekliyor",
+  description: "En yeni, en popüler ve en yüksek puanlı kitapları keşfedin. Kategori, durum ve yaş aralığına göre filtreleyerek size en uygun hikayeyi bulun.",
+  openGraph: {
+    title: "Keşfet - EpikNovel",
+    description: "Binlerce orijinal ve çeviri hikaye arasından dilediğinizi seçin ve hemen okumaya başlayın.",
+    type: "website",
+  },
+  alternates: {
+    canonical: "https://epiknovel.com/discovery",
+  }
+};
+
+export default function Page() {
+  return <DiscoveryView />;
+}

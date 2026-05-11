@@ -19,8 +19,9 @@ public partial class GlobalSearchHandler(SearchDbContext dbContext, IConnectionM
         var safeQuery = SanitizeQuery(request.Q);
         var searchTerms = safeQuery.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         
-        // FTS Prefix Search
-        var tsQueryString = string.Join(" & ", searchTerms.Select(t => $"{t}:*"));
+        // FTS Prefix Search - Her kelimeyi normalize et (küçük harf + unaccent)
+        // Her kelimeye :* (prefix) ekleyerek kısmi eşleşme sağlıyoruz (librar -> library)
+        var tsQueryString = string.Join(" & ", searchTerms.Select(t => $"{t.ToLower().Replace("'", "")}:*"));
 
         var queryable = dbContext.SearchDocuments
             .AsNoTracking()
@@ -31,12 +32,12 @@ public partial class GlobalSearchHandler(SearchDbContext dbContext, IConnectionM
             queryable = queryable.Where(d => d.Type == request.Type.Value);
         }
 
-        // Apply FTS with Unaccent support for Turkish characters
-        // Database index is generated with 'unaccent', so the query must also be unaccented.
+        // Apply FTS with Unaccent support
+        // SearchVector 'simple' ile oluşturulduğu için ToTsQuery de 'simple' kullanmalı.
         queryable = queryable.Where(d => 
             d.SearchVector.Matches(EF.Functions.ToTsQuery("simple", EF.Functions.Unaccent(tsQueryString))));
 
-        // Rank and Score (Also using unaccent for accurate scoring)
+        // Rank and Score
         var orderedQuery = queryable.OrderByDescending(d => 
             d.SearchVector.Rank(EF.Functions.ToTsQuery("simple", EF.Functions.Unaccent(tsQueryString))));
 

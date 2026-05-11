@@ -6,6 +6,7 @@ import { toBookSlug } from "@/lib/books";
 
 export type UpdateItem = {
   book: string;
+  bookSlug: string;
   chapter: string;
   time: string;
 };
@@ -35,7 +36,7 @@ export function UpdatesFeed({
         <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-6 xl:gap-2.5">
           {updates.map((item) => (
             <Link
-              href={`/Books/${toBookSlug(item.book)}`}
+              href={`/Books/${item.bookSlug}`}
               key={`${item.book}-${item.chapter}`}
               className="rounded-xl border border-base-content/10 bg-base-100/20 px-3 py-3 transition-colors hover:border-primary/30 xl:flex xl:h-full xl:flex-col xl:justify-center"
             >

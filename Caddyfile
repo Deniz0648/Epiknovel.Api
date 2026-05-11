@@ -1,42 +1,49 @@
 {
-    # HTTP/3 desteği varsayılan olarak açıktır. 
-    # Port 443/UDP üzerinden erişilebilir olmalıdır.
-    # 'servers' bloğundaki hatalı 'protocol' kısmı kaldırıldı.
+    # Global Seçenekler
+    admin off
+}
+
+# Ortak Ayarlar Şablonu (Snippets)
+(common) {
+    encode zstd gzip
+    header {
+        # Standart Güvenlik Başlıkları
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Server "Caddy" # Server bilgisini gizlemek yerine standartlaştırmak
+    }
 }
 
 # Frontend - Test
 test.epiknovel.com {
+    import common
     reverse_proxy epiknovel_web:3000
-    
-    # Sıkıştırma ve Güvenlik Başlıkları
-    encode zstd gzip
-    header {
-        # HSTS (H3 için önemli)
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    }
 }
 
 # Backend API
 api.epiknovel.com {
-    reverse_proxy epiknovel_api:8080
+    import common
     
-    encode zstd gzip
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        Access-Control-Allow-Origin "https://test.epiknovel.com"
-        Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-        Access-Control-Allow-Headers "Content-Type, Authorization"
-    }
+    # CORS Ayarları
+    header Access-Control-Allow-Origin "https://test.epiknovel.com"
+    header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    header Access-Control-Allow-Headers "Content-Type, Authorization"
+    
+    reverse_proxy epiknovel_api:8080
 }
 
 # Logs (Seq)
 logs.epiknovel.com {
-    # Konteyner isminiz epiknovel_logs olduğu için burayı güncelledik
-    # Seq varsayılan olarak 80 portundan hizmet verir (veya 5341 API için)
-    reverse_proxy epiknovel_logs:80
-    
-    encode zstd gzip
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    }
+    import common
+    # Docker Compose servis ismini (seq) kullanmak daha standarttır
+    reverse_proxy seq:80
+}
+
+# Spor Kursları - Harici Uygulama
+sporkurslari.com, www.sporkurslari.com {
+    import common
+    # Host üzerindeki 8092 portuna (sporkurslari_app) yönlendirme
+    reverse_proxy host.docker.internal:8092
 }

@@ -2,19 +2,16 @@ import { Metadata } from "next";
 import { backendApiRequest } from "@/lib/backend-api";
 import { resolveMediaUrl } from "@/lib/api";
 import BookDetailView from "@/components/book/book-detail-view";
-import { getSessionTokens } from "@/lib/server-auth";
 import Script from "next/script";
 
 type Props = {
   params: Promise<{ bookSlug: string }>;
 };
 
-async function getBookData(bookSlug: string, token?: string | null) {
+async function getBookData(bookSlug: string) {
   try {
     const bookData = await backendApiRequest<any>(`/books/${bookSlug}`, {
-      token,
-      cache: token ? "no-store" : "default",
-      next: token ? undefined : { revalidate: 3600 }
+      next: { revalidate: 3600 }
     });
     return bookData;
   } catch (e) {
@@ -62,8 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { bookSlug } = await params;
-  const { accessToken } = await getSessionTokens();
-  const bookData = await getBookData(bookSlug, accessToken);
+  const bookData = await getBookData(bookSlug);
 
   if (!bookData) {
     return (

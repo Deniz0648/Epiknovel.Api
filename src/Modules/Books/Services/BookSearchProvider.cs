@@ -22,7 +22,7 @@ public class BookSearchProvider(BooksDbContext dbContext) : IBookSearchProvider
             Description: b.Description,
             Slug: b.Slug,
             CoverImageUrl: b.CoverImageUrl,
-            AuthorName: b.OriginalAuthorName ?? string.Empty,
+            AuthorName: b.OriginalAuthorName ?? "Yazar", 
             Categories: b.Categories.Select(c => c.Name),
             Tags: b.Tags.Select(t => t.Name),
             IsHidden: b.IsHidden,

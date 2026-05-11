@@ -94,6 +94,8 @@ services:
       - epiknovel_api
       - epiknovel_web
       - seq
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # 📊 Log Yönetimi (Seq)
   seq:

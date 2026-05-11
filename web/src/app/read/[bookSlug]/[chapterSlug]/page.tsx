@@ -63,8 +63,14 @@ export default function ReaderPage() {
   const lastSaveTime = useRef(0);
 
   const [settings, setSettings] = useState<ReaderSettings>({
-    fontSize: 16, fontFamily: 'serif', theme: 'light', lineHeight: 1.6,
-    maxWidth: 'normal', readingMode: 'paged', isPinned: false, isSiteHeaderVisible: false
+    fontSize: 16,
+    fontFamily: 'serif',
+    theme: 'light',
+    lineHeight: 1.6,
+    maxWidth: 'normal',
+    readingMode: 'paged',
+    isPinned: false, // Dinamik okuma headerı
+    isSiteHeaderVisible: false // Tam ekran (Site header kapalı)
   });
 
   useEffect(() => {
@@ -311,18 +317,18 @@ export default function ReaderPage() {
           className="site-shell mx-auto pt-2.5 pointer-events-auto px-4 sm:px-8"
           style={{ width: '100%', backfaceVisibility: 'hidden', transform: 'translateZ(0)' }}
         >
-          <div className="navbar bg-base-300/95 border border-base-content/10 rounded-[1.2rem] min-h-[52px] h-[52px] px-8">
+          <div className="navbar bg-base-300/95 border border-base-content/10 rounded-[1.2rem] min-h-[52px] h-[52px] px-4 sm:px-8">
             <div className="flex-1">
-              <Link href={`/Books/${chapters[0]?.bookSlug}`} className="flex items-center gap-3 hover:text-primary transition-all group">
+              <Link href={`/Books/${chapters[0]?.bookSlug}`} className="flex items-center gap-2 sm:gap-3 hover:text-primary transition-all group">
                 <ChevronLeft size={18} className="text-primary group-hover:-translate-x-1 transition-transform" />
-                <span className="font-bold text-[13px] truncate max-w-[200px] tracking-tight">{chapters[0]?.bookTitle}</span>
+                <span className="font-bold text-[12px] sm:text-[13px] truncate max-w-[120px] sm:max-w-[200px] tracking-tight">{chapters[0]?.bookTitle}</span>
               </Link>
             </div>
-            <div className="flex items-center gap-8">
-              <button onClick={() => { setIsCommentsOpen(true); setCommentType('chapter'); }} className="text-base-content/40 hover:text-primary transition-all"><MessageSquare size={19} /></button>
-              <button className="text-base-content/40 hover:text-primary transition-all"><Share2 size={19} /></button>
-              <button onClick={() => setIsSettingsOpen(true)} className="text-base-content/40 hover:text-primary transition-all hover:rotate-90"><Settings size={19} /></button>
-              <Link href="/" className="text-base-content/40 hover:text-primary transition-all"><Home size={19} /></Link>
+            <div className="flex items-center gap-3 sm:gap-6">
+              <button onClick={() => { setIsCommentsOpen(true); setCommentType('chapter'); }} className="text-base-content/40 hover:text-primary transition-all"><MessageSquare size={18} /></button>
+              <button className="text-base-content/40 hover:text-primary transition-all"><Share2 size={18} /></button>
+              <button onClick={() => setIsSettingsOpen(true)} className="text-base-content/40 hover:text-primary transition-all hover:rotate-90"><Settings size={18} /></button>
+              <Link href="/" className="hidden xs:flex text-base-content/40 hover:text-primary transition-all"><Home size={18} /></Link>
             </div>
           </div>
         </motion.div>

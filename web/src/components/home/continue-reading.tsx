@@ -10,6 +10,7 @@ import { useEffect } from "react";
 
 type ContinueReadingBook = {
   title: string;
+  slug: string;
   chapter: string;
   percent: number;
   image: string;
@@ -21,7 +22,7 @@ type ContinueReadingBook = {
 const SWIPE_THRESHOLD = 48;
 
 function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
-  const bSlug = toBookSlug(book.title);
+  const bSlug = book.slug;
   const cSlug = book.chapter;
   
   // KESIN URL: /read/[kitap-slug]/[bolum-slug]
@@ -194,6 +195,7 @@ export function ContinueReadingSection() {
                 <ContinueReadingCard
                   book={{
                     title: item.bookTitle,
+                    slug: item.bookSlug,
                     chapter: item.lastReadChapterSlug || "Bolum Secilmedi",
                     percent: Math.round(item.progressPercentage),
                     image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
@@ -230,6 +232,7 @@ export function ContinueReadingSection() {
             key={item.id}
             book={{
               title: item.bookTitle,
+              slug: item.bookSlug,
               chapter: item.lastReadChapterSlug || "Bolum Secilmedi",
               percent: Math.round(item.progressPercentage),
               image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",

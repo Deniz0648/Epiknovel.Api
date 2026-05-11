@@ -331,12 +331,67 @@ export default function DiscoveryView() {
               )}
 
               {apiResponse && apiResponse.totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-6">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={!apiResponse.hasPreviousPage} className="btn btn-sm btn-circle btn-ghost disabled:opacity-30"><ArrowLeft className="h-4 w-4" /></button>
-                  {Array.from({ length: apiResponse.totalPages }, (_, i) => i + 1).map(p => (
-                    <button key={p} onClick={() => setCurrentPage(p)} className={`btn btn-sm btn-circle ${currentPage === p ? "btn-primary" : "btn-ghost"}`}>{p}</button>
-                  ))}
-                  <button onClick={() => setCurrentPage(p => Math.min(apiResponse.totalPages, p + 1))} disabled={!apiResponse.hasNextPage} className="btn btn-sm btn-circle btn-ghost disabled:opacity-30"><ArrowRight className="h-4 w-4" /></button>
+                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-10">
+                  <button 
+                    onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    disabled={!apiResponse.hasPreviousPage} 
+                    className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+
+                  <div className="flex items-center gap-1.5">
+                    {(() => {
+                      const total = apiResponse.totalPages;
+                      const current = currentPage;
+                      const range: (number | string)[] = [];
+                      
+                      if (total <= 7) {
+                        for (let i = 1; i <= total; i++) range.push(i);
+                      } else {
+                        range.push(1);
+                        if (current > 3) range.push("...");
+                        
+                        const start = Math.max(2, current - 1);
+                        const end = Math.min(total - 1, current + 1);
+                        
+                        for (let i = start; i <= end; i++) {
+                          if (!range.includes(i)) range.push(i);
+                        }
+                        
+                        if (current < total - 2) range.push("...");
+                        if (!range.includes(total)) range.push(total);
+                      }
+
+                      return range.map((p, idx) => (
+                        typeof p === "number" ? (
+                          <button
+                            key={idx}
+                            onClick={() => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                            className={`btn btn-sm h-10 w-10 rounded-xl border-none transition-all ${
+                              current === p 
+                                ? "bg-primary font-black text-primary-content shadow-lg shadow-primary/25" 
+                                : "bg-base-100/32 font-bold hover:bg-base-100/50"
+                            }`}
+                          >
+                            {p}
+                          </button>
+                        ) : (
+                          <span key={idx} className="flex h-10 w-8 items-center justify-center text-sm font-black opacity-30">
+                            {p}
+                          </span>
+                        )
+                      ));
+                    })()}
+                  </div>
+
+                  <button 
+                    onClick={() => { setCurrentPage(p => Math.min(apiResponse.totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
+                    disabled={!apiResponse.hasNextPage} 
+                    className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
               )}
             </div>

@@ -220,13 +220,12 @@ export const COVER_DEFAULT = "/covers/cover-golge.svg";
 export function resolveMediaUrl(url?: string | null, category: string = "covers"): string {
   if (!url) return "";
 
-  // 1. Base64 veya Zaten Proxy'lenmiş URL ise dokunma
-  if (url.startsWith("data:") || url.includes("/api/media/file?path=")) {
+  // 1. Base64, Blob veya Zaten Proxy'lenmiş URL ise dokunma
+  if (url.startsWith("data:") || url.startsWith("blob:") || url.includes("/api/media/file?path=")) {
     return url;
   }
 
-  // 2. Agresif Yakalama: URL içinde '/uploads/' (çoğul) veya '/upload/' (tekil) geçiyorsa
-  // veya doğrudan epiknovel.com üzerinden bir görsel geliyorsa proxy üzerinden geçiri
+  // 2. Agresif Yakalama: URL içinde '/uploads/' veya '/upload/' geçiyorsa
   if (url.includes("/uploads/") || url.includes("/upload/") || url.includes("epiknovel.com")) {
     let assetPath = "";
     if (url.includes("/uploads/")) {
@@ -234,7 +233,6 @@ export function resolveMediaUrl(url?: string | null, category: string = "covers"
     } else if (url.includes("/upload/")) {
       assetPath = "/upload/" + url.split("/upload/")[1];
     } else if (url.includes("epiknovel.com")) {
-      // https://epiknovel.com/something.png -> /something.png
       try {
         const parsed = new URL(url);
         assetPath = parsed.pathname;
@@ -243,11 +241,9 @@ export function resolveMediaUrl(url?: string | null, category: string = "covers"
       }
     }
     
-    // Eğer favicon ise doğrudan public dizinine güvenebiliriz, değilse proxy'ye at
     if (assetPath === "/favicon.ico") return "/favicon.svg";
     
-    // 🚀 OPTİMİZASYON: Eğer yol zaten /uploads/ ile başlıyorsa, 
-    // next.config.ts'deki rewrite kuralı (source: "/uploads/:path*") bunu otomatik çözer.
+    // Zaten /uploads/ ile başlıyorsa ve mutlak ise (leading slash) döndür
     if (assetPath.startsWith("/uploads/")) {
       return assetPath;
     }
@@ -255,13 +251,17 @@ export function resolveMediaUrl(url?: string | null, category: string = "covers"
     return `/api/media/file?path=${encodeURIComponent(assetPath)}`;
   }
 
-  // 2.5 GUID.webp gibi ham dosya isimlerini yakala (Genellikle kapak fotoğraflarıdır)
-  // Pattern: 32 karakterlik hex Guid + .webp
-  if (/^[0-9a-f]{32}\.webp$/i.test(url)) {
+  // 3. Göreli Yollar (Relative Paths): Başı / veya http ile başlamayan her şeyi /uploads/ altına al
+  if (!url.startsWith("/") && !url.startsWith("http")) {
+    // Eğer url içinde zaten 'covers/' veya 'profiles/' gibi bir klasör varsa direkt /uploads/ ekle
+    if (url.includes("/")) {
+      return `/uploads/${url}`;
+    }
+    // Sadece dosya adı ise (GUID.webp gibi) kategori ile birleştir
     return `/uploads/${category}/${url}`;
   }
 
-  // 3. Fallback: Eski klasik çözümleme (Eğer /uploads/ geçmiyorsa ama host temizliği gerekiyorsa)
+  // 4. API Internal Host temizliği (Geliştirme ortamı için)
   if (url.includes("epiknovel_api:8080")) {
     return url.replace("epiknovel_api:8080", "localhost:8080");
   }

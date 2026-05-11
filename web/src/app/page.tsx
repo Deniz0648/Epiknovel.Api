@@ -22,7 +22,7 @@ type BookItem = {
   chapterCount: number;
   status: string;
 };
-type UpdateItem = { bookTitle: string; chapterTitle: string; publishedAt: string; bookCoverImageUrl?: string };
+type UpdateItem = { bookTitle: string; bookSlug: string; chapterTitle: string; publishedAt: string; bookCoverImageUrl?: string };
 type AuthorItem = { userId: string; displayName: string; slug: string; avatarUrl?: string; followersCount: number; booksCount: number; initials?: string };
 type ReviewItem = { id: string; userName: string; userAvatar?: string; content: string; rating: number; likeCount: number; isLikedByMe: boolean; type: string; bookTitle: string; bookSlug: string };
 type AnnouncementItem = { id: string; title: string; content: string; publishedAt?: string; createdAt: string };
@@ -58,7 +58,8 @@ export default async function Home() {
   // Veri Donusumleri (Bilesenlerin bekledigi formata map'leme)
   const heroSlides = data.editorChoice.map(b => ({
     id: b.id,
-    badge: "BİLGİLENDİRME",
+    slug: b.slug,
+    badge: "EDİTÖRÜN SEÇİMİ",
     title: b.title || "Adsiz Kitap",
     description: b.description || "",
     image: resolveMediaUrl(b.coverImageUrl) || "/covers/cover-golge.svg",
@@ -74,6 +75,7 @@ export default async function Home() {
 
   const updateItems = data.updates.map(u => ({
     book: u.bookTitle || "Bilinmeyen Başlık",
+    bookSlug: u.bookSlug || "",
     chapter: u.chapterTitle || "Yeni İçerik",
     time: u.publishedAt ? timeAgo(u.publishedAt) : "Bilinmiyor",
     cover: resolveMediaUrl(u.bookCoverImageUrl) || "/covers/cover-golge.svg"
@@ -91,6 +93,7 @@ export default async function Home() {
 
   const mostReadItems = data.mostRead.map(b => ({
     id: b.id,
+    slug: b.slug,
     title: b.title || "Adsiz Kitap",
     category: b.categoryNames?.[0] || "Genel",
     rating: b.averageRating || 0,
@@ -101,6 +104,7 @@ export default async function Home() {
 
   const recommendationItems = data.recommendations.map(b => ({
     id: b.id,
+    slug: b.slug,
     title: b.title || "Adsiz Kitap",
     category: b.categoryNames?.[0] || "Genel",
     rating: b.averageRating || 0,

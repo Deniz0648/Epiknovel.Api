@@ -21,6 +21,7 @@ type SlideDirection = "next" | "prev";
 
 type BookSlide = {
   id: string;
+  slug: string;
   badge: string;
   title: string;
   description: string;
@@ -54,7 +55,7 @@ function CoverPanel({
   slide: BookSlide;
   className?: string;
 }) {
-  const bookHref = `/Books/${toBookSlug(slide.title)}`;
+  const bookHref = `/Books/${slide.slug}`;
 
   return (
     <Link href={bookHref} className={className}>
@@ -93,7 +94,7 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
     () => slides[activeIndex] ?? slides[0],
     [activeIndex, slides],
   );
-  const activeBookHref = `/Books/${toBookSlug(activeSlide.title)}`;
+  const activeBookHref = `/Books/${activeSlide.slug}`;
   const titleScaleStyle = getHeadlineScaleStyle(activeSlide.title);
 
   const clearAutoTimer = useCallback(() => {
@@ -224,7 +225,7 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="relative z-50 flex flex-wrap items-center gap-3">
             <Link
               href={activeBookHref}
               className="btn btn-primary h-12 rounded-full px-7 shadow-lg shadow-primary/30"

@@ -115,7 +115,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
           </div>
 
           <div className="grid items-stretch gap-5 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-7">
-            <div className="mx-auto w-full max-w-70">
+            <div className="mx-auto w-full max-w-70 lg:mx-0 lg:max-w-none">
               <div className="glass-frame relative aspect-2/3 overflow-hidden p-1.5">
                 <div className="relative h-full w-full overflow-hidden rounded-[1.1rem]">
                   <Image

@@ -10,6 +10,7 @@ const SWIPE_THRESHOLD = 44;
 
 type MostReadBook = {
   id: string;
+  slug: string;
   title: string;
   category: string;
   rating: number;
@@ -38,7 +39,7 @@ function getRankBadgeClasses(rank: number) {
 
 function MostReadCard({ book, rank }: { book: MostReadBook; rank: number }) {
   const rankBadgeClasses = getRankBadgeClasses(rank);
-  const bookHref = `/Books/${toBookSlug(book.title)}`;
+  const bookHref = `/Books/${book.slug}`;
 
   return (
     <Link

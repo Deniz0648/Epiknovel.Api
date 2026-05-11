@@ -10,6 +10,7 @@ const SWIPE_THRESHOLD = 44;
 
 type RecommendationBook = {
   id: string;
+  slug: string;
   title: string;
   category: string;
   rating: number;
@@ -21,7 +22,7 @@ type RecommendationBook = {
 // RECOMMENDATIONS statik dizisi props'a tasindi.
 
 function RecommendationCard({ book }: { book: RecommendationBook }) {
-  const bookHref = `/Books/${toBookSlug(book.title)}`;
+  const bookHref = `/Books/${book.slug}`;
 
   return (
     <Link href={bookHref} className="glass-frame group block h-full p-3 sm:p-3.5">

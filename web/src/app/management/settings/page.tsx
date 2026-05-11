@@ -71,7 +71,7 @@ type SettingItem = {
   description: string;
 };
 
-type TabType = 'site' | 'economy' | 'pos' | 'smtp' | 'content' | 'templates' | 'rewards';
+type TabType = 'site' | 'economy' | 'pos' | 'smtp' | 'content' | 'templates' | 'rewards' | 'tools';
 
 const HARDCODED_TEMPLATES = [
   { key: "WelcomeEmail", name: "Hoş Geldin", variables: "{{DisplayName}}, {{SiteName}}, {{LoginLink}}" },
@@ -449,6 +449,7 @@ export default function SettingsPage() {
     { id: 'content', label: 'İçerik', icon: FileText, desc: 'Okuma ekranı ve kütüphane kısıtlamaları.' },
     { id: 'templates', label: 'Şablonlar', icon: Layout, desc: 'Sistem tarafından gönderilen dinamik mailler.' },
     { id: 'rewards', label: 'Ödüller', icon: Gift, desc: 'Sadakat programları ve kullanıcı bonusları.' },
+    { id: 'tools', label: 'Araçlar', icon: Server, desc: 'Sistem araçları ve bakım işlemleri.' },
   ];
 
   return (
@@ -614,6 +615,58 @@ export default function SettingsPage() {
                         <InputField label="Referans Ödülü (Jeton)" value={localSettings["REWARDS_ReferralReward"] || ""} onChange={(v) => handleInputChange("REWARDS_ReferralReward", v)} placeholder="50" />
                         <InputField label="İlk Kayıt Bonusu (Jeton)" value={localSettings["REWARDS_FirstRegistrationBonus"] || ""} onChange={(v) => handleInputChange("REWARDS_FirstRegistrationBonus", v)} placeholder="100" />
                         <InputField label="Yorum Yazma Ödülü (Jeton)" value={localSettings["REWARDS_CommentReward"] || ""} onChange={(v) => handleInputChange("REWARDS_CommentReward", v)} placeholder="2" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'tools' && (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    {renderSectionHeader("Sistem Araçları", "Veritabanı ve performans bakım işlemleri.", Server)}
+                    
+                    <div className="grid gap-8 max-w-4xl">
+                      <div className="glass-island rounded-[2.5rem] p-8 border-primary/10 bg-primary/5">
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                          <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
+                              <RefreshCw className="h-6 w-6" />
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-black">Arama İndeksini Yeniden Oluştur</h3>
+                              <p className="text-xs font-bold text-base-content/50 mt-1">Sistemdeki tüm kitapları ve yazarları tekrar tarayıp arama motoruna kaydeder.</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              setIsSaving(true);
+                              try {
+                                const res = await apiRequest<{ totalIndexed: number }>('/search/rebuild', { method: 'POST' });
+                                toast.success({ description: `${res.totalIndexed} öğe başarıyla yeniden indekslendi.` });
+                              } catch (err) {
+                                toast.error({ description: "Arama indeksi oluşturulamadı." });
+                              } finally {
+                                setIsSaving(false);
+                              }
+                            }}
+                            disabled={isSaving}
+                            className="btn btn-primary rounded-2xl px-8 h-14 font-black gap-2 shadow-xl shadow-primary/20"
+                          >
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                            Hemen Başlat
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="glass-island rounded-[2.5rem] p-8 opacity-40 grayscale pointer-events-none">
+                        <div className="flex items-center gap-4">
+                          <div className="h-12 w-12 rounded-2xl bg-base-content/10 flex items-center justify-center">
+                            <Trash2 className="h-6 w-6" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-black">Önbelleği Temizle (Yakında)</h3>
+                            <p className="text-xs font-bold text-base-content/50 mt-1">Tüm Redis ve CDN önbelleğini sıfırlar.</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
