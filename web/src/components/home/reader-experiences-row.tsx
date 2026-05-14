@@ -190,9 +190,9 @@ export function ReaderExperiencesRow({ experiences }: { experiences: ReaderExper
                 </div>
               </div>
               <div>
-                <h4 className="text-sm font-black uppercase tracking-widest text-base-content/90">
+                <h3 className="text-sm font-black uppercase tracking-widest text-base-content/90">
                   {activeExperience.editorName}
-                </h4>
+                </h3>
               </div>
             </div>
 

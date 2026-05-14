@@ -1,17 +1,27 @@
 "use client";
 
-import Image from "next/image";
+import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { BookOpen, Eye, Home, Play, Star, Tag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import {
-  BookDetailPanels,
-  type BookChapterItem,
-} from "@/components/book/book-detail-panels";
+import { type BookChapterItem } from "@/components/book/book-detail-panels";
 import { AddToLibraryButton } from "@/components/book/add-to-library-button";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { fromBookSlug } from "@/lib/books";
 import { RatingStars } from "@/components/book/rating-stars";
+import dynamic from "next/dynamic";
+
+const BookDetailPanels = dynamic(() => import("@/components/book/book-detail-panels").then(mod => mod.BookDetailPanels), {
+  loading: () => (
+    <div className="glass-frame flex min-h-168 items-center justify-center p-6">
+      <div className="flex flex-col items-center gap-3">
+        <div className="loading loading-spinner loading-lg text-primary"></div>
+        <p className="text-sm font-bold text-base-content/40 uppercase tracking-widest">Icerik Yukleniyor...</p>
+      </div>
+    </div>
+  ),
+  ssr: false
+});
 
 const DEFAULT_COVER = {
   image: "/covers/cover-golge.svg",
@@ -55,7 +65,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
   const [detail, setDetail] = useState<BookDetailViewModel | null>(initialData);
   const [chapters, setChapters] = useState<BookChapterItem[]>([]);
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
-  
+
   const [filters, setFilters] = useState({
     query: "",
     sort: "oldest" as any,
@@ -96,7 +106,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
 
   useEffect(() => {
     if (detail?.id) {
-       void loadChapters(true);
+      void loadChapters(true);
     }
   }, [debouncedQuery, filters.sort, filters.pageSize, filters.page, detail?.id]);
 
@@ -105,7 +115,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
   return (
     <main className="relative overflow-hidden">
       <div className="site-shell mx-auto flex min-h-screen flex-col gap-6 px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32">
-        <section className="glass-frame space-y-6 px-4 py-6 sm:p-7">
+        <section className="glass-frame relative w-full overflow-hidden px-4 py-6 sm:p-7">
           <div className="breadcrumbs text-xs font-semibold text-base-content/50 mb-1">
             <ul>
               <li><Link href="/" className="hover:text-primary transition-colors flex items-center"><Home className="w-3.5 h-3.5 mr-1.5" /> Ana Sayfa</Link></li>
@@ -113,25 +123,23 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
               <li className="text-base-content/40">{detail.title}</li>
             </ul>
           </div>
- 
-          <div className="grid items-stretch justify-items-center gap-6 lg:grid-cols-[minmax(0,0.34fr)_minmax(0,0.66fr)] lg:gap-7 lg:justify-items-stretch">
+
+          <div className="grid items-stretch justify-items-center gap-6 lg:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)] lg:gap-7 lg:justify-items-stretch">
             <div className="mx-auto w-full max-w-70 lg:mx-0 lg:max-w-none">
               <div className="glass-frame relative aspect-2/3 overflow-hidden p-1.5">
                 <div className="relative h-full w-full overflow-hidden rounded-[1.1rem]">
-                  <Image
+                  <BookCover
                     src={detail.cover.image}
                     alt={`${detail.title} kapagi`}
-                    fill
-                    placeholder="blur"
-                    blurDataURL={detail.cover.blurDataURL}
-                    className="object-cover"
+                    blurDataUrl={detail.cover.blurDataURL}
+                    className="h-full w-full"
                     sizes="(max-width: 1024px) 54vw, 21vw"
                     priority
                   />
                 </div>
               </div>
             </div>
- 
+
             <div className="flex min-h-full w-full flex-col items-center space-y-4 text-center lg:items-start lg:text-left">
               <div className="flex flex-wrap justify-center gap-2 lg:justify-start">
                 <span className="rounded-full border border-base-content/14 bg-base-100/34 px-2.5 py-1 text-[11px] font-semibold">
@@ -162,7 +170,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                 </p>
               </div>
 
-              <div className="grid w-full gap-3 rounded-2xl border border-base-content/12 bg-base-100/20 p-3.5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid w-full grid-cols-2 gap-3 rounded-2xl border border-base-content/12 bg-base-100/20 p-3.5 lg:grid-cols-4">
                 <div className="space-y-1.5 text-center lg:text-left">
                   <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-base-content/55">
                     Mevcut Puan
@@ -177,17 +185,17 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                     Puanlama
                   </p>
                   <div className="flex justify-center lg:justify-start">
-                    <RatingStars 
-                      bookId={detail.id} 
+                    <RatingStars
+                      bookId={detail.id}
                       initialRating={detail.rating}
                       myRating={detail.userRating}
                       onRatingUpdated={(newAvg, newVoteCount, newMyRating) => {
-                         setDetail(prev => prev ? ({ 
-                            ...prev, 
-                            rating: newAvg, 
-                            voteCount: newVoteCount,
-                            userRating: newMyRating 
-                         }) : null);
+                        setDetail(prev => prev ? ({
+                          ...prev,
+                          rating: newAvg,
+                          voteCount: newVoteCount,
+                          userRating: newMyRating
+                        }) : null);
                       }}
                     />
                   </div>
@@ -216,41 +224,42 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-base-content/55">
                   Konu
                 </p>
-                <p className="text-base leading-relaxed text-base-content/78">
+                <p className="whitespace-pre-wrap wrap-break-word text-base leading-relaxed text-base-content/78 [word-break:break-word] lg:[word-break:normal]">
                   {detail.synopsis}
                 </p>
               </div>
 
-              <div className="flex w-full items-center justify-center gap-3 pt-4 lg:justify-start">
+              <div className="flex w-full flex-col gap-3 pt-4 sm:flex-row lg:justify-start">
                 {chapters.length > 0 ? (
-                  <Link 
-                    href={`/read/${bookSlug}/${chapters[0].slug}`} 
-                    className="btn btn-primary h-12 w-[30%] rounded-2xl px-6 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
+                  <Link
+                    href={`/read/${bookSlug}/${chapters[0].slug}`}
+                    className="btn btn-primary h-12 w-full rounded-2xl px-6 shadow-lg shadow-primary/20 transition-all sm:w-[30%] hover:scale-[1.02] active:scale-95"
                   >
                     <Play className="h-4 w-4 fill-current" />
                     <span className="font-bold">Oku</span>
                   </Link>
                 ) : (
-                  <button disabled className="btn btn-primary h-12 w-[30%] rounded-2xl px-6 opacity-50 shadow-none">
+                  <button disabled className="btn btn-primary h-12 w-full rounded-2xl px-6 opacity-50 shadow-none sm:w-[30%]">
                     <Play className="h-4 w-4 fill-current" />
                     <span className="font-bold">Oku</span>
                   </button>
                 )}
 
-                <AddToLibraryButton 
-                  bookId={detail.id} 
-                  bookStatus={detail.status} 
-                  className="flex-1"
+                <AddToLibraryButton
+                  bookId={detail.id}
+                  bookStatus={detail.status}
+                  className="w-full sm:flex-1"
+                  direction="up"
                 />
               </div>
             </div>
           </div>
         </section>
 
-        <BookDetailPanels 
+        <BookDetailPanels
           bookId={detail.id}
           authorName={detail.author}
-          chapters={chapters} 
+          chapters={chapters}
           totalChaptersCount={totalChaptersCount}
           activeFilters={filters}
           onFiltersChange={(newFilters) => setFilters(newFilters)}

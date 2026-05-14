@@ -21,7 +21,9 @@ type BackendUpdatePagedResult = {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+  totalPages: number;
   hasNextPage: boolean;
+  hasPreviousPage: boolean;
 };
 
 /**
@@ -55,13 +57,15 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       isSuccess: true,
-      message: "Guncellemeler getirildi.",
+      message: "İşlem başarıyla tamamlandı.",
       data: {
         updates: sanitizedUpdates,
         totalCount: data.totalCount,
         pageNumber: data.pageNumber,
         pageSize: data.pageSize,
+        totalPages: data.totalPages,
         hasNextPage: data.hasNextPage,
+        hasPreviousPage: data.hasPreviousPage,
       },
     });
 

@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
+import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ChevronDown, Filter, Home, Search, Sparkles, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Home, Search, Sparkles, Star } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { PROTECTED_STATUSES, WORK_TYPES, AGE_RANGES } from "@/constants/books";
@@ -63,9 +63,9 @@ type BooksApiResponse = {
   pageNumber: number;
   pageSize: number;
   totalCount: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPreviousPage: boolean;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 };
 
 const COVER_ASSETS = {
@@ -112,7 +112,7 @@ function BookCard({ book }: { book: Book }) {
   return (
     <Link href={`/Books/${book.slug}`} className="glass-frame group block h-full p-3 transition-all duration-300 hover:translate-y-[-4px]">
       <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl border border-base-content/12">
-        <Image src={book.cover} alt={book.title} fill unoptimized className="object-cover transition duration-300 group-hover:scale-[1.05]" />
+        <BookCover src={book.cover} alt={book.title} className="h-full w-full transition duration-300 group-hover:scale-[1.05]" sizes="(max-width: 640px) 115px, (max-width: 768px) 210px, (max-width: 1024px) 240px, 310px" />
         <div className="absolute inset-x-2 top-2 flex flex-col gap-1 pointer-events-none">
           <span className="w-fit rounded-lg bg-base-100/78 px-1.5 py-0.5 text-[9px] font-black uppercase">{book.workType}</span>
           {book.editorChoice && <span className="w-fit rounded-lg bg-secondary/85 px-1.5 py-0.5 text-[9px] font-black uppercase text-secondary-content">Editor Secimi</span>}
@@ -120,7 +120,7 @@ function BookCard({ book }: { book: Book }) {
         <span className="absolute right-2 top-2 rounded-lg bg-base-100/78 px-1.5 py-0.5 text-[9px] font-black uppercase">{book.ageRange}</span>
       </div>
       <div className="mt-3 space-y-1.5">
-        <h3 className="line-clamp-2 text-sm font-bold group-hover:text-primary transition-colors">{book.title}</h3>
+        <h2 className="line-clamp-2 text-sm font-bold group-hover:text-primary transition-colors">{book.title}</h2>
         <p className="text-[11px] font-semibold text-base-content/60">{book.author}</p>
         <div className="flex items-center justify-between">
            <div className="flex items-center gap-1 text-warning"><Star className="h-3.5 w-3.5 fill-current" /><span className="text-xs font-bold text-base-content">{book.rating.toFixed(1)}</span></div>
@@ -132,6 +132,111 @@ function BookCard({ book }: { book: Book }) {
         </div>
       </div>
     </Link>
+  );
+}
+
+function PaginationControls({
+  currentPage,
+  totalPages,
+  hasPreviousPage,
+  hasNextPage,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  if (!totalPages || totalPages <= 0) return null;
+  return (
+    <>
+      {/* First Page */}
+      <button
+        onClick={() => onPageChange(1)}
+        disabled={currentPage === 1}
+        className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+        title="İlk Sayfa"
+      >
+        <ChevronsLeft className="h-4 w-4" />
+      </button>
+
+      {/* Previous Page */}
+      <button
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        disabled={!hasPreviousPage}
+        className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+        title="Önceki Sayfa"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+
+      <div className="flex items-center gap-1.5">
+        {(() => {
+          const range: (number | string)[] = [];
+
+          if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) range.push(i);
+          } else {
+            range.push(1);
+            if (currentPage > 3) range.push("...");
+
+            const start = Math.max(2, currentPage - 1);
+            const end = Math.min(totalPages - 1, currentPage + 1);
+
+            for (let i = start; i <= end; i++) {
+              if (!range.includes(i)) range.push(i);
+            }
+
+            if (currentPage < totalPages - 2) range.push("...");
+            if (!range.includes(totalPages)) range.push(totalPages);
+          }
+
+          return range.map((p, idx) =>
+            typeof p === "number" ? (
+              <button
+                key={idx}
+                onClick={() => onPageChange(p)}
+                className={`btn btn-sm h-10 w-10 rounded-xl border-none transition-all ${
+                  currentPage === p
+                    ? "bg-primary font-black text-primary-content shadow-lg shadow-primary/25"
+                    : "bg-base-100/32 font-bold hover:bg-base-100/50"
+                }`}
+              >
+                {p}
+              </button>
+            ) : (
+              <span
+                key={idx}
+                className="flex h-10 w-8 items-center justify-center text-sm font-black opacity-30"
+              >
+                {p}
+              </span>
+            ),
+          );
+        })()}
+      </div>
+
+      {/* Next Page */}
+      <button
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+        disabled={!hasNextPage}
+        className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+        title="Sonraki Sayfa"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+
+      {/* Last Page */}
+      <button
+        onClick={() => onPageChange(totalPages)}
+        disabled={currentPage === totalPages}
+        className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+        title="Son Sayfa"
+      >
+        <ChevronsRight className="h-4 w-4" />
+      </button>
+    </>
   );
 }
 
@@ -172,7 +277,18 @@ export default function DiscoveryView() {
       if (selectedAgeRange !== null) url += `&ContentRating=${selectedAgeRange}`;
       if (editorOnly) url += `&IsEditorChoice=true`;
 
-      const data = await apiRequest<BooksApiResponse>(url);
+      const rawData = await apiRequest<BooksApiResponse>(url);
+      console.log("[DEBUG] Discovery API Raw Data:", rawData);
+      
+      // Merge with default values/calculations
+      const data: BooksApiResponse = {
+        ...rawData,
+        totalPages: rawData.totalPages ?? (rawData.pageSize > 0 ? Math.ceil(rawData.totalCount / rawData.pageSize) : 0),
+        hasNextPage: rawData.hasNextPage ?? (rawData.pageNumber < (rawData.totalPages ?? 0)),
+        hasPreviousPage: rawData.hasPreviousPage ?? (rawData.pageNumber > 1)
+      };
+
+      console.log("[DEBUG] Discovery API Processed Data:", data);
       setApiResponse(data);
       setError(null);
     } catch {
@@ -232,7 +348,7 @@ export default function DiscoveryView() {
             <div className="flex items-center justify-between sm:justify-end gap-6 pt-4 sm:pt-0 border-t border-base-content/5 sm:border-0">
               <div className="flex items-center gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 italic sm:hidden">Gosterim</p>
-                <select className="select select-bordered select-sm sm:select-xs rounded-lg font-bold bg-base-100/32 min-h-0 h-9 sm:h-7" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
+                <select aria-label="Sayfa başına eser sayısı" className="select select-bordered select-sm sm:select-xs rounded-lg font-bold bg-base-100/32 min-h-0 h-9 sm:h-7" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
                   {[8, 16, 24, 32, 48, 100].map(v => <option key={v} value={v}>{v} Adet</option>)}
                 </select>
               </div>
@@ -313,8 +429,21 @@ export default function DiscoveryView() {
                         className="btn btn-outline btn-sm w-full rounded-xl border-base-content/15 font-bold">Sıfırla</button>
               </div>
             </aside>
-
+            
             <div className="space-y-6">
+              {/* Top Pagination */}
+              <div className={`flex min-h-[50px] flex-wrap items-center justify-center gap-1.5 border-b border-base-content/5 pb-6 transition-opacity ${isLoading ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+                {apiResponse && (
+                  <PaginationControls 
+                    currentPage={currentPage} 
+                    totalPages={apiResponse.totalPages ?? 0} 
+                    hasNextPage={apiResponse.hasNextPage ?? false}
+                    hasPreviousPage={apiResponse.hasPreviousPage ?? false}
+                    onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  />
+                )}
+              </div>
+
               {error && <div className="rounded-xl bg-error/10 p-4 font-bold text-error border border-error/20">{error}</div>}
               
               {isLoading ? (
@@ -330,70 +459,18 @@ export default function DiscoveryView() {
                 <div className="rounded-2xl border border-dashed border-base-content/20 p-24 text-center font-bold text-base-content/40 italic">Aranan kriterlerde eser bulunamadi.</div>
               )}
 
-              {apiResponse && apiResponse.totalPages > 1 && (
-                <div className="flex flex-wrap items-center justify-center gap-1.5 pt-10">
-                  <button 
-                    onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
-                    disabled={!apiResponse.hasPreviousPage} 
-                    className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </button>
-
-                  <div className="flex items-center gap-1.5">
-                    {(() => {
-                      const total = apiResponse.totalPages;
-                      const current = currentPage;
-                      const range: (number | string)[] = [];
-                      
-                      if (total <= 7) {
-                        for (let i = 1; i <= total; i++) range.push(i);
-                      } else {
-                        range.push(1);
-                        if (current > 3) range.push("...");
-                        
-                        const start = Math.max(2, current - 1);
-                        const end = Math.min(total - 1, current + 1);
-                        
-                        for (let i = start; i <= end; i++) {
-                          if (!range.includes(i)) range.push(i);
-                        }
-                        
-                        if (current < total - 2) range.push("...");
-                        if (!range.includes(total)) range.push(total);
-                      }
-
-                      return range.map((p, idx) => (
-                        typeof p === "number" ? (
-                          <button
-                            key={idx}
-                            onClick={() => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                            className={`btn btn-sm h-10 w-10 rounded-xl border-none transition-all ${
-                              current === p 
-                                ? "bg-primary font-black text-primary-content shadow-lg shadow-primary/25" 
-                                : "bg-base-100/32 font-bold hover:bg-base-100/50"
-                            }`}
-                          >
-                            {p}
-                          </button>
-                        ) : (
-                          <span key={idx} className="flex h-10 w-8 items-center justify-center text-sm font-black opacity-30">
-                            {p}
-                          </span>
-                        )
-                      ));
-                    })()}
-                  </div>
-
-                  <button 
-                    onClick={() => { setCurrentPage(p => Math.min(apiResponse.totalPages, p + 1)); window.scrollTo({ top: 0, behavior: "smooth" }); }} 
-                    disabled={!apiResponse.hasNextPage} 
-                    className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
+              {/* Bottom Pagination */}
+              <div className={`flex min-h-[60px] flex-wrap items-center justify-center gap-1.5 pt-10 border-t border-base-content/5 transition-opacity ${isLoading ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+                {apiResponse && (
+                  <PaginationControls 
+                    currentPage={currentPage} 
+                    totalPages={apiResponse.totalPages ?? 0} 
+                    hasNextPage={apiResponse.hasNextPage ?? false}
+                    hasPreviousPage={apiResponse.hasPreviousPage ?? false}
+                    onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </section>

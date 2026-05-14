@@ -13,6 +13,7 @@ export type LibraryItemResponse = {
   lastReadAt?: string | null;
   lastReadChapterId?: string | null;
   lastReadChapterSlug?: string | null;
+  lastReadChapterTitle?: string | null;
   lastReadParagraphId?: string | null;
   progressPercentage: number;
 };

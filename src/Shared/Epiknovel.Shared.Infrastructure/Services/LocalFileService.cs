@@ -77,7 +77,13 @@ public class LocalFileService : IFileService
             mode = policy.Mode;
         }
 
-        await _imageQueue.EnqueueAsync(new ImageProcessingTask(tempPath, targetPath, width, height, mode));
+        int[]? variations = null;
+        if (category.Equals("covers", StringComparison.OrdinalIgnoreCase))
+        {
+            variations = new[] { 100, 200, 300, 450, 600 };
+        }
+
+        await _imageQueue.EnqueueAsync(new ImageProcessingTask(tempPath, targetPath, width, height, mode, variations));
 
         // 🚀 İşlem bitmeden ismini dönebiliriz, bir saniye içinde WebP hazır olacaktır.
         return fileName;

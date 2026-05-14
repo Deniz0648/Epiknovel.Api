@@ -16,8 +16,8 @@ import {
 import { getMyBookBySlug, getMyChapters } from "@/lib/auth";
 import { toMediaProxyUrl } from "@/lib/media";
 import { ChapterReorderList } from "@/components/author/ChapterReorderList";
-import Image from "next/image";
-import { COVER_DEFAULT } from "@/lib/api";
+import { BookCover } from "@/components/ui/book-cover";
+import { COVER_DEFAULT, resolveMediaUrl } from "@/lib/api";
 
 export default function BookManagementPage() {
   const { bookSlug } = useParams() as { bookSlug: string };
@@ -119,13 +119,12 @@ export default function BookManagementPage() {
 
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
             {/* 2:3 Kapak Gorseli */}
-            <div className="relative aspect-2/3 w-28 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40 sm:w-32 md:w-36">
-                <Image 
-                  src={toMediaProxyUrl(book.coverImageUrl) || COVER_DEFAULT} 
+            <div className="relative aspect-2/3 w-32 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40 sm:w-40 md:w-44 shadow-lg shadow-base-content/5 group">
+                <BookCover 
+                  src={resolveMediaUrl(book.coverImageUrl)} 
                   alt={book.title} 
-                  fill 
-                  unoptimized
-                  className="h-full w-full object-cover" 
+                  className="h-full w-full transition duration-500 group-hover:scale-105" 
+                  sizes="(max-width: 640px) 128px, (max-width: 768px) 160px, 176px"
                 />
             </div>
 

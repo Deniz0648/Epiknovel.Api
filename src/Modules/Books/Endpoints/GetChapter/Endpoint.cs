@@ -32,7 +32,6 @@ public class Endpoint(
     {
         Get("/books/chapters/{Slug}");
         AllowAnonymous();
-        Options(x => x.WithMetadata(new Microsoft.AspNetCore.OutputCaching.OutputCacheAttribute { Duration = 60, Tags = new[] { "ChapterCache" } }));
         Summary(s => {
             s.Summary = "Bir kitabın bölüm içeriğini getirir.";
             s.Description = "İçeriği satır bazlı döner. İzlenme sayıları ve okuma geçmişi arka planda güncellenir.";
@@ -110,26 +109,34 @@ public class Endpoint(
 
             if (restrictedByEmail || restrictedByPayment)
             {
-                int takeCount = (int)Math.Ceiling(response.Paragraphs.Count * 0.15);
-                if (takeCount < 1 && response.Paragraphs.Count > 0) takeCount = 1;
+                int originalCount = response.Paragraphs.Count;
+                int takeCount = (int)Math.Ceiling(originalCount * 0.15);
+                if (takeCount < 1 && originalCount > 0) takeCount = 1;
                 response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
                 response.IsPreview = true;
                 response.PreviewMessage = restrictedByPayment 
                     ? "Bu bölüm ücretlidir. Tamamını okumak için lütfen satın alın."
                     : "Bu bölümün sadece %15'lik kısmını görmektesiniz. Tamamını okumak için lütfen hesabınızı onaylayın.";
+                
+                Serilog.Log.Information("[CHAPTER_RESTRICT] User: {UserId} | Chapter: {ChapterId} | Truncated: {Original} -> {New}", 
+                    currentUserId, response.Id, originalCount, response.Paragraphs.Count);
             }
         }
         else
         {
             // Giriş yapmamış kullanıcı tüm bölümleri (ücretsiz olsa dahi) sadece preview olarak görebilir
-            int takeCount = (int)Math.Ceiling(response.Paragraphs.Count * 0.15);
-            if (takeCount < 1 && response.Paragraphs.Count > 0) takeCount = 1;
+            int originalCount = response.Paragraphs.Count;
+            int takeCount = (int)Math.Ceiling(originalCount * 0.15);
+            if (takeCount < 1 && originalCount > 0) takeCount = 1;
             response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
             response.IsPreview = true;
             
             response.PreviewMessage = response.IsFree 
                 ? "Bu bölüm ücretsizdir ancak okumak için lütfen giriş yapın."
                 : "Bu bölüm ücretlidir. Okumak için lütfen giriş yapın ve satın alın.";
+
+            Serilog.Log.Information("[CHAPTER_RESTRICT] Guest | Chapter: {ChapterId} | Truncated: {Original} -> {New}", 
+                response.Id, originalCount, response.Paragraphs.Count);
         }
 
         // 4. Arka Plan İşlemleri (Hit sayacı vb.)

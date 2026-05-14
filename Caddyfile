@@ -19,6 +19,13 @@
 # Frontend - Test
 test.epiknovel.com {
     import common
+    
+    # Medya Dosyaları için Uzun Süreli Önbellekleme (1 Yıl)
+    @media {
+        path /api/media/* /uploads/*
+    }
+    header @media Cache-Control "public, max-age=31536000, immutable"
+
     reverse_proxy epiknovel_web:3000
 }
 

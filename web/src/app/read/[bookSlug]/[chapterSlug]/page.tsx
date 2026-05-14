@@ -108,6 +108,7 @@ export default function ReaderPage() {
           bookId: currentChapter.bookId,
           chapterId: currentChapter.id,
           chapterSlug: params?.chapterSlug || currentChapter.slug,
+          chapterTitle: currentChapter.title,
           chapterOrder: currentChapter.order,
           paragraphId: paragraphId,
           totalChapters: currentChapter.totalChapters

@@ -19,23 +19,23 @@ export function SiteFooter() {
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-[0.14em] text-base-content/60">Kesfet</h3>
+            <h2 className="text-xs font-black uppercase tracking-[0.14em] text-base-content/60">Kesfet</h2>
             <nav className="flex flex-col gap-2">
-              <Link href="/Books" className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary">
+              <Link href="/Books" className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary focus-visible:outline-none focus-visible:text-primary">
                 Kitaplar
               </Link>
-              <Link href="/Updates" className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary">
+              <Link href="/Updates" className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary focus-visible:outline-none focus-visible:text-primary">
                 Guncellemeler
               </Link>
               <Link
                 href="/announcements"
-                className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary"
+                className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary focus-visible:outline-none focus-visible:text-primary"
               >
                 Duyurular
               </Link>
               <Link
                 href="/support"
-                className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary"
+                className="text-sm font-semibold text-base-content/82 no-underline hover:text-primary focus-visible:outline-none focus-visible:text-primary"
               >
                 Destek
               </Link>
@@ -43,10 +43,10 @@ export function SiteFooter() {
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-[0.14em] text-base-content/60">Iletisim</h3>
+            <h2 className="text-xs font-black uppercase tracking-[0.14em] text-base-content/60">Iletisim</h2>
             <a
               href="mailto:hello@epiknovel.com"
-              className="inline-flex items-center gap-2 rounded-full border border-base-content/16 bg-base-100/24 px-3.5 py-2 text-sm font-semibold text-base-content/82 no-underline transition hover:border-primary/40 hover:text-primary"
+              className="inline-flex items-center gap-2 rounded-full border border-base-content/16 bg-base-100/24 px-3.5 py-2 text-sm font-semibold text-base-content/82 no-underline transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100"
             >
               <Mail className="h-4 w-4" />
               hello@epiknovel.com

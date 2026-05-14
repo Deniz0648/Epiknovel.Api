@@ -57,6 +57,19 @@ public class OrphanFileCleanupWorker(
                 {
                     var fileName = Path.GetFileName(filePath);
                     
+                    // ✨ Varyasyon dosyalarını koru (örn: abc_450w.webp -> abc.webp)
+                    var baseFileName = fileName;
+                    if (fileName.Contains("_") && (fileName.EndsWith("w.webp", StringComparison.OrdinalIgnoreCase) || 
+                                                   fileName.EndsWith("w.jpg", StringComparison.OrdinalIgnoreCase) || 
+                                                   fileName.EndsWith("w.png", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        int lastUnderscore = fileName.LastIndexOf('_');
+                        if (lastUnderscore > 0)
+                        {
+                            baseFileName = fileName.Substring(0, lastUnderscore) + Path.GetExtension(fileName);
+                        }
+                    }
+
                     // ✨ Manuel yönetilen ikon ve logo klasörlerini temizlikten muaf tut
                     if (filePath.Contains($"{Path.DirectorySeparatorChar}icons{Path.DirectorySeparatorChar}") || 
                         filePath.Contains($"{Path.DirectorySeparatorChar}logos{Path.DirectorySeparatorChar}"))
@@ -64,7 +77,7 @@ public class OrphanFileCleanupWorker(
                         continue;
                     }
 
-                    if (!usedFiles.Contains(fileName))
+                    if (!usedFiles.Contains(baseFileName))
                     {
                         // HENÜZ yüklenmiş ama henüz veritabanına kaydedilmemiş olabilir (Transaction devam ediyor veya form açık)
                         // Bu yüzden 24 saatten eski dosyaları siliyoruz.

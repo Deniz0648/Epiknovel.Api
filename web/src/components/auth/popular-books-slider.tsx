@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -27,18 +27,21 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
   useEffect(() => {
     async function loadPopularBooks() {
       try {
-        const res = await apiRequest<{ items: any[] }>("/books?SortBy=ViewCount&SortDescending=true&PageSize=6");
-        const mappedBooks = (res.items || []).map((item: any) => ({
+        // Parametreleri kucuk harf yaparak proxy rotasiyla uyumlu hale getir (Ana sayfa ile ayni sorgu)
+        const res = await apiRequest<{ items: any[] }>("/books?sortBy=viewCount&sortDescending=true&pageSize=6");
+        const items = (res as any).items || [];
+        
+        const mappedBooks = items.map((item: any) => ({
           id: item.slug,
           title: item.title,
           category: item.categoryNames?.[0] || "Genel",
           description: item.description,
           image: resolveMediaUrl(item.coverImageUrl) || "/hero-cover.svg",
-          rating: item.averageRating.toFixed(1),
-          reads: item.viewCount >= 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : item.viewCount.toString(),
+          rating: (item.averageRating || 0).toFixed(1),
+          reads: item.viewCount >= 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : (item.viewCount || 0).toString(),
           slug: item.slug
         }));
-        setBooks(mappedBooks.slice(0, 6));
+        setBooks(mappedBooks);
       } catch (error) {
         console.error("Popular books could not be loaded", error);
       } finally {
@@ -78,7 +81,12 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
       <div className="mt-4 flex flex-1 flex-col items-center gap-4">
         <Link href={href} className="glass-frame relative block aspect-2/3 w-full max-w-50 overflow-hidden p-1.5">
           <div className="relative h-full w-full overflow-hidden rounded-2xl">
-            <Image src={activeBook.image} alt={activeBook.title} fill className="object-cover" sizes="25vw" />
+            <BookCover 
+              src={activeBook.image} 
+              alt={activeBook.title} 
+              className="h-full w-full transition duration-500 group-hover:scale-110" 
+              sizes="25vw" 
+            />
           </div>
         </Link>
 

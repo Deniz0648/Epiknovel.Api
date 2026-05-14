@@ -9,6 +9,7 @@ import {
   CircleDollarSign, AlertCircle, CheckCircle2, ShieldCheck,
   FileText, Building2, Zap, PenTool, X
 } from "lucide-react";
+import { BookCover } from "@/components/ui/book-cover";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -530,18 +531,12 @@ function AuthorPanelContent() {
                     return (
                       <article key={book.id} className={`card sm:card-side rounded-4xl bg-transparent! group hover:shadow-2xl hover:shadow-primary/5 hover:border-primary/30 transition-all duration-500 overflow-hidden ${glassStyle}`}>
                         <figure className="sm:w-52 shrink-0 relative m-3 rounded-3xl overflow-hidden bg-base-100/40 aspect-4/5 sm:aspect-auto">
-                          {book.coverImageUrl ? (
-                            <img
-                              src={resolveMediaUrl(book.coverImageUrl)}
-                              alt={book.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                            />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center w-full h-full text-base-content/20">
-                              <BookOpen className="w-8 h-8 mb-2" />
-                              <span className="text-[9px] font-black uppercase tracking-widest text-center">Kapak Yok</span>
-                            </div>
-                          )}
+                          <BookCover 
+                            src={resolveMediaUrl(book.coverImageUrl)} 
+                            alt={book.title} 
+                            className="h-full w-full transition duration-700 group-hover:scale-110" 
+                            sizes="200px"
+                          />
                         </figure>
 
                         <div className="card-body p-5 sm:p-6 sm:pl-3">

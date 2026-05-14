@@ -39,7 +39,7 @@ interface CommentItemProps {
   onLoadReplies?: (commentId: string) => Promise<void>;
 }
 
-export function CommentItem({ 
+export const CommentItem = React.memo(function CommentItem({ 
   comment, 
   onLike, 
   onReply, 
@@ -371,4 +371,4 @@ export function CommentItem({
       )}
     </div>
   );
-}
+});

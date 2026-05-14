@@ -23,9 +23,10 @@ interface AddToLibraryButtonProps {
   bookId: string;
   bookStatus?: string; // Kitabın genel durumu (Ongoing, Completed vb.)
   className?: string;
+  direction?: "up" | "down";
 }
 
-export function AddToLibraryButton({ bookId, bookStatus, className }: AddToLibraryButtonProps) {
+export function AddToLibraryButton({ bookId, bookStatus, className, direction = "down" }: AddToLibraryButtonProps) {
   const { profile, isLoading: isAuthLoading } = useAuth();
   const [libraryEntryId, setLibraryEntryId] = useState<string | null>(null);
   const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
@@ -187,7 +188,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className }: AddToLibra
   };
 
   return (
-    <div className={`dropdown dropdown-end ${className}`}>
+    <div className={`dropdown dropdown-end ${direction === "up" ? "dropdown-top" : ""} ${className}`}>
       <button
         tabIndex={0}
         type="button"
@@ -221,7 +222,10 @@ export function AddToLibraryButton({ bookId, bookStatus, className }: AddToLibra
         <ChevronDown className="h-4 w-4 opacity-30 group-hover:opacity-100 transition-opacity" />
       </button>
 
-      <ul tabIndex={0} className="dropdown-content z-100 menu p-2 shadow-2xl bg-base-200/95 border border-base-content/10 rounded-2xl w-full mt-2 font-semibold backdrop-blur-xl animate-in fade-in slide-in-from-top-2 duration-200">
+      <ul tabIndex={0} className={`dropdown-content z-100 menu p-2 shadow-2xl bg-base-200/95 border border-base-content/10 rounded-2xl w-full font-semibold backdrop-blur-xl animate-in fade-in duration-200 ${direction === "up" 
+        ? "mb-2 slide-in-from-bottom-2 origin-bottom" 
+        : "mt-2 slide-in-from-top-2 origin-top"
+      }`}>
         <li className="menu-title text-[9px] font-black uppercase tracking-[0.15em] opacity-40 px-3 py-2">DURUMU GÜNCELLE</li>
 
         <li>

@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
   images: {
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.ts",
+    deviceSizes: [320, 420, 640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [150, 300, 600],
     remotePatterns: [
       {
         protocol: "http",

@@ -348,10 +348,11 @@ public static class InfrastructureExtensions
             options.AddBasePolicy(builder => 
             {
                 // 🛡️ Sadece anonim istekleri Redis'te tut (Cache Explosion Koruması)
+                // VaryByQuery("*") ekleyerek sayfalama parametrelerinin cache'i bozmasını sağlıyoruz
                 builder.With(c => !c.HttpContext.Request.Headers.ContainsKey("Authorization"))
-                       .Tag(CacheTags.AllBooks)
+                       .SetVaryByQuery("*")
                        .Tag(CacheTags.Global)
-                       .Expire(TimeSpan.FromSeconds(300));
+                       .Expire(TimeSpan.FromSeconds(60)); // 5 dakikadan 1 dakikaya indirildi (test kolaylığı için)
             });
         });
 
@@ -435,8 +436,9 @@ public static class InfrastructureExtensions
             if (context.Request.Path.Value?.StartsWith("/api") == true)
             {
                 var auth = context.Request.Headers["Authorization"].FirstOrDefault();
-                Console.WriteLine($"[REQUEST_TRACE] Path: {context.Request.Path} | Auth: {(string.IsNullOrEmpty(auth) ? "YOK" : auth[..Math.Min(15, auth.Length)] + "...")}");
-                Console.Out.Flush();
+                Serilog.Log.Information("[REQUEST_TRACE] Path: {Path} | Auth: {Auth}", 
+                    context.Request.Path, 
+                    string.IsNullOrEmpty(auth) ? "YOK" : auth[..Math.Min(15, auth.Length)] + "...");
             }
             await next();
         });

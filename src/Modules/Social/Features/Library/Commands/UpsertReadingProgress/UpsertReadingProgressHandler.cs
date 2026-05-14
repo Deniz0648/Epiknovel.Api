@@ -21,6 +21,7 @@ public class UpsertReadingProgressHandler(SocialDbContext dbContext) : IRequestH
                 BookId = request.BookId,
                 LastReadChapterId = request.ChapterId,
                 LastReadChapterSlug = request.ChapterSlug,
+                LastReadChapterTitle = request.ChapterTitle,
                 LastReadChapterOrder = request.ChapterOrder,
                 LastReadParagraphId = request.ParagraphId,
                 TotalChapters = request.TotalChapters ?? 0,
@@ -32,6 +33,7 @@ public class UpsertReadingProgressHandler(SocialDbContext dbContext) : IRequestH
         {
             progress.LastReadChapterId = request.ChapterId;
             progress.LastReadChapterSlug = request.ChapterSlug;
+            progress.LastReadChapterTitle = request.ChapterTitle;
             progress.LastReadChapterOrder = request.ChapterOrder;
             progress.LastReadParagraphId = request.ParagraphId;
             progress.LastReadAt = DateTime.UtcNow;

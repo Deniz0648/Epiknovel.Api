@@ -60,6 +60,7 @@ services:
       SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME}
       SMTP_ENABLE_SSL: ${SMTP_ENABLE_SSL}
+      SEQ_URL: ${SEQ_URL}
 
   # 💻 Kullanıcı Arayüzü (Next.js)
   epiknovel_web:
@@ -79,7 +80,7 @@ services:
 
   # 🛡️ Ters Proxy (Caddy)
   caddy:
-    image: caddy:2-alpine
+    image: caddy:latest
     restart: always
     container_name: epiknovel_proxy
     ports:

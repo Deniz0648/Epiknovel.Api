@@ -21,6 +21,9 @@ type BackendMyBookPagedResult = {
   pageNumber: number;
   pageSize: number;
   totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 };
 
 export async function GET(request: NextRequest) {
@@ -43,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       isSuccess: true,
-      message: "Kitaplar getirildi.",
+      message: "İşlem başarıyla tamamlandı.",
       data: {
         ...result.data,
         items: result.data.items.map((item) => ({

@@ -11,6 +11,7 @@ public record Request
     public Guid BookId { get; init; }
     public Guid ChapterId { get; init; }
     public string ChapterSlug { get; init; } = string.Empty;
+    public string ChapterTitle { get; init; } = string.Empty;
     public int ChapterOrder { get; init; }
     public Guid? ParagraphId { get; init; }
     public int? TotalChapters { get; init; }
@@ -41,6 +42,7 @@ public class Endpoint(IMediator mediator) : Endpoint<Request, Result<Guid>>
             req.BookId,
             req.ChapterId,
             req.ChapterSlug,
+            req.ChapterTitle,
             req.ChapterOrder,
             req.ParagraphId,
             req.TotalChapters

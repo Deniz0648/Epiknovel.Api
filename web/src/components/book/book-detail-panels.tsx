@@ -14,7 +14,21 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { CommentSection } from "@/components/social/comments/CommentSection";
+import dynamic from "next/dynamic";
+
+const CommentSection = dynamic(() => import("@/components/social/comments/CommentSection").then(mod => mod.CommentSection), {
+  loading: () => (
+    <div className="flex flex-col gap-4 animate-pulse">
+      <div className="h-10 w-48 bg-base-content/10 rounded-2xl"></div>
+      <div className="h-32 w-full bg-base-content/5 rounded-3xl"></div>
+      <div className="space-y-3">
+        <div className="h-24 w-full bg-base-content/5 rounded-2xl"></div>
+        <div className="h-24 w-full bg-base-content/5 rounded-2xl"></div>
+      </div>
+    </div>
+  ),
+  ssr: false
+});
 
 type ChapterSort = "newest" | "oldest";
 type PageSize = 20 | 50 | 100 | 200;
@@ -76,7 +90,7 @@ export function BookDetailPanels({
 
   const totalPages = Math.max(1, Math.ceil(totalChaptersCount / activeFilters.pageSize));
   const currentPage = activeFilters.page;
-  const pageNumbers = getVisiblePages(currentPage, totalPages);
+  const pageNumbers = useMemo(() => getVisiblePages(currentPage, totalPages), [currentPage, totalPages]);
 
   const updateFilters = (updates: Partial<typeof activeFilters>) => {
     onFiltersChange({ ...activeFilters, ...updates });
@@ -97,7 +111,7 @@ export function BookDetailPanels({
 
         <div className="rounded-2xl border border-base-content/12 bg-base-100/16 p-2.5 sm:p-3">
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.9fr)]">
-            <label className="form-control w-full">
+            <label htmlFor="chapter-search" className="form-control w-full">
               <div className="label pb-1">
                 <span className="label-text text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/55">
                   Arama
@@ -106,6 +120,7 @@ export function BookDetailPanels({
               <span className="input input-bordered flex h-11 items-center gap-2 rounded-xl border-base-content/18 bg-base-100/30">
                 <Search className="h-4 w-4 text-base-content/55" />
                 <input
+                  id="chapter-search"
                   type="text"
                   placeholder="Bolum ara..."
                   value={activeFilters.query}
@@ -117,13 +132,14 @@ export function BookDetailPanels({
               </span>
             </label>
 
-            <label className="form-control w-full">
+            <label htmlFor="chapter-sort" className="form-control w-full">
               <div className="label pb-1">
                 <span className="label-text text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/55">
                   Siralama
                 </span>
               </div>
               <select
+                id="chapter-sort"
                 className="select select-bordered h-11 rounded-xl border-base-content/18 bg-base-100/30 text-sm"
                 value={activeFilters.sort}
                 onChange={(event) => {
@@ -135,13 +151,14 @@ export function BookDetailPanels({
               </select>
             </label>
 
-            <label className="form-control w-full">
+            <label htmlFor="chapter-page-size" className="form-control w-full">
               <div className="label pb-1">
                 <span className="label-text text-[11px] font-semibold uppercase tracking-[0.08em] text-base-content/55">
                   Sayfa Basina
                 </span>
               </div>
               <select
+                id="chapter-page-size"
                 className="select select-bordered h-11 rounded-xl border-base-content/18 bg-base-100/30 text-sm"
                 value={activeFilters.pageSize}
                 onChange={(event) => {
@@ -245,6 +262,7 @@ export function BookDetailPanels({
               className="btn btn-sm join-item rounded-l-full border-base-content/20 bg-base-100/28"
               onClick={() => updateFilters({ page: Math.max(1, currentPage - 1) })}
               disabled={currentPage === 1}
+              aria-label="Onceki sayfa"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -257,6 +275,8 @@ export function BookDetailPanels({
                     : "bg-base-100/28 text-base-content/80 hover:bg-base-100/40"
                   }`}
                 onClick={() => updateFilters({ page: pageNumber })}
+                aria-label={`${pageNumber}. sayfa`}
+                aria-current={pageNumber === currentPage ? "page" : undefined}
               >
                 {pageNumber}
               </button>
@@ -266,6 +286,7 @@ export function BookDetailPanels({
               className="btn btn-sm join-item rounded-r-full border-base-content/20 bg-base-100/28"
               onClick={() => updateFilters({ page: Math.min(totalPages, currentPage + 1) })}
               disabled={currentPage === totalPages}
+              aria-label="Sonraki sayfa"
             >
               <ChevronRight className="h-4 w-4" />
             </button>

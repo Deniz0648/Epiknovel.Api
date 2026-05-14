@@ -145,24 +145,24 @@ export function HeaderIsland() {
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <LogoMark />
           <nav className="hidden items-center gap-1.5 lg:flex">
-            <Link href="/Books" className={discoverClass}>
+            <Link href="/Books" className={`${discoverClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100`}>
               Kesfet
             </Link>
-            <Link href="/Updates" className={updatesClass}>
+            <Link href="/Updates" className={`${updatesClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100`}>
               Guncellemeler
             </Link>
-            <Link href="/announcements" className={announcementsClass}>
+            <Link href="/announcements" className={`${announcementsClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100`}>
               Duyurular
             </Link>
-            <Link href="/community" className={communityClass}>
+            <Link href="/community" className={`${communityClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100`}>
               Topluluk
             </Link>
             {canAccessAuthor ? (
-              <Link href="/author" className={authorClass}>
+              <Link href="/author" className={`${authorClass} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100`}>
                 Yazarlik
               </Link>
             ) : profile ? (
-              <Link href="/author/apply" className={`${authorClass} border border-primary/20 bg-primary/5 text-primary`}>
+              <Link href="/author/apply" className={`${authorClass} border border-primary/20 bg-primary/5 text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100`}>
                 Yazar Ol
               </Link>
             ) : null}
@@ -181,7 +181,7 @@ export function HeaderIsland() {
                   }
                   setIsNotificationsOpen(willOpen);
                 }}
-                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${isNotificationsActive || isNotificationsOpen
+                className={`relative inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 ${isNotificationsActive || isNotificationsOpen
                     ? "border-primary/30 bg-primary/12 text-primary"
                     : "border-base-content/14 bg-base-100/26 text-base-content/78"
                   }`}
@@ -290,7 +290,8 @@ export function HeaderIsland() {
           <button
             type="button"
             onClick={() => dispatchHeaderOverlayOpen("search")}
-            className="flex h-10 w-10 items-center justify-center gap-3 rounded-2xl border border-base-content/14 bg-base-100/26 text-base-content/50 transition-all hover:border-primary/30 hover:bg-primary/5 xl:w-64 xl:justify-start xl:px-3"
+            className="flex h-10 w-10 items-center justify-center gap-3 rounded-2xl border border-base-content/14 bg-base-100/26 text-base-content/50 transition-all hover:border-primary/30 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 xl:w-64 xl:justify-start xl:px-3"
+            aria-label="Arama yap"
           >
             <Search className="h-4.5 w-4.5 shrink-0" />
             <span className="hidden text-sm font-semibold xl:inline">Ara...</span>
@@ -326,7 +327,7 @@ export function HeaderIsland() {
                   }
                   setIsProfileMenuOpen(willOpen);
                 }}
-                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all ${isProfileActive || isProfileMenuOpen
+                className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-base-100 ${isProfileActive || isProfileMenuOpen
                     ? "border-primary/30 bg-primary/12 text-primary"
                     : "border-base-content/14 bg-base-100/26 text-base-content/80"
                   }`}

@@ -26,6 +26,9 @@ type BackendBookPagedResult = {
   pageNumber: number;
   pageSize: number;
   totalCount: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 };
 
 export async function GET(request: NextRequest) {
@@ -54,10 +57,16 @@ export async function GET(request: NextRequest) {
     }
 
     const tokens = await getAuthenticatedTokens();
+    console.log("[DEBUG] Next.js Route fetching from backend:", `/books?${params.toString()}`);
     const data = await backendApiRequest<BackendBookPagedResult>(`/books?${params.toString()}`, {
       method: "GET",
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),
+    });
+    console.log("[DEBUG] Next.js Route Raw Data from Backend:", {
+      totalCount: data.totalCount,
+      totalPages: data.totalPages,
+      hasNextPage: data.hasNextPage
     });
 
     // Herhangi bir ID dönmediğinden emin olarak tüm istatistikleri ve bilgileri sanitize et
@@ -68,12 +77,15 @@ export async function GET(request: NextRequest) {
 
     const response = NextResponse.json({
       isSuccess: true,
-      message: "Kitaplar getirildi.",
+      message: "İşlem başarıyla tamamlandı.",
       data: {
         items: sanitizedItems,
         pageNumber: data.pageNumber,
         pageSize: data.pageSize,
         totalCount: data.totalCount,
+        totalPages: data.totalPages,
+        hasNextPage: data.hasNextPage,
+        hasPreviousPage: data.hasPreviousPage,
       },
     });
 

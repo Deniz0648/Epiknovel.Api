@@ -8,6 +8,7 @@ public record UpsertReadingProgressCommand(
     Guid BookId,
     Guid ChapterId,
     string ChapterSlug,
+    string ChapterTitle,
     int ChapterOrder,
     Guid? ParagraphId,
     int? TotalChapters = null

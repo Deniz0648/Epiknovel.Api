@@ -25,6 +25,7 @@ public record LibraryItemResponse
     // İlerleme Bilgileri
     public Guid? LastReadChapterId { get; init; }
     public string? LastReadChapterSlug { get; init; }
+    public string? LastReadChapterTitle { get; init; }
     public Guid? LastReadParagraphId { get; init; }
     public double ProgressPercentage { get; init; }
 }

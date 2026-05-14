@@ -229,7 +229,7 @@ export function ThemeSelector() {
         </span>
       </summary>
 
-      <div className="glass-frame glass-dropdown dropdown-content z-[70] mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 shadow-2xl max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-[5.25rem] max-sm:mt-0 max-sm:w-auto">
+      <div className="glass-frame glass-dropdown dropdown-content z-70 mt-3 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[1.8rem] border border-base-content/14 bg-base-100/92 p-2 shadow-2xl max-sm:fixed max-sm:left-4 max-sm:right-4 max-sm:top-21 max-sm:mt-0 max-sm:w-auto">
         <div className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-base-content/10 bg-base-100/38 px-3.5 py-3">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.14em] text-base-content/48">Tema</p>
@@ -239,38 +239,38 @@ export function ThemeSelector() {
           </div>
           <ThemePaletteBadge themeName={theme} className="h-10 w-10" />
         </div>
-        <ul className="overlay-scroll-region menu block max-h-[22rem] w-full overflow-y-auto p-0 max-sm:max-h-[62vh]">
-        {THEME_GROUPS.map((group) => (
-          <Fragment key={group.title}>
-            <li className="menu-title px-2 pb-1 pt-2 text-[11px] uppercase tracking-[0.15em] text-base-content/50">
-              {group.title}
-            </li>
+        <ul className="overlay-scroll-region menu block max-h-88 w-full overflow-y-auto p-0 max-sm:max-h-[62vh]">
+          {THEME_GROUPS.map((group) => (
+            <Fragment key={group.title}>
+              <li className="menu-title px-2 pb-1 pt-2 text-[11px] uppercase tracking-[0.15em] text-base-content/50">
+                {group.title}
+              </li>
 
-            {group.themes.map((themeName) => {
-              const isActive = theme === themeName;
+              {group.themes.map((themeName) => {
+                const isActive = theme === themeName;
 
-              return (
-                <li key={themeName}>
-                  <button
-                    type="button"
-                    onClick={(event) => handleThemeSelect(themeName, event)}
-                    className={`flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-left ${
-                      isActive ? "bg-primary/14" : "hover:bg-base-content/6"
-                    }`}
-                  >
-                    <ThemePaletteBadge themeName={themeName} />
-                    <span className="flex-1 text-sm font-medium text-base-content">
-                      {formatThemeLabel(themeName)}
-                    </span>
-                    {isActive ? (
-                      <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-                    ) : null}
-                  </button>
-                </li>
-              );
-            })}
-          </Fragment>
-        ))}
+                return (
+                  <li key={themeName}>
+                    <button
+                      type="button"
+                      onClick={(event) => handleThemeSelect(themeName, event)}
+                      className={`flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${isActive ? "bg-primary/14" : "hover:bg-base-content/6"
+                        }`}
+                      aria-current={isActive ? "true" : undefined}
+                    >
+                      <ThemePaletteBadge themeName={themeName} />
+                      <span className="flex-1 text-sm font-medium text-base-content">
+                        {formatThemeLabel(themeName)}
+                      </span>
+                      {isActive ? (
+                        <Check className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+                      ) : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </Fragment>
+          ))}
         </ul>
       </div>
     </details>

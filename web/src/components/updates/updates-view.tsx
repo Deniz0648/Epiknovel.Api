@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { BookCover } from "@/components/ui/book-cover";
 import { ArrowDown, BookText, Clock, History, Home, Search } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 import { apiRequest, resolveMediaUrl, COVER_DEFAULT } from "@/lib/api";
@@ -132,7 +132,7 @@ export default function UpdatesView() {
                 className="group relative flex gap-4 overflow-hidden rounded-2xl border border-base-content/10 bg-base-100/32 p-3 transition-all duration-300 hover:border-primary/30 hover:bg-base-100/45 hover:translate-y-[-2px]">
 
                 <div className="relative aspect-3/4 h-24 shrink-0 overflow-hidden rounded-xl border border-base-content/10">
-                  <Image src={resolveMediaUrl(update.bookCoverImageUrl) || COVER_DEFAULT} alt={update.bookTitle} fill unoptimized className="object-cover transition duration-300 group-hover:scale-[1.05]" />
+                  <BookCover src={update.bookCoverImageUrl} alt={update.bookTitle} className="h-full w-full transition duration-300 group-hover:scale-[1.05]" sizes="70px" />
                 </div>
 
                 <div className="flex flex-col justify-between py-1 flex-1 min-w-0">

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { AddToLibraryButton } from "@/components/book/add-to-library-button";
@@ -36,14 +36,14 @@ function getHeadlineScaleStyle(text: string): CSSProperties {
   const length = text.trim().length;
 
   if (length >= 40) {
-    return { fontSize: "clamp(1.4rem, 4.6vw, 2.25rem)" };
+    return { fontSize: "clamp(1.25rem, 4.2vw, 2rem)" };
   }
 
   if (length >= 26) {
-    return { fontSize: "clamp(1.6rem, 5vw, 2.7rem)" };
+    return { fontSize: "clamp(1.5rem, 4.8vw, 2.5rem)" };
   }
 
-  return { fontSize: "clamp(2rem, 6vw, 3.75rem)" };
+  return { fontSize: "clamp(1.75rem, 5.5vw, 3.5rem)" };
 }
 
 // EDITOR_CHOICE_SLIDES statik dizisi props'a tasindi.
@@ -61,15 +61,13 @@ function CoverPanel({
     <Link href={bookHref} className={className}>
       <div className="glass-frame relative mx-auto aspect-2/3 w-full overflow-hidden p-1.5">
         <div className="relative h-full w-full overflow-hidden rounded-[1.2rem]">
-          <Image
+          <BookCover
             src={slide.image}
             alt={slide.imageAlt}
-            fill
-            priority
-            placeholder="blur"
-            blurDataURL={slide.blurDataURL}
-            className="object-cover"
-            sizes="(max-width: 640px) 36vw, (max-width: 1024px) 28vw, 30vw"
+            priority={true}
+            blurDataUrl={slide.blurDataURL}
+            className="h-full w-full"
+            sizes="(max-width: 640px) 170px, (max-width: 1024px) 240px, 310px"
           />
           <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-base-100/35 via-transparent to-transparent" />
         </div>
@@ -198,55 +196,59 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
         onTouchEnd={handleTouchEnd}
       >
         <div className="space-y-5 lg:space-y-7">
-          <div className="flex items-start gap-3 sm:gap-4 lg:block">
-            <div className="min-w-0 flex-1 space-y-3">
-              <p className="badge badge-sm badge-info badge-soft gap-2 border-none px-3 py-3 font-semibold tracking-wide">
-                <span className="inline-block h-2 w-2 rounded-full bg-info-content/80" />
-                {activeSlide.badge}
-              </p>
+          <div className="flex flex-col gap-5 lg:block">
+            {/* Mobile Cover (Top Row) */}
+            <CoverPanel
+              slide={activeSlide}
+              className="mx-auto w-full max-w-64 lg:hidden"
+            />
 
-              <div className="flex h-[7.2rem] items-center py-0.5 sm:h-32 lg:h-[8.8rem]">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="flex justify-center lg:justify-start">
+                <p className="badge badge-sm badge-info gap-2 border-none px-3 py-3 font-bold tracking-wide text-info-content shadow-sm">
+                  <span className="inline-block h-2 w-2 rounded-full bg-info-content/90" />
+                  {activeSlide.badge}
+                </p>
+              </div>
+
+              <div className="flex h-auto min-h-22 items-center py-0.5 text-center sm:h-32 lg:h-[8.8rem] lg:text-left">
                 <h1
-                  className="hero-title-gradient line-clamp-3 text-balance pb-[0.06em] font-black leading-[1.05] tracking-tight"
+                  className="hero-title-gradient line-clamp-3 w-full text-balance pb-[0.06em] font-black leading-[1.05] tracking-tight"
                   style={titleScaleStyle}
                 >
                   <Link href={activeBookHref}>{activeSlide.title}</Link>
                 </h1>
               </div>
 
-              <p className="line-clamp-3 max-w-xl text-pretty text-base leading-relaxed text-base-content/75 sm:text-[1.05rem]">
+              <p className="line-clamp-3 max-w-xl text-pretty text-center text-sm leading-relaxed text-base-content/75 sm:text-[1.05rem] lg:text-left">
                 {activeSlide.description}
               </p>
             </div>
-
-            <CoverPanel
-              slide={activeSlide}
-              className="w-[7.8rem] shrink-0 sm:w-36 lg:hidden"
-            />
           </div>
 
-          <div className="relative z-50 flex flex-wrap items-center gap-3">
+          <div className="relative z-50 flex items-center gap-2 sm:gap-3">
             <Link
               href={activeBookHref}
-              className="btn btn-primary h-12 rounded-full px-7 shadow-lg shadow-primary/30"
+              className="btn btn-primary h-12 flex-1 rounded-2xl px-0 shadow-lg shadow-primary/30"
             >
               <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-              Simdi Oku
+              <span className="truncate">Simdi Oku</span>
             </Link>
             <AddToLibraryButton
               bookId={activeSlide.id}
               bookStatus={activeSlide.status}
-              className="h-12 w-auto min-w-48"
+              className="h-12 flex-2"
+              direction="up"
             />
           </div>
 
-          <div className="grid w-full max-w-md grid-cols-3 gap-2.5 pt-1 sm:gap-3">
+          <div className="grid w-full grid-cols-3 gap-2 pt-1 text-center sm:gap-3">
             {activeSlide.stats.map((stat) => (
-              <div key={stat.label} className="px-2 py-1 sm:px-3">
-                <p className="text-2xl font-extrabold tracking-tight sm:text-3xl">
+              <div key={stat.label} className="px-1 py-1 sm:px-3">
+                <p className="text-xl font-extrabold tracking-tight sm:text-3xl">
                   {stat.value}
                 </p>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-base-content/55">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-base-content/55 sm:text-xs sm:tracking-[0.2em]">
                   {stat.label}
                 </p>
               </div>
@@ -277,11 +279,12 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
               key={slide.id}
               type="button"
               onClick={() => goToSlide(index)}
-              className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-                }`}
+              className="flex h-11 w-11 items-center justify-center transition-all active:scale-90"
               aria-label={`${index + 1}. kitap: ${slide.title}`}
               aria-current={isActive ? "true" : "false"}
-            />
+            >
+              <span className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"}`} />
+            </button>
           );
         })}
 

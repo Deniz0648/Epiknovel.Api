@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { Flame, Star } from "lucide-react";
 import { type TouchEvent, useMemo, useRef, useState } from "react";
@@ -55,15 +55,12 @@ function MostReadCard({ book, rank }: { book: MostReadBook; rank: number }) {
       </div>
 
       <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl border border-base-content/12">
-        <Image
+        <BookCover
           src={book.image}
           alt={book.imageAlt}
-          fill
-          unoptimized
-          placeholder="blur"
-          blurDataURL={book.blurDataURL}
-          className="object-cover transition duration-300 group-hover:scale-[1.03]"
-          sizes="(max-width: 768px) 40vw, (max-width: 1280px) 18vw, 14vw"
+          blurDataUrl={book.blurDataURL}
+          className="h-full w-full transition duration-300 group-hover:scale-[1.03]"
+          sizes="(max-width: 640px) 150px, (max-width: 768px) 180px, (max-width: 1024px) 200px, 220px"
         />
       </div>
 
@@ -246,11 +243,12 @@ export function MostReadRow({ books }: { books: MostReadBook[] }) {
                 key={index}
                 type="button"
                 onClick={() => setActiveMobilePage(index)}
-                className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-                  }`}
+                className="flex h-11 w-11 items-center justify-center transition-all active:scale-90"
                 aria-label={`${index + 1}. en cok okunanlar sayfasi`}
                 aria-current={isActive ? "true" : "false"}
-              />
+              >
+                <span className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"}`} />
+              </button>
             );
           })}
         </div>
@@ -287,11 +285,12 @@ export function MostReadRow({ books }: { books: MostReadBook[] }) {
                 key={index}
                 type="button"
                 onClick={() => setActiveTabletPage(index)}
-                className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"
-                  }`}
+                className="flex h-11 w-11 items-center justify-center transition-all active:scale-90"
                 aria-label={`${index + 1}. tablet en cok okunanlar sayfasi`}
                 aria-current={isActive ? "true" : "false"}
-              />
+              >
+                <span className={`h-2.5 rounded-full transition-all ${isActive ? "w-8 bg-primary" : "w-2.5 bg-base-content/30"}`} />
+              </button>
             );
           })}
         </div>

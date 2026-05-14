@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Webp;
 
 namespace Epiknovel.Shared.Infrastructure.Background;
 
-public record ImageProcessingTask(string OriginalPath, string TargetPath, int Width, int Height, ResizeMode Mode);
+public record ImageProcessingTask(string OriginalPath, string TargetPath, int Width, int Height, ResizeMode Mode, int[]? WidthVariations);
 
 public interface IImageProcessingQueue
 {
@@ -59,6 +59,22 @@ public class ImageProcessingWorker(
 
                 var encoder = new WebpEncoder { Quality = 80 };
                 await image.SaveAsync(task.TargetPath, encoder, stoppingToken);
+
+                // 🚀 AOT: Genişlik varyasyonları istenmişse, asıl dosyayı kopyalayıp boyutlandır
+                if (task.WidthVariations != null && task.WidthVariations.Length > 0)
+                {
+                    foreach (var varWidth in task.WidthVariations)
+                    {
+                        var dir = Path.GetDirectoryName(task.TargetPath)!;
+                        var name = Path.GetFileNameWithoutExtension(task.TargetPath);
+                        var ext = Path.GetExtension(task.TargetPath);
+                        var varPath = Path.Combine(dir, $"{name}_{varWidth}w{ext}");
+
+                        using var clone = image.Clone(x => x.Resize(varWidth, 0));
+                        await clone.SaveAsync(varPath, encoder, stoppingToken);
+                        logger.LogDebug("Görsel varyasyonu üretildi: {Path}", varPath);
+                    }
+                }
                 
                 // Orijinal geçici dosyayı temizle
                 if (File.Exists(task.OriginalPath)) File.Delete(task.OriginalPath);

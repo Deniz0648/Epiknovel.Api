@@ -37,11 +37,10 @@ export default function CommunityView() {
   }, [queryInput]);
 
   useEffect(() => {
-    // Topluluk sayfasının SEO için (public erişim kuralına göre) giriş yapmadan da 
-    // en azından listeyi görmesi iyi olur. Ancak mevcut lib/auth koduna göre 
-    // profile yoksa boş dönüyor olabilir. Kullanıcının isteği üzerine 
-    // public sayfalar (bölümler hariç) erişilebilir olmalı.
-    
+    // Oturum geri yukleme islemi (isSessionLoading) bitmeden API cagrisi yapma.
+    // Boylece 401 hatalarini ve gereksiz refresh denemelerini minimize ederiz.
+    if (isSessionLoading) return;
+
     let cancelled = false;
 
     async function loadUsers() {
@@ -64,6 +63,7 @@ export default function CommunityView() {
         setTotalCount(data.totalCount);
       } catch (loadError) {
         if (cancelled) return;
+        // 401 hatasi durumunda veya genel bir hatada dostane mesaji tetikle
         setError(loadError instanceof ApiError ? loadError.message : "Topluluk listesi getirilemedi.");
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -72,7 +72,7 @@ export default function CommunityView() {
 
     void loadUsers();
     return () => { cancelled = true; };
-  }, [isAuthorFilter, pageNumber, pageSize, query, sortDirection]);
+  }, [isAuthorFilter, isSessionLoading, pageNumber, pageSize, query, sortDirection]);
 
   return (
     <main className="relative overflow-hidden">
@@ -160,7 +160,21 @@ export default function CommunityView() {
           </div>
         </section>
 
-        {error ? <section className="glass-frame border border-error/30 bg-error/10 p-4 text-error">{error}</section> : null}
+        {error ? (
+          <section className="glass-frame border border-primary/20 bg-primary/5 p-8 text-center space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Users className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-xl font-black uppercase italic tracking-tight">Topluluga Katil</h2>
+            <p className="text-sm font-medium text-base-content/60 max-w-md mx-auto leading-relaxed">
+              Diger okurlari ve yazarlari kesfetmek, profilleri incelemek ve etkilesime gecmek icin lutfen giris yapin.
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <Link href="/login" className="btn btn-primary px-8 rounded-xl font-bold">Giris Yap</Link>
+              <Link href="/register" className="btn btn-ghost border border-base-content/10 px-8 rounded-xl font-bold">Kayit Ol</Link>
+            </div>
+          </section>
+        ) : null}
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {isLoading ? (

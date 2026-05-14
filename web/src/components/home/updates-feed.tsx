@@ -30,7 +30,7 @@ export function UpdatesFeed({
       <article className="glass-frame flex h-full flex-col p-4 sm:p-6">
         <div className="mb-3 flex items-center gap-2 sm:mb-4">
           <BookText className="h-4 w-4 text-primary" />
-          <h3 className="text-base font-bold sm:text-xl">Guncellemeler</h3>
+          <h2 className="text-base font-bold sm:text-xl">Guncellemeler</h2>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-6 xl:gap-2.5">
@@ -48,7 +48,7 @@ export function UpdatesFeed({
         </div>
 
         <div className="mt-3 xl:mt-auto xl:pt-3">
-          <Link href="/Updates" className="btn btn-outline btn-sm w-full rounded-full">
+          <Link href="/Updates" className="btn btn-outline btn-sm w-full rounded-full" aria-label="Tum guncellemeleri gor">
             Hepsini Gor
           </Link>
         </div>
@@ -57,7 +57,7 @@ export function UpdatesFeed({
       <article className="glass-frame flex h-full flex-col p-4 sm:p-6">
         <div className="mb-3 flex items-center gap-2 sm:mb-4">
           <Megaphone className="h-4 w-4 text-secondary" />
-          <h3 className="text-base font-bold sm:text-xl">Son Duyurular</h3>
+          <h2 className="text-base font-bold sm:text-xl">Son Duyurular</h2>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:flex-1 xl:grid-cols-1 xl:grid-rows-6 xl:gap-2.5">
@@ -81,7 +81,7 @@ export function UpdatesFeed({
         </div>
 
         <div className="mt-3 xl:mt-auto xl:pt-3">
-          <Link href="/announcements" className="btn btn-outline btn-sm w-full rounded-full">
+          <Link href="/announcements" className="btn btn-outline btn-sm w-full rounded-full" aria-label="Tum duyurulari gor">
             Hepsini Gor
           </Link>
         </div>

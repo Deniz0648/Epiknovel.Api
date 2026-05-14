@@ -12,6 +12,7 @@ public class Review : BaseEntity, ISoftDelete, IOwnable
     public Guid BookId { get; set; }
 
     public string Content { get; set; } = string.Empty;
+    public double Rating { get; set; }
     
     // Denormalize (Cache) Veriler
     public int LikeCount { get; set; }
