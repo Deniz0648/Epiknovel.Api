@@ -280,12 +280,22 @@ export default function DiscoveryView() {
       const rawData = await apiRequest<BooksApiResponse>(url);
       console.log("[DEBUG] Discovery API Raw Data:", rawData);
       
+      const normalizedPageNumber = rawData.pageNumber || currentPage;
+      const normalizedPageSize = rawData.pageSize || pageSize;
+      const normalizedTotalCount = rawData.totalCount || 0;
+      const normalizedTotalPages = rawData.totalPages ?? (
+        normalizedPageSize > 0 ? Math.ceil(normalizedTotalCount / normalizedPageSize) : 0
+      );
+
       // Merge with default values/calculations
       const data: BooksApiResponse = {
         ...rawData,
-        totalPages: rawData.totalPages ?? (rawData.pageSize > 0 ? Math.ceil(rawData.totalCount / rawData.pageSize) : 0),
-        hasNextPage: rawData.hasNextPage ?? (rawData.pageNumber < (rawData.totalPages ?? 0)),
-        hasPreviousPage: rawData.hasPreviousPage ?? (rawData.pageNumber > 1)
+        pageNumber: normalizedPageNumber,
+        pageSize: normalizedPageSize,
+        totalCount: normalizedTotalCount,
+        totalPages: normalizedTotalPages,
+        hasNextPage: rawData.hasNextPage ?? (normalizedPageNumber < normalizedTotalPages),
+        hasPreviousPage: rawData.hasPreviousPage ?? (normalizedPageNumber > 1)
       };
 
       console.log("[DEBUG] Discovery API Processed Data:", data);
