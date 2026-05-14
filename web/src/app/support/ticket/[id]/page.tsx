@@ -101,7 +101,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       });
       setNewMessage("");
       loadTicket(); // Refresh messages
-      } catch {
+      } catch (err) {
       console.error("Mesaj gonderilirken hata:", err);
       showToast({ title: "Hata", description: "Mesaj gönderilemedi.", tone: "error" });
     } finally {

@@ -173,7 +173,7 @@ export default function CompliancePage() {
         // Fallback for direct data or unexpected structures
         setData(Array.isArray(json) ? json : (activeTab.startsWith("books") ? { items: [] } : []));
       }
-    } catch {
+    } catch (err) {
       console.error("Fetch error:", err);
       setData(activeTab.startsWith("books") ? { items: [] } : []); // Set safe default on error
     } finally {
@@ -371,7 +371,6 @@ export default function CompliancePage() {
                 <FeaturedReviewsView
                   reviews={Array.isArray(data) ? data as FeaturedReview[] : []}
                   onToggleEditorChoice={handleToggleEditorChoiceFromTab}
-                  onRefresh={() => fetchData()}
                 />
               )}
             </>
@@ -765,7 +764,7 @@ function SimpleListingView({
                   <td className="py-5 pl-6">
                     <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-base-100 border border-base-content/5 flex items-center justify-center p-0.5 shadow-sm group-hover:shadow-md transition-shadow">
                       {item.iconUrl ? (
-                        <Image src={item.iconUrl} alt={item.name} width={64} height={64} className="h-full w-full object-contain rounded-xl" />
+                        <Image src={item.iconUrl} alt={item.name || ""} width={64} height={64} className="h-full w-full object-contain rounded-xl" />
                       ) : (
                         <Layers className="h-5 w-5 text-base-content/10" />
                       )}
@@ -1106,7 +1105,7 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
           return next;
         });
       }
-    } catch {
+    } catch (err) {
       console.error("Toggle review editor choice error:", err);
     }
   }

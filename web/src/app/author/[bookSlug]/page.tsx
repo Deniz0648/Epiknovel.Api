@@ -13,31 +13,13 @@ import {
   Trash2,
   ChevronRight
 } from "lucide-react";
-import { getMyBookBySlug, getMyChapters } from "@/lib/auth";
+import { getMyBookBySlug, getMyChapters, MyBookListItem, MyChapterListItem } from "@/lib/auth";
 import { ChapterReorderList } from "@/components/author/ChapterReorderList";
 import { BookCover } from "@/components/ui/book-cover";
 import { resolveMediaUrl } from "@/lib/api";
 
-type ManagedBook = {
-  id: string;
-  slug: string;
-  title: string;
-  description?: string | null;
-  coverImageUrl?: string | null;
-  type?: string | number;
-  status?: string | number;
-  contentRating?: string | number;
-  chapterCount?: number;
-  viewCount?: number | null;
-  averageRating?: number | null;
-  voteCount?: number | null;
-};
-
-type ManagedChapter = {
-  id: string;
-  title: string;
-  authorName?: string | null;
-};
+type ManagedBook = MyBookListItem;
+type ManagedChapter = MyChapterListItem;
 
 export default function BookManagementPage() {
   const { bookSlug } = useParams() as { bookSlug: string };
@@ -228,7 +210,10 @@ export default function BookManagementPage() {
                 <ChapterReorderList
                   bookId={book.id}
                   bookSlug={book.slug}
-                  initialChapters={chapters}
+                  initialChapters={chapters.map(c => ({
+                    ...c,
+                    status: c.status === "Published" ? 1 : c.status === "Scheduled" ? 2 : 0
+                  }))}
                   onOrderSaved={() => loadChapters(currentPage, searchQuery)}
                 />
 

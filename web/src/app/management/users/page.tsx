@@ -106,7 +106,7 @@ export default function UserManagementPage() {
       } else {
         setCursor(null);
       }
-    } catch {
+    } catch (err) {
       console.error("Kullanıcı listesi yuklenirken hata:", err);
       showToast({ title: "Hata", description: "Kullanıcı listesi yüklenemedi.", tone: "error" });
     } finally {
@@ -138,7 +138,7 @@ export default function UserManagementPage() {
       if ((data.purchasedChapters || []).length < 10) setHasMorePurchases(false);
       if ((data.recentTransactions || []).length < 10) setHasMoreTx(false);
 
-    } catch {
+    } catch (err) {
       console.error("Kullanıcı detaylari yuklenirken hata:", err);
       showToast({ title: "Hata", description: "Kullanıcı detayları yüklenemedi.", tone: "error" });
     } finally {
