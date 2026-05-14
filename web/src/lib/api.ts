@@ -44,6 +44,16 @@ type RequestOptions = RequestInit & {
 let isRefreshing = false;
 let refreshSubscribers: ((success: boolean) => void)[] = [];
 let sharedRefreshPromise: Promise<boolean> | null = null;
+const AUTH_REFRESH_EXCLUDED_PATHS = new Set([
+  "/auth/login",
+  "/auth/register",
+  "/auth/session",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/confirm-email",
+  "/auth/confirm-email/resend",
+  "/auth/confirm-change-email",
+]);
 
 function notifySubscribers(success: boolean) {
   refreshSubscribers.forEach((cb) => cb(success));
@@ -99,6 +109,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const makeRequest = async (currentOptions: RequestOptions) => {
+    const requestToken = currentOptions.token ?? token;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 saniye timeout
 
@@ -111,7 +122,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
         credentials: rest.credentials ?? "include",
         headers: {
           ...(hasJsonBody ? { "Content-Type": "application/json" } : {}),
-          ...(currentOptions.token ? { Authorization: `Bearer ${currentOptions.token}` } : {}),
+          ...(requestToken ? { Authorization: `Bearer ${requestToken}` } : {}),
           ...headers,
         },
         signal: controller.signal,
@@ -142,7 +153,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   let response = await makeRequest(options);
 
   // 🛡️ 401 Interceptor: Revoke durumlarında token tazelemeyi dene ve eşzamanlı istekleri beklet
-  if (response.status === 401 && path !== "/auth/login") {
+  if (response.status === 401 && !AUTH_REFRESH_EXCLUDED_PATHS.has(path)) {
     if (isRefreshing) {
       // Hali hazırda bir yenileme işlemi var, kuyruğa gir ve bitmesini bekle
       const success = await new Promise<boolean>((resolve) => {

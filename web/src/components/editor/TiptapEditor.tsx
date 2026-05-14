@@ -4,7 +4,6 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import DropCursor from '@tiptap/extension-dropcursor'
 import { CustomParagraph, CustomHeading, CustomBlockquote, CustomCodeBlock, CustomBulletList, CustomOrderedList, CustomListItem, BlockUUIDManager } from './ParagraphWithUUID'
-import Underline from '@tiptap/extension-underline'
 import { EditorToolbar } from './EditorToolbar'
 import { useEffect, useCallback, forwardRef, useImperativeHandle, useState } from 'react'
 import { v4 as uuidv4 } from 'uuid'
@@ -130,7 +129,7 @@ export const TiptapEditor = forwardRef<TiptapEditorRef, TiptapEditorProps>(
             let order = 0
             const serializer = DOMSerializer.fromSchema(editor.schema)
 
-            editor.state.doc.forEach((node, offset) => {
+            editor.state.doc.forEach((node) => {
                 const type = node.type.name
                 if (['paragraph', 'heading', 'blockquote', 'codeBlock', 'bulletList', 'orderedList'].includes(type) || node.isBlock) {
                     let uuid = node.attrs.uuid

@@ -65,7 +65,7 @@ export default function LegalManagementPage() {
       setIsLoading(true);
       const res = await apiRequest<LegalDocumentSummary[]>("/management/compliance/legal");
       setDocuments(res || []);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Belgeler yüklenemedi.", tone: "error" });
     } finally {
       setIsLoading(false);
@@ -77,7 +77,7 @@ export default function LegalManagementPage() {
       setIsHistoryLoading(true);
       const res = await apiRequest<LegalVersion[]>(`/management/compliance/legal/${docSlug}/history`);
       setHistory(res || []);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Geçmiş yüklenemedi.", tone: "error" });
     } finally {
       setIsHistoryLoading(false);

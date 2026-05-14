@@ -1,10 +1,13 @@
 import { auth } from "@/lib/auth-utils"
 import { redirect } from "next/navigation"
 import { EditChapterForm } from "@/components/editor/EditChapterForm"
-import { getApiUrl } from "@/lib/config"
 
 export const metadata = {
   title: "Yeni Bölüm Yaz | Epiknovel",
+}
+
+type ChapterOrderItem = {
+  order?: number | null
 }
 
 export default async function NewChapterPage({ params }: { params: Promise<{ bookSlug: string }> }) {
@@ -47,7 +50,7 @@ export default async function NewChapterPage({ params }: { params: Promise<{ boo
         if (data.isSuccess) {
           const chapters = data.data?.chapters || data.data || []
           if (Array.isArray(chapters) && chapters.length > 0) {
-            nextOrder = Math.max(...chapters.map((c: any) => c.order || 0)) + 1
+            nextOrder = Math.max(...chapters.map((chapter: ChapterOrderItem) => chapter.order ?? 0)) + 1
           }
         }
       }

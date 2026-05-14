@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
        return NextResponse.json({ isSuccess: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await backendApiRequest<any>(`/management/author/review`, {
+    const data = await backendApiRequest<unknown>(`/management/author/review`, {
       method: "POST",
       body: JSON.stringify(body),
       token: tokens.accessToken,
@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function handleProxyError(error: any) {
+function handleProxyError(error: unknown) {
   if (isApiErrorLike(error)) {
     const response = NextResponse.json(
-      { isSuccess: false, message: error.message, errors: (error as any).errors },
+      { isSuccess: false, message: error.message, errors: (error as { errors?: unknown }).errors },
       { status: error.status }
     );
     if (error.status === 401) clearAuthCookies(response);

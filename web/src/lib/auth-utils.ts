@@ -16,7 +16,7 @@ export async function auth() {
       },
       accessToken: tokens.accessToken
     };
-  } catch (err) {
+  } catch {
     return null;
   }
 }

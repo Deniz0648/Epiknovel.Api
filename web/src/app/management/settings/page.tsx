@@ -13,23 +13,17 @@ import {
   Loader2,
   Shield,
   Zap,
-  Lock,
   Server,
-  Bell,
   HardDrive,
-  Code,
-  CheckCircle2,
   AlertCircle,
   Eye,
   EyeOff,
   RefreshCw,
-  Plus,
   Trash2,
   Bold,
   Italic,
   Underline,
   Strikethrough,
-  Link as LinkIcon,
   List,
   ListOrdered,
   Quote,
@@ -42,7 +36,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  AlignJustify
+  type LucideIcon
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -72,6 +66,26 @@ type SettingItem = {
 };
 
 type TabType = 'site' | 'economy' | 'pos' | 'smtp' | 'content' | 'templates' | 'rewards' | 'tools';
+
+type ToolbarButtonProps = {
+  onClick: () => void;
+  isActive?: boolean;
+  icon: LucideIcon;
+  title?: string;
+};
+
+function ToolbarButton({ onClick, isActive = false, icon: Icon, title }: ToolbarButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`p-2 rounded-lg transition-colors ${isActive ? 'bg-primary text-primary-content' : 'hover:bg-base-content/10 text-base-content/60'}`}
+    >
+      <Icon className="h-4 w-4" />
+    </button>
+  );
+}
 
 const HARDCODED_TEMPLATES = [
   { key: "WelcomeEmail", name: "Hoş Geldin", variables: "{{DisplayName}}, {{SiteName}}, {{LoginLink}}" },
@@ -171,17 +185,6 @@ const AdvancedTemplateEditor = ({ template, onUpdate, onSave, isSaving }: { temp
     }
   }, [template.body, editor]);
 
-  const ToolbarButton = ({ onClick, isActive = false, icon: Icon, title }: any) => (
-    <button
-      type="button"
-      onClick={onClick}
-      title={title}
-      className={`p-2 rounded-lg transition-colors ${isActive ? 'bg-primary text-primary-content' : 'hover:bg-base-content/10 text-base-content/60'}`}
-    >
-      <Icon className="h-4 w-4" />
-    </button>
-  );
-
   if (!editor) return null;
 
   return (
@@ -274,7 +277,6 @@ export default function SettingsPage() {
   const currentTab = (searchParams.get('tab') as TabType) || 'site';
 
   const [activeTab, _setActiveTab] = useState<TabType>(currentTab);
-  const [settings, setSettings] = useState<SettingItem[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>(HARDCODED_TEMPLATES[0].key);
   const [isLoading, setIsLoading] = useState(true);
@@ -292,7 +294,7 @@ export default function SettingsPage() {
     if (activeTab !== currentTab) {
       _setActiveTab(currentTab);
     }
-  }, [currentTab]);
+  }, [activeTab, currentTab]);
 
   useEffect(() => {
     fetchSettings();
@@ -305,14 +307,13 @@ export default function SettingsPage() {
     setIsLoading(true);
     try {
       const data = await apiRequest<SettingItem[]>('/management/settings');
-      setSettings(data);
 
       const mapped: Record<string, string> = {};
       data.forEach(s => {
         mapped[s.key] = s.value;
       });
       setLocalSettings(mapped);
-    } catch (error) {
+    } catch {
       toast.error({ description: "Ayarlar yüklenemedi." });
     } finally {
       setIsLoading(false);
@@ -323,7 +324,7 @@ export default function SettingsPage() {
     try {
       const data = await apiRequest<{ items: EmailTemplate[] }>('/management/system/emails/templates');
       setEmailTemplates(data.items);
-    } catch (error) {
+    } catch {
       toast.error({ description: "Şablonlar yüklenemedi." });
     }
   };
@@ -347,7 +348,7 @@ export default function SettingsPage() {
 
       toast.success({ description: "Ayarlar başarıyla kaydedildi." });
       fetchSettings();
-    } catch (error) {
+    } catch {
       toast.error({ description: "Kaydetme işlemi başarısız." });
     } finally {
       setIsSaving(false);
@@ -388,7 +389,7 @@ export default function SettingsPage() {
 
       toast.success({ description: "Şablon başarıyla güncellendi." });
       fetchTemplates();
-    } catch (error) {
+    } catch {
       toast.error({ description: "Şablon kaydedilemedi." });
     } finally {
       setIsSaving(false);
@@ -416,7 +417,7 @@ export default function SettingsPage() {
     });
   };
 
-  const renderSectionHeader = (title: string, desc: string, icon: any) => (
+  const renderSectionHeader = (title: string, desc: string, icon: LucideIcon) => (
     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
       <div className="flex items-center gap-4">
         <div className="p-3 rounded-2xl bg-primary/10 text-primary">
@@ -642,7 +643,7 @@ export default function SettingsPage() {
                               try {
                                 const res = await apiRequest<{ totalIndexed: number }>('/search/rebuild', { method: 'POST' });
                                 toast.success({ description: `${res.totalIndexed} öğe başarıyla yeniden indekslendi.` });
-                              } catch (err) {
+                              } catch {
                                 toast.error({ description: "Arama indeksi oluşturulamadı." });
                               } finally {
                                 setIsSaving(false);

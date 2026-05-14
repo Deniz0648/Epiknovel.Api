@@ -28,7 +28,7 @@ async function handleProxyRequest(request: NextRequest, method: string) {
     }
 
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`/management/support${subRoute}${search}`, {
+    const data = await backendApiRequest<unknown>(`/management/support${subRoute}${search}`, {
       method,
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),

@@ -17,9 +17,12 @@ export function LogoMark() {
     >
       <span className="inline-flex h-11 min-w-11 px-2 items-center justify-center rounded-xl bg-primary text-primary-content shadow-lg shadow-primary/20 transition-all duration-300 group-hover:scale-105 group-hover:shadow-primary/40 overflow-hidden border border-primary-focus/20">
         {logoUrl ? (
-          <img
+          <Image
             src={logoUrl}
             alt={siteName}
+            width={96}
+            height={96}
+            unoptimized
             className="max-h-full max-w-full object-contain p-2"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';

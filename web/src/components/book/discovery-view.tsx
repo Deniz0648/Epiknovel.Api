@@ -2,7 +2,7 @@
 
 import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Home, Search, Sparkles, Star } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Home, Search, Sparkles, Star } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
 import { PROTECTED_STATUSES, WORK_TYPES, AGE_RANGES } from "@/constants/books";

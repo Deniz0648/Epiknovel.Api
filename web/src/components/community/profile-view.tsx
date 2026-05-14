@@ -10,7 +10,7 @@ import { followUser, getPublicBooks, unfollowUser, type PublicBookListItem, type
 
 export default function ProfileView({ initialData, slug }: { initialData: PublicUserProfile, slug: string }) {
   const router = useRouter();
-  const { profile: sessionProfile, isLoading: isSessionLoading } = useAuth();
+  const { profile: sessionProfile } = useAuth();
   const [publicProfile, setPublicProfile] = useState<PublicUserProfile>(initialData);
   const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
   const [isBooksLoading, setIsBooksLoading] = useState(false);

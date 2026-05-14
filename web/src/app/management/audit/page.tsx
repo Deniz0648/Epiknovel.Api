@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { 
   Search, 
   Filter, 
-  ChevronLeft, 
   ChevronRight, 
   Eye, 
   Database, 
@@ -15,7 +14,8 @@ import {
   Pencil,
   Trash2,
   Minimize2,
-  Clock
+  Clock,
+  type LucideIcon
 } from "lucide-react";
 const formatDate = (date: string) => {
    return new Intl.DateTimeFormat('tr-TR', {
@@ -44,7 +44,7 @@ type AuditLog = {
   createdAt: string;
 };
 
-const STATE_CONFIG: Record<number, { label: string; color: string; icon: any }> = {
+const STATE_CONFIG: Record<number, { label: string; color: string; icon: LucideIcon }> = {
   0: { label: "None", color: "text-base-content/40", icon: Minimize2 },
   1: { label: "Ekleme", color: "text-emerald-500 bg-emerald-500/10", icon: PlusCircle },
   2: { label: "Duzenleme", color: "text-orange-500 bg-orange-500/10", icon: Pencil },
@@ -54,7 +54,6 @@ const STATE_CONFIG: Record<number, { label: string; color: string; icon: any }> 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [cursor, setCursor] = useState<string | null>(null);
   const [take] = useState(25);
   
   // Filters
@@ -63,7 +62,7 @@ export default function AuditLogsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const fetchLogs = async (currentCursor: string | null = null) => {
+  const fetchLogs = useCallback(async (currentCursor: string | null = null) => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -80,11 +79,11 @@ export default function AuditLogsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [actionFilter, moduleFilter, searchQuery, take]);
 
   useEffect(() => {
     fetchLogs();
-  }, [moduleFilter, actionFilter, take]);
+  }, [fetchLogs]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

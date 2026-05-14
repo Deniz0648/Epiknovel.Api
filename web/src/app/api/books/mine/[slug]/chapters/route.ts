@@ -22,7 +22,7 @@ export async function GET(
       }
     }
 
-    const result = await performAuthenticatedIdentityRequest<any>(
+    const result = await performAuthenticatedIdentityRequest<unknown>(
       `/books/mine/${slug}/chapters?${queryParams.toString()}`,
       { method: "GET" },
       request.headers,

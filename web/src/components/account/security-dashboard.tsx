@@ -16,12 +16,21 @@ import {
 import { useAuth } from "@/components/providers/auth-provider";
 
 type SecurityModal = "email" | "password" | null;
+type SessionWithCurrentFlag = UserSession & {
+  isCurrent?: boolean;
+  IsCurrent?: boolean;
+};
 
 const sessionDateFormatter = new Intl.DateTimeFormat("tr-TR", {
   dateStyle: "short",
   timeStyle: "medium",
   timeZone: "Europe/Istanbul",
 });
+
+function isCurrentSession(session: UserSession) {
+  const candidate = session as SessionWithCurrentFlag;
+  return candidate.isCurrent === true || candidate.IsCurrent === true;
+}
 
 export function SecurityDashboard() {
   const router = useRouter();
@@ -131,7 +140,7 @@ export function SecurityDashboard() {
     setSessionsMessage(null);
 
     const session = sessions.find((s) => s.sessionId === sessionId);
-    const isRevokingCurrent = (session as any)?.isCurrent === true || (session as any)?.IsCurrent === true;
+    const isRevokingCurrent = session ? isCurrentSession(session) : false;
 
     try {
       const result = await revokeSession(sessionId);
@@ -253,7 +262,7 @@ export function SecurityDashboard() {
             ) : null}
             {sessions.map((session) => {
               const deviceName = session.device || "Bilinmeyen Cihaz";
-              const isCurrent = (session as any).isCurrent === true || (session as any).IsCurrent === true;
+              const isCurrent = isCurrentSession(session);
               const isMobile = deviceName.toLowerCase().includes("mobil");
               
               return (

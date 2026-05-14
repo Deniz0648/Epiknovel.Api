@@ -3,11 +3,10 @@
 import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { BookOpen, Eye, Home, Play, Star, Tag } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { type BookChapterItem } from "@/components/book/book-detail-panels";
 import { AddToLibraryButton } from "@/components/book/add-to-library-button";
-import { apiRequest, resolveMediaUrl } from "@/lib/api";
-import { fromBookSlug } from "@/lib/books";
+import { apiRequest } from "@/lib/api";
 import { RatingStars } from "@/components/book/rating-stars";
 import dynamic from "next/dynamic";
 
@@ -22,12 +21,6 @@ const BookDetailPanels = dynamic(() => import("@/components/book/book-detail-pan
   ),
   ssr: false
 });
-
-const DEFAULT_COVER = {
-  image: "/covers/cover-golge.svg",
-  blurDataURL:
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 12'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop stop-color='%2381ddd0'/%3E%3Cstop offset='1' stop-color='%231a2436'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='8' height='12' fill='url(%23g)'/%3E%3C/svg%3E",
-};
 
 type BookDetailViewModel = {
   id: string;
@@ -47,29 +40,55 @@ type BookDetailViewModel = {
   userRating: number | null;
 };
 
-function mapChaptersFromApi(items: any[]): (BookChapterItem & { slug: string })[] {
+type ChapterSort = "newest" | "oldest";
+type PageSize = 20 | 50 | 100 | 200;
+
+type ChapterFilters = {
+  query: string;
+  sort: ChapterSort;
+  pageSize: PageSize;
+  page: number;
+};
+
+type ChapterApiItem = {
+  id: string;
+  slug: string;
+  order?: number | null;
+  title: string;
+  publishedAt?: string | null;
+  viewCount?: number | null;
+  isFree?: boolean | null;
+  authorName?: string;
+};
+
+type ChaptersResponse = {
+  chapters: ChapterApiItem[];
+  totalCount: number;
+};
+
+function mapChaptersFromApi(items: ChapterApiItem[]): BookChapterItem[] {
   return items.map((item, index) => ({
     id: item.id,
     slug: item.slug,
-    number: item.order || index + 1,
+    number: item.order ?? index + 1,
     title: item.title,
     publishLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "Taslak",
     dateLabel: item.publishedAt ? new Date(item.publishedAt).toLocaleDateString("tr-TR") : "-",
-    readCount: item.viewCount || 0,
+    readCount: item.viewCount ?? 0,
     isPremium: !item.isFree,
     authorName: item.authorName,
   }));
 }
 
-export default function BookDetailView({ initialData, bookSlug }: { initialData: any, bookSlug: string }) {
+export default function BookDetailView({ initialData, bookSlug }: { initialData: BookDetailViewModel | null, bookSlug: string }) {
   const [detail, setDetail] = useState<BookDetailViewModel | null>(initialData);
   const [chapters, setChapters] = useState<BookChapterItem[]>([]);
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
 
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<ChapterFilters>({
     query: "",
-    sort: "oldest" as any,
-    pageSize: 20 as any,
+    sort: "oldest",
+    pageSize: 20,
     page: 1
   });
   const [totalChaptersCount, setTotalChaptersCount] = useState(0);
@@ -82,7 +101,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
     return () => clearTimeout(timer);
   }, [filters.query]);
 
-  const loadChapters = async (isManualUpdate = false) => {
+  const loadChapters = useCallback(async (isManualUpdate = false) => {
     if (!bookSlug || !detail?.id) return;
 
     try {
@@ -91,7 +110,7 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
       const sortBy = filters.sort === "newest" || filters.sort === "oldest" ? "Order" : filters.sort;
       const sortDescending = filters.sort === "newest";
 
-      const chapterData = await apiRequest<any>(
+      const chapterData = await apiRequest<ChaptersResponse>(
         `/books/${bookSlug}/chapters?pageNumber=${filters.page}&pageSize=${filters.pageSize}&sortBy=${sortBy}&sortDescending=${sortDescending}&searchTerm=${encodeURIComponent(debouncedQuery)}`
       );
 
@@ -102,13 +121,11 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
     } finally {
       setIsLoadingChapters(false);
     }
-  };
+  }, [bookSlug, debouncedQuery, detail?.id, filters.page, filters.pageSize, filters.sort]);
 
   useEffect(() => {
-    if (detail?.id) {
-      void loadChapters(true);
-    }
-  }, [debouncedQuery, filters.sort, filters.pageSize, filters.page, detail?.id]);
+    void loadChapters(true);
+  }, [loadChapters]);
 
   if (!detail) return null;
 

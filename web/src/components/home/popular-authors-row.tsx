@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Crown, Trophy } from "lucide-react";
+import { Crown, Trophy, type LucideIcon } from "lucide-react";
 import { type TouchEvent, useMemo, useRef, useState } from "react";
 
 const SWIPE_THRESHOLD = 44;
@@ -112,7 +112,7 @@ export function PopularAuthorsRow({
 }: { 
   authors: PopularAuthor[], 
   title?: string, 
-  icon?: any 
+  icon?: LucideIcon 
 }) {
   const [activeMobilePage, setActiveMobilePage] = useState(0);
   const [activeTabletPage, setActiveTabletPage] = useState(0);

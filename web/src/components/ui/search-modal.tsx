@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
 import { Search, X, Loader2, Book, User, ArrowRight, CornerDownLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -201,9 +202,11 @@ export function SearchModal() {
                       >
                         <div className={`relative h-12 w-9 shrink-0 overflow-hidden shadow-sm ${item.type === 1 ? "rounded-full" : "rounded-md bg-base-300"}`}>
                           {item.imageUrl ? (
-                            <img
+                            <Image
                               src={item.imageUrl}
                               alt={item.title}
+                              width={72}
+                              height={96}
                               className="h-full w-full object-cover"
                             />
                           ) : (

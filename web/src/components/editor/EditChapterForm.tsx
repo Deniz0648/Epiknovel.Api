@@ -35,7 +35,7 @@ interface EditChapterFormProps {
   bookSlug?: string
 }
 
-export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, bookTitle, bookType, bookSlug }: EditChapterFormProps) {
+export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, bookTitle, bookSlug }: EditChapterFormProps) {
   const { profile } = useAuth()
   const { isEnableEconomy: siteEconomyEnabled, settings } = usePublicSettings()
 

@@ -106,16 +106,18 @@ export function ThemeSelector() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const storedTheme = window.localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const fallbackTheme: ThemeName = prefersDark ? "dark" : "light";
+    const nextTheme = isThemeName(storedTheme) ? storedTheme : fallbackTheme;
 
-    if (isThemeName(storedTheme)) {
-      setTheme(storedTheme);
-    } else {
-      setTheme(fallbackTheme);
-    }
+    document.documentElement.setAttribute("data-theme", nextTheme);
+
+    const mountTask = window.setTimeout(() => {
+      setTheme(nextTheme);
+      setMounted(true);
+    }, 0);
+    return () => window.clearTimeout(mountTask);
   }, []);
 
   useEffect(() => {

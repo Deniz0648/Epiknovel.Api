@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     }
 
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`/management/audit-logs?${params.toString()}`, {
+    const data = await backendApiRequest<unknown>(`/management/audit-logs?${params.toString()}`, {
       method: "GET",
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),

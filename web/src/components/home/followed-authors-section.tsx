@@ -14,15 +14,29 @@ type AuthorItem = {
   booksCount: number;
 };
 
+type AuthorsResponse = {
+  items: AuthorItem[];
+};
+
+type PopularAuthorItem = {
+  id: string;
+  name: string;
+  initials: string;
+  specialty: string;
+  followers: string;
+  seriesCount: number;
+  avatarUrl?: string;
+};
+
 export function PopularAuthorsSection() {
-  const [authors, setAuthors] = useState<any[]>([]);
+  const [authors, setAuthors] = useState<PopularAuthorItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Popüler yazarları getir
-    apiRequest<any>("/users?isAuthor=true&sortBy=followers&sortDirection=desc&pageSize=6")
+    apiRequest<AuthorsResponse>("/users?isAuthor=true&sortBy=followers&sortDirection=desc&pageSize=6")
       .then((data) => {
-        const mappedAuthors = data.items.map((a: any) => ({
+        const mappedAuthors = data.items.map((a) => ({
           id: a.userId,
           name: a.displayName || "Anonim Yazar",
           initials: (a.displayName || "A Y").split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase(),

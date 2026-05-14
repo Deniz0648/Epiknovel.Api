@@ -14,7 +14,7 @@ async function getProfileData(slug: string) {
       next: { revalidate: 3600 }
     });
     return profile;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

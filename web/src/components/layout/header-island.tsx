@@ -80,9 +80,13 @@ export function HeaderIsland() {
   }, [isMobileNavOpen, isNotificationsOpen, isProfileMenuOpen]);
 
   useEffect(() => {
-    setIsMobileNavOpen(false);
-    setIsProfileMenuOpen(false);
-    setIsNotificationsOpen(false);
+    const closeTask = window.setTimeout(() => {
+      setIsMobileNavOpen(false);
+      setIsProfileMenuOpen(false);
+      setIsNotificationsOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(closeTask);
   }, [pathname]);
 
   useEffect(() => {

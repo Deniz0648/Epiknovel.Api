@@ -15,7 +15,7 @@ export async function GET(
   try {
     // Audit: performAuthenticatedIdentityRequest built-in handling of cookies-to-bearer conversion.
     // Path includes the leading slash which is correctly appended to BACKEND_API_BASE_URL (http://localhost:8080/api)
-    const result = await performAuthenticatedIdentityRequest<any>(
+    const result = await performAuthenticatedIdentityRequest<Record<string, unknown>>(
       `/books/mine/${slug}`,
       { method: "GET" },
       request.headers,
@@ -24,7 +24,7 @@ export async function GET(
     // Backend yanitindaki veriyi temizle ve cover URL'sini proxy'le
     const responseData = {
       ...result.data,
-      coverImageUrl: toMediaProxyUrl(result.data.coverImageUrl),
+      coverImageUrl: toMediaProxyUrl(typeof result.data.coverImageUrl === "string" ? result.data.coverImageUrl : null),
     };
 
     const response = NextResponse.json({

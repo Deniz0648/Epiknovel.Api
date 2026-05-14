@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -9,9 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { ApiError } from "@/lib/api";
-import { dispatchHubInvocation, getHubInvocationEventName } from "@/lib/hub-events";
+import { getHubInvocationEventName } from "@/lib/hub-events";
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, type NotificationItem } from "@/lib/notifications";
-import { connectHub, type HubInvocation } from "@/lib/signalr-client";
+import { type HubInvocation } from "@/lib/signalr-client";
 import { showToast } from "@/lib/toast";
 import { useAuth } from "@/components/providers/auth-provider";
 
@@ -27,16 +28,31 @@ type NotificationsContextValue = {
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
-function normalizeRealtimePayload(payload: any): { title?: string; message?: string } | null {
+type RealtimeNotificationPayload = {
+  title?: unknown;
+  Title?: unknown;
+  message?: unknown;
+  Message?: unknown;
+  url?: unknown;
+  Url?: unknown;
+};
+
+function getStringField(value: unknown) {
+  return typeof value === "string" ? value : undefined;
+}
+
+function normalizeRealtimePayload(payload: unknown): { title?: string; message?: string; url?: string } | null {
   if (!payload || typeof payload !== "object") {
     return null;
   }
 
+  const candidate = payload as RealtimeNotificationPayload;
   // Hem camelCase hem de PascalCase desteği (SignalR tarafındaki olası farklılıklar için)
-  const title = (payload.title || payload.Title) as string | undefined;
-  const message = (payload.message || payload.Message) as string | undefined;
+  const title = getStringField(candidate.title) ?? getStringField(candidate.Title);
+  const message = getStringField(candidate.message) ?? getStringField(candidate.Message);
+  const url = getStringField(candidate.url) ?? getStringField(candidate.Url);
 
-  return title || message ? { title, message } : null;
+  return title || message || url ? { title, message, url } : null;
 }
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
@@ -47,7 +63,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const isRefreshingRef = useRef<Promise<void> | null>(null);
   const lastRealtimeMarkerRef = useRef<string | null>(null);
 
-  async function refreshNotifications() {
+  const refreshNotifications = useCallback(async () => {
     if (!profile) {
       setItems([]);
       setError(null);
@@ -79,7 +95,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
     isRefreshingRef.current = promise;
     return promise;
-  }
+  }, [profile]);
 
   async function markAsRead(notificationId: string) {
     const currentItem = items.find((item) => item.id === notificationId);
@@ -139,7 +155,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refreshNotifications();
-  }, [profile?.userId]);
+  }, [refreshNotifications]);
 
   useEffect(() => {
     if (!profile) {
@@ -158,7 +174,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
       if (lastRealtimeMarkerRef.current !== marker) {
         lastRealtimeMarkerRef.current = marker;
         
-        const url = (message.args[0] as any)?.url || (message.args[0] as any)?.Url;
+        const url = payload?.url;
 
         showToast({
           title: payload?.title ?? "Yeni bildirim",
@@ -186,7 +202,7 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener(eventName, onHubInvocation);
     };
-  }, [profile?.userId]);
+  }, [profile, refreshNotifications]);
 
   const unreadCount = items.filter((item) => !item.isRead).length;
 

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     if (status) params.set("status", status);
 
-    const result = await performAuthenticatedIdentityRequest<any>(
+    const result = await performAuthenticatedIdentityRequest<unknown>(
       `/chapters/mine?${params.toString()}`,
       { method: "GET" },
       request.headers,

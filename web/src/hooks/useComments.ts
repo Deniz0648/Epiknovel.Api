@@ -45,6 +45,10 @@ interface UseCommentsOptions {
   sortBy?: "newest" | "top" | "oldest";
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function useComments(options: UseCommentsOptions) {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [page, setPage] = useState(1);
@@ -82,8 +86,8 @@ export function useComments(options: UseCommentsOptions) {
       setTotalCount(result.totalCount || 0);
       setHasMore(items.length >= (options.pageSize || 20));
       setPage(pageNum);
-    } catch (err: any) {
-      toast.error(err.message || "Yorumlar yüklenirken bir hata oluştu.");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Yorumlar yüklenirken bir hata oluştu."));
     } finally {
       setIsLoading(false);
     }
@@ -92,7 +96,7 @@ export function useComments(options: UseCommentsOptions) {
   // Reset and load when filters change
   useEffect(() => {
     loadComments(1, true);
-  }, [options.bookId, options.chapterId, options.paragraphId, options.sortBy]);
+  }, [loadComments, options.bookId, options.chapterId, options.paragraphId, options.sortBy]);
 
   const loadMore = () => {
     if (!isLoading && hasMore) {
@@ -117,8 +121,8 @@ export function useComments(options: UseCommentsOptions) {
 
       toast.success("Yorumunuz başarıyla eklendi.");
       return result;
-    } catch (err: any) {
-      toast.error(err.message || "Yorum eklenirken bir hata oluştu.");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Yorum eklenirken bir hata oluştu."));
       throw err;
     } finally {
       setIsSubmitting(false);
@@ -140,7 +144,7 @@ export function useComments(options: UseCommentsOptions) {
 
     try {
       await apiRequest(`/social/comments/${commentId}/like`, { method: "POST" });
-    } catch (err: any) {
+    } catch (err) {
       // Rollback after small delay
       setTimeout(() => {
         setComments(prev => prev.map(c => {
@@ -153,7 +157,7 @@ export function useComments(options: UseCommentsOptions) {
           }
           return c;
         }));
-        toast.error(err.message || "İşlem başarısız oldu.");
+        toast.error(getErrorMessage(err, "İşlem başarısız oldu."));
       }, 500);
     }
   };
@@ -165,8 +169,8 @@ export function useComments(options: UseCommentsOptions) {
         body: JSON.stringify({ reason, description })
       });
       toast.success("Bildiriminiz alındı, teşekkürler.");
-    } catch (err: any) {
-      toast.error(err.message || "Bildirim gönderilemedi.");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Bildirim gönderilemedi."));
     }
   };
   const revealSpoiler = async (commentId: string, token: string) => {
@@ -183,8 +187,8 @@ export function useComments(options: UseCommentsOptions) {
         }
         return c;
       }));
-    } catch (err: any) {
-      toast.error(err.message || "İçerik gösterilemedi.");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "İçerik gösterilemedi."));
     } finally {
       setIsRevealingMap(prev => ({ ...prev, [commentId]: false }));
     }
@@ -206,8 +210,8 @@ export function useComments(options: UseCommentsOptions) {
       }));
       
       toast.success("Yorumunuz güncellendi.");
-    } catch (err: any) {
-      toast.error(err.message || "Yorum güncellenemedi.");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Yorum güncellenemedi."));
       throw err;
     } finally {
       setIsSubmitting(false);
@@ -222,8 +226,8 @@ export function useComments(options: UseCommentsOptions) {
       setTotalCount(prev => prev - 1);
       
       toast.success("Yorum silindi.");
-    } catch (err: any) {
-      toast.error(err.message || "Yorum silinemedi.");
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Yorum silinemedi."));
     }
   };
 
@@ -243,7 +247,7 @@ export function useComments(options: UseCommentsOptions) {
         }
         return c;
       }));
-    } catch (err: any) {
+    } catch {
       toast.error("Yanıtlar yüklenirken bir hata oluştu.");
     }
   };

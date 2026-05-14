@@ -5,11 +5,9 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { 
   ImagePlus, 
-  ChevronLeft, 
+  ChevronLeft,
   LoaderCircle,
-  ArrowLeft,
   Check,
-  AlertCircle
 } from "lucide-react";
 import { showToast } from "@/lib/toast";
 import { uploadMedia } from "@/lib/auth";
@@ -17,6 +15,11 @@ import { uploadMedia } from "@/lib/auth";
 interface TranslatedBookFormProps {
   bookId?: string | null;
 }
+
+type CategoryOption = {
+  id: string;
+  name: string;
+};
 
 const BOOK_STATUS_OPTIONS = [
   { label: "Taslak", value: 0 },
@@ -45,7 +48,7 @@ export default function TranslatedBookForm({ bookId }: TranslatedBookFormProps) 
   const [rating, setRating] = useState(0);
   const [tags, setTags] = useState("");
   const [selectedCats, setSelectedCats] = useState<string[]>([]);
-  const [allCats, setAllCats] = useState<any[]>([]);
+  const [allCats, setAllCats] = useState<CategoryOption[]>([]);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,7 +120,7 @@ export default function TranslatedBookForm({ bookId }: TranslatedBookFormProps) 
       const result = await uploadMedia(file, { category: "covers", width: 600, height: 900 });
       setCoverImageUrl(result.url);
       showToast({ title: "Başarılı", description: "Kapak fotoğrafı yüklendi.", tone: "success" });
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Kapak yüklenemedi.", tone: "error" });
       setCoverPreviewUrl(coverImageUrl);
     } finally {

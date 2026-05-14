@@ -19,6 +19,14 @@ interface CommentInputProps {
   onCancel?: () => void;
 }
 
+type MentionListRef = {
+  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
+};
+
+const toReferenceClientRect = (clientRect: (() => DOMRect | null) | null) => {
+  return (() => clientRect?.() ?? new DOMRect()) as () => DOMRect;
+};
+
 export function CommentInput({ 
   onSubmit, 
   placeholder = "Düşüncelerini paylaş...", 
@@ -54,7 +62,7 @@ export function CommentInput({
               .slice(0, 5);
           },
           render: () => {
-            let component: ReactRenderer<any>;
+            let component: ReactRenderer;
             let popup: Instance[];
 
             return {
@@ -69,7 +77,7 @@ export function CommentInput({
                 }
 
                 popup = tippy('body', {
-                  getReferenceClientRect: props.clientRect as any,
+                  getReferenceClientRect: toReferenceClientRect(props.clientRect),
                   appendTo: () => document.body,
                   content: component.element,
                   showOnCreate: true,
@@ -87,7 +95,7 @@ export function CommentInput({
                 }
 
                 popup[0].setProps({
-                  getReferenceClientRect: props.clientRect as any,
+                  getReferenceClientRect: toReferenceClientRect(props.clientRect),
                 });
               },
 
@@ -97,7 +105,7 @@ export function CommentInput({
                   return true;
                 }
 
-                return (component.ref as any)?.onKeyDown(props);
+                return (component.ref as MentionListRef | null)?.onKeyDown(props) ?? false;
               },
 
               onExit() {

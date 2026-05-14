@@ -3,12 +3,12 @@
 import { useAuth } from "@/components/providers/auth-provider";
 import { getWalletTransactions, getWalletPackages, initializeCoinPurchase, type TransactionDto, type WalletPackageDto } from "@/lib/wallet";
 import { toast } from "@/lib/toast";
-import { Coins, History, Sparkles, TrendingUp, Zap, ArrowUpRight, ArrowDownLeft, ShieldCheck, HelpCircle, X, Check, Home, Package, ArrowRight, Download } from "lucide-react";
+import { Coins, History, Sparkles, TrendingUp, Zap, ArrowUpRight, ArrowDownLeft, ShieldCheck, HelpCircle, X, Home, Package, ArrowRight, Download, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, LucideIcon> = {
   Zap,
   TrendingUp,
   Sparkles,
@@ -89,7 +89,7 @@ export default function WalletPage() {
     }
 
     fetchHistory();
-  }, [profile?.userId]);
+  }, [profile]);
 
   // Iyzico scriptlerini manuel olarak tetikle
   useEffect(() => {

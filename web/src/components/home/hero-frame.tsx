@@ -13,7 +13,6 @@ import {
   useRef,
   useState,
 } from "react";
-import { toBookSlug } from "@/lib/books";
 
 const AUTO_SLIDE_MS = 8000;
 const SWIPE_THRESHOLD = 48;
@@ -84,16 +83,12 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
   const touchStartYRef = useRef<number | null>(null);
   const totalSlides = slides.length;
 
-  if (totalSlides === 0) {
-    return null;
-  }
-
   const activeSlide = useMemo(
     () => slides[activeIndex] ?? slides[0],
     [activeIndex, slides],
   );
-  const activeBookHref = `/Books/${activeSlide.slug}`;
-  const titleScaleStyle = getHeadlineScaleStyle(activeSlide.title);
+  const activeBookHref = activeSlide ? `/Books/${activeSlide.slug}` : "/Books";
+  const titleScaleStyle = getHeadlineScaleStyle(activeSlide?.title ?? "");
 
   const clearAutoTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -104,6 +99,9 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
 
   const restartAutoTimer = useCallback(() => {
     clearAutoTimer();
+    if (totalSlides === 0) {
+      return;
+    }
     timerRef.current = setInterval(() => {
       setDirection("next");
       setActiveIndex((currentIndex) =>
@@ -182,6 +180,10 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
   const slideAnimationStyle = {
     "--slide-offset": direction === "next" ? "24px" : "-24px",
   } as CSSProperties;
+
+  if (!activeSlide) {
+    return null;
+  }
 
   return (
     <section className="glass-frame relative overflow-hidden px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-10">

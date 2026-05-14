@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const subPath = pathname.replace("/api/management/settings", "") || "/";
     
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`/management/settings${subPath}${search}`, {
+    const data = await backendApiRequest<unknown>(`/management/settings${subPath}${search}`, {
       method: "GET",
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),
@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`/management/settings${subPath}${search}`, {
+    const data = await backendApiRequest<unknown>(`/management/settings${subPath}${search}`, {
       method: "PUT",
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),
@@ -51,7 +51,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-function handleProxyError(error: any) {
+function handleProxyError(error: unknown) {
   if (isApiErrorLike(error)) {
     const response = NextResponse.json(
       { isSuccess: false, message: error.message, errors: error.errors },

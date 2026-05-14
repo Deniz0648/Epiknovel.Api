@@ -19,7 +19,7 @@ export default function ManagementPlaceholder({ title = "Bu Modul Hazirlaniyor",
          className="mt-10 flex items-center gap-2 rounded-2xl bg-base-content/5 px-6 py-3 text-xs font-black uppercase tracking-widest text-base-content/40 transition hover:bg-primary/10 hover:text-primary"
        >
           <LayoutDashboard className="h-4 w-4" />
-          <span>Dashboard'a Don</span>
+          <span>Dashboard&apos;a Don</span>
        </Link>
     </div>
   );

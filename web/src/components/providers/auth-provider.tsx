@@ -247,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => hub.dispose();
-  }, [profile?.userId]);
+  }, [profile]);
 
   return (
     <AuthContext.Provider

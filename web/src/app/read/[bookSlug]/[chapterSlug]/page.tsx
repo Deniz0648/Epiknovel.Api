@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import {
   ChevronLeft, ChevronRight, Settings, MessageSquare,
   Minus, Plus, Pin, Maximize, Share2,
-  Eye, EyeOff, BookOpen, Scaling,
-  Send, AlertCircle, Home, Heart, ShoppingCart, Lock, Coins, LogIn, Info,
+  BookOpen, Scaling,
+  Home, ShoppingCart, Lock, Coins, LogIn, Info,
   AlignLeft
 } from "lucide-react";
 import Link from "next/link";
@@ -36,7 +36,6 @@ interface ReaderSettings {
 export default function ReaderPage() {
   const params = useParams<{ bookSlug: string; chapterSlug: string }>();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { profile, isLoading: isAuthLoading } = useAuth();
 
   const [chapters, setChapters] = useState<ChapterDetail[]>([]);
@@ -50,8 +49,6 @@ export default function ReaderPage() {
   const [showHeader, setShowHeader] = useState(true);
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [isPurchasing, setIsPurchasing] = useState(false);
-
-  const [isSpoiler, setIsSpoiler] = useState(false);
 
   const lastScrollY = useRef(0);
   const loadingRef = useRef(false);
@@ -79,8 +76,8 @@ export default function ReaderPage() {
       try {
         const parsed = JSON.parse(saved);
         setSettings(prev => ({ ...prev, ...parsed }));
-      } catch (e) {
-        console.error(e);
+      } catch (error) {
+        console.error(error);
       }
     }
   }, []);
@@ -194,7 +191,7 @@ export default function ReaderPage() {
         .then(res => setCoinBalance(res.coinBalance))
         .catch(console.error);
     }
-  }, [params?.chapterSlug, isAuthLoading, searchParams, profile]);
+  }, [params?.chapterSlug, isAuthLoading, searchParams, profile, chapters, fetchParagraphCommentCounts]);
 
   const loadNextChapter = useCallback(async () => {
     const lastChapter = chapters[chapters.length - 1];
@@ -216,7 +213,7 @@ export default function ReaderPage() {
       loadingRef.current = false;
       setIsNextLoading(false);
     }
-  }, [chapters, saveProgress]);
+  }, [chapters, fetchParagraphCommentCounts, saveProgress]);
 
   const handlePurchase = async (chapterId: string, chapterSlug: string) => {
     if (!profile) return;
@@ -448,7 +445,7 @@ export default function ReaderPage() {
                         )}
                         <div className="mt-4 flex items-center gap-2 px-6 py-2 bg-amber-500/10 border border-amber-500/20 rounded-full">
                           <Info size={14} className="text-amber-600" />
-                          <span className="text-[10px] font-black uppercase text-amber-600 tracking-tighter italic">Bölümün %15'lik önizlemesini görmektesiniz.</span>
+                          <span className="text-[10px] font-black uppercase text-amber-600 tracking-tighter italic">Bölümün %15&apos;lik önizlemesini görmektesiniz.</span>
                         </div>
                       </div>
                     </div>
@@ -529,7 +526,7 @@ export default function ReaderPage() {
               <div className="mb-6">
                 <h4 className="text-[11px] font-bold text-base-content/70 uppercase tracking-widest mb-4">YAZI FONTU</h4>
                 <div className="grid grid-cols-3 gap-2 bg-base-200 p-1.5 rounded-[1.2rem] border border-base-content/10">
-                  {['serif', 'sans', 'mono'].map((f) => (<button key={f} onClick={() => setSettings({ ...settings, fontFamily: f as any })} className={`h-11 text-[11px] font-black capitalize rounded-xl transition-all ${settings.fontFamily === f ? 'bg-base-100 shadow-xl text-primary ring-1 ring-primary/20' : 'text-base-content/40 hover:text-base-content/70'}`}>{f}</button>))}
+                  {(['serif', 'sans', 'mono'] as const).map((f) => (<button key={f} onClick={() => setSettings({ ...settings, fontFamily: f })} className={`h-11 text-[11px] font-black capitalize rounded-xl transition-all ${settings.fontFamily === f ? 'bg-base-100 shadow-xl text-primary ring-1 ring-primary/20' : 'text-base-content/40 hover:text-base-content/70'}`}>{f}</button>))}
                 </div>
               </div>
               <div className="mb-6 px-1">
@@ -553,7 +550,7 @@ export default function ReaderPage() {
               <div className="hidden lg:block">
                 <h4 className="text-[11px] font-bold text-base-content/70 uppercase tracking-widest mb-4">SAYFA GENİŞLİĞİ</h4>
                 <div className="grid grid-cols-2 xl:grid-cols-3 gap-2 bg-base-200 p-1.5 rounded-[1.2rem] border border-base-content/10">
-                  {['narrow', 'normal', 'wide'].map((w) => (<button key={w} onClick={() => setSettings({ ...settings, maxWidth: w as any })} className={`h-11 text-[10px] font-black uppercase rounded-xl transition-all ${settings.maxWidth === w ? 'bg-base-100 shadow-xl text-primary ring-1 ring-primary/20' : 'text-base-content/40 hover:text-base-content/70'} ${w === 'wide' ? 'hidden xl:flex items-center justify-center' : ''}`}>{w === 'narrow' ? 'Dar' : w === 'normal' ? 'Norm' : 'Geniş'}</button>))}
+                  {(['narrow', 'normal', 'wide'] as const).map((w) => (<button key={w} onClick={() => setSettings({ ...settings, maxWidth: w })} className={`h-11 text-[10px] font-black uppercase rounded-xl transition-all ${settings.maxWidth === w ? 'bg-base-100 shadow-xl text-primary ring-1 ring-primary/20' : 'text-base-content/40 hover:text-base-content/70'} ${w === 'wide' ? 'hidden xl:flex items-center justify-center' : ''}`}>{w === 'narrow' ? 'Dar' : w === 'normal' ? 'Norm' : 'Geniş'}</button>))}
                 </div>
               </div>
             </motion.div>

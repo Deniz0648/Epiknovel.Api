@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       `${htmlStart}window.parent.location.href = "/wallet/result?status=error&message=" + "${encodedText}";${htmlEnd}`,
       { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("[CALLBACK_PROXY_ERROR]", error);
     const fallbackText = encodeURIComponent("Ödeme sonucu işlenirken bir hata oluştu.");
     return new NextResponse(

@@ -6,16 +6,26 @@ import {
   Flag, 
   Clock, 
   Trash2, 
-  Loader2,
-  AlertCircle
+  Loader2
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/lib/toast";
 
 interface ModerationTicketsViewProps {
-  tickets: any[];
+  tickets: ModerationTicket[];
   onRefresh: () => void;
 }
+type ModerationTicket = {
+  id: string;
+  reporterName?: string;
+  targetType?: string;
+  contentType?: string;
+  reason?: string;
+  topReason?: string;
+  reportCount?: number;
+  initialDescription?: string;
+  createdAt: string;
+};
 
 export function ModerationTicketsView({ tickets, onRefresh }: ModerationTicketsViewProps) {
   const [isResolving, setIsResolving] = useState<string | null>(null);
@@ -35,8 +45,8 @@ export function ModerationTicketsView({ tickets, onRefresh }: ModerationTicketsV
       });
       toast.success({ description: "İşlem başarıyla tamamlandı." });
       onRefresh();
-    } catch (err: any) {
-      toast.error({ description: err.message || "İşlem sırasında bir hata oluştu." });
+    } catch (err) {
+      toast.error({ description: err instanceof Error ? err.message : "İşlem sırasında bir hata oluştu." });
     } finally {
       setIsResolving(null);
     }
@@ -80,7 +90,7 @@ export function ModerationTicketsView({ tickets, onRefresh }: ModerationTicketsV
                   {ticket.contentType} Denetimi
                 </h4>
                 <p className="mt-4 text-base font-medium text-base-content/60 leading-relaxed italic max-w-2xl">
-                  "{ticket.initialDescription || 'Açıklama girilmemiş.'}"
+                  &quot;{ticket.initialDescription || 'Açıklama girilmemiş.'}&quot;
                 </p>
               </div>
 

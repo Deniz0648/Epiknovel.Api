@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import {
   Eye, BookOpen, Clock, ExternalLink, ChevronLeft, ChevronRight,
   Feather, Loader2, Plus, Search, SlidersHorizontal, Home, Star,
-  MessageSquare, LayoutGrid, Wallet, Trash2, BarChart3, Type,
+  MessageSquare, LayoutGrid, Wallet, Trash2, BarChart3,
   CircleDollarSign, AlertCircle, CheckCircle2, ShieldCheck,
   FileText, Building2, Zap, PenTool, X
 } from "lucide-react";
@@ -13,6 +13,7 @@ import { BookCover } from "@/components/ui/book-cover";
 import { useAuth } from "@/components/providers/auth-provider";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { canAccessAuthorPanel as hasAuthorPanelAccess, getMyBooks, restoreBook, type MyBookListItem } from "@/lib/auth";
 import { getWalletBalance, getWalletTransactions, type WalletBalanceDto, type TransactionDto } from "@/lib/wallet";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
@@ -28,6 +29,20 @@ const STATUS_OPTIONS = [
   { label: "İptal Edildi", value: "Cancelled" },
 ] as const;
 
+type PaidAuthorStatus = {
+  id?: string;
+  status?: string | number;
+  rejectionReason?: string | null;
+  adminNote?: string | null;
+  reviewedAt?: string | null;
+  createdAt?: string;
+  bankName?: string | null;
+  iban?: string | null;
+};
+type ApiEnvelope<T> = {
+  isSuccess?: boolean;
+  data?: T;
+};
 
 
 function getStatusProps(status: MyBookListItem["status"] | string | number) {
@@ -105,8 +120,8 @@ function AuthorPanelContent() {
   const [isEarningsLoading, setIsEarningsLoading] = useState(false);
   const [earningsPage, setEarningsPage] = useState(1);
   const [totalEarningsCount, setTotalEarningsCount] = useState(0);
-  const [paidStatus, setPaidStatus] = useState<any>(null);
-  const [isPaidStatusLoading, setIsPaidStatusLoading] = useState(false);
+  const [paidStatus, setPaidStatus] = useState<PaidAuthorStatus | null>(null);
+  const [, setIsPaidStatusLoading] = useState(false);
   const [isPaidSubmitting, setIsPaidSubmitting] = useState(false);
   const [legalSlug, setLegalSlug] = useState<string | null>(null);
   const [paidTermsAccepted, setPaidTermsAccepted] = useState(false);
@@ -150,7 +165,7 @@ function AuthorPanelContent() {
           }
           setError(null);
         }
-      } catch (err) {
+      } catch {
         if (isMountedLocal) setError("Eserler yüklenirken bir hata oluştu.");
       } finally {
         if (isMountedLocal) {
@@ -191,9 +206,9 @@ function AuthorPanelContent() {
       const loadPaidStatus = async () => {
         setIsPaidStatusLoading(true);
         try {
-          const res = await apiRequest("/paid-author/application-status", { method: "GET" });
-          if ((res as any).isSuccess) {
-            setPaidStatus((res as any).data);
+          const res = await apiRequest<ApiEnvelope<PaidAuthorStatus>>("/paid-author/application-status", { method: "GET" });
+          if (res.isSuccess) {
+            setPaidStatus(res.data ?? null);
           }
         } catch (err) {
           console.error("Başvuru durumu yüklenemedi:", err);
@@ -247,7 +262,7 @@ function AuthorPanelContent() {
       const docId = docRes.documentId;
 
       // 3. Başvuruyu Tamamla
-      await apiRequest<any>("/paid-author/apply", {
+      await apiRequest<unknown>("/paid-author/apply", {
         method: "POST",
         body: JSON.stringify({
           exemptionCertificateId: certId,
@@ -260,10 +275,10 @@ function AuthorPanelContent() {
       toast.success({ description: "Başvurunuz başarıyla alındı! Belgeleriniz mühürlendi ve incelemeye alındı." });
       setIsPaidModalOpen(false);
       // Durumu güncelle
-      const statusRes = await apiRequest<any>("/paid-author/application-status", { method: "GET" });
+      const statusRes = await apiRequest<PaidAuthorStatus>("/paid-author/application-status", { method: "GET" });
       setPaidStatus(statusRes);
-    } catch (err: any) {
-      toast.error({ description: err.message || "Başvuru sırasında bir hata oluştu." });
+    } catch (err) {
+      toast.error({ description: err instanceof Error ? err.message : "Başvuru sırasında bir hata oluştu." });
     } finally {
       setIsPaidSubmitting(false);
     }
@@ -746,7 +761,7 @@ function AuthorPanelContent() {
                   {!paidStatus ? (
                     <div className="space-y-4">
                       <p className="text-sm text-base-content/60 leading-relaxed font-medium">
-                        Epiknovel'de profesyonel bir yazar olarak bölüm satışı yapabilmek ve kazancını banka hesabına nakit olarak çekebilmek için
+                        Epiknovel&apos;de profesyonel bir yazar olarak bölüm satışı yapabilmek ve kazancını banka hesabına nakit olarak çekebilmek için
                         <span className="text-primary font-bold"> Ücretli Yazarlık</span> statüsüne geçmeniz gerekmektedir.
                         Gerekli belgeleri (İstisna Belgesi, Banka Dekontu) hazırlayıp hemen başvurabilirsiniz.
                       </p>
@@ -803,7 +818,7 @@ function AuthorPanelContent() {
                       <div className="p-4 rounded-2xl bg-success/5 border border-success/10 text-center">
                         <span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] italic decoration-primary underline-offset-4 decoration-2 underline">Aktif Ödeme Hesabı</span>
                         <div className="mt-2 text-xs font-bold text-success/60">
-                          {paidStatus.bankName} - {paidStatus.iban.substring(0, 4)}...
+                          {paidStatus.bankName || "Banka"} - {(paidStatus.iban || "").substring(0, 4)}...
                         </div>
                       </div>
                       <button
@@ -817,7 +832,7 @@ function AuthorPanelContent() {
                     <div className="p-4 rounded-2xl bg-base-100/30 border border-base-content/5 text-center">
                       <span className="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] italic">Kayıtlı</span>
                       <div className="mt-2 text-xs font-bold text-base-content/60">
-                        {paidStatus.bankName} - {paidStatus.iban.substring(0, 4)}...
+                        {paidStatus.bankName || "Banka"} - {(paidStatus.iban || "").substring(0, 4)}...
                       </div>
                     </div>
                   )}
@@ -970,7 +985,7 @@ function AuthorPanelContent() {
                       <div className="flex gap-5 p-6">
                         <div className="relative aspect-2/3 w-24 shrink-0 overflow-hidden rounded-xl border border-base-content/10 bg-base-100/40">
                           {book.coverImageUrl ? (
-                            <img src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} className="h-full w-full object-cover opacity-50 grayscale" />
+                            <Image src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} width={96} height={128} className="h-full w-full object-cover opacity-50 grayscale" />
                           ) : (
                             <div className="flex h-full items-center justify-center text-[8px] font-bold text-base-content/20">NO IMAGE</div>
                           )}
@@ -1034,7 +1049,7 @@ function AuthorPanelContent() {
 
                 <form onSubmit={async (e) => {
                   await handleSubmitPaidApplication(e);
-                  if (!(e.target as any).hasAttribute('data-error')) {
+                  if (!e.currentTarget.hasAttribute('data-error')) {
                     setIsPaidModalOpen(false);
                   }
                 }} className="space-y-6">
@@ -1102,7 +1117,7 @@ function AuthorPanelContent() {
                         accept=".pdf,.jpg,.jpeg,.png"
                         required
                       />
-                      <p className="mt-2 text-[9px] font-bold text-base-content/30 italic uppercase">* Üzerinde adınızın ve IBAN'ın göründüğü resmi belge veya dekont.</p>
+                      <p className="mt-2 text-[9px] font-bold text-base-content/30 italic uppercase">* Üzerinde adınızın ve IBAN&apos;ın göründüğü resmi belge veya dekont.</p>
                     </div>
                   </div>
 
@@ -1123,7 +1138,7 @@ function AuthorPanelContent() {
                           required
                         />
                         <span className="label-text text-[11px] font-bold leading-relaxed">
-                          <button type="button" onClick={() => setLegalSlug("paid-author-terms")} className="text-primary hover:underline">Ücretli Yazarlık Şartlarını</button> ve <button type="button" onClick={() => setLegalSlug("kvkk")} className="text-primary hover:underline">KVKK Aydınlatma Metni'ni</button> okudum, onaylıyorum.
+                          <button type="button" onClick={() => setLegalSlug("paid-author-terms")} className="text-primary hover:underline">Ücretli Yazarlık Şartlarını</button> ve <button type="button" onClick={() => setLegalSlug("kvkk")} className="text-primary hover:underline">KVKK Aydınlatma Metni&apos;ni</button> okudum, onaylıyorum.
                         </span>
                       </label>
                     </div>

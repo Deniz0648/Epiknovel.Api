@@ -33,7 +33,7 @@ async function handleProxyRequest(request: NextRequest, method: string) {
     }
 
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`${backendPath}${search}`, {
+    const data = await backendApiRequest<unknown>(`${backendPath}${search}`, {
       method,
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),

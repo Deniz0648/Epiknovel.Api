@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import Image from "next/image";
 import { 
   Heart, 
   MessageCircle, 
@@ -11,8 +12,6 @@ import {
   ChevronUp,
   Eye,
   Loader2,
-  AlertTriangle,
-  X
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { tr } from "date-fns/locale";
@@ -60,16 +59,22 @@ export const CommentItem = React.memo(function CommentItem({
   const [showAllReplies, setShowAllReplies] = useState(false);
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
 
+  const [now, setNow] = useState(() => Date.now());
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   // Client-side double check for 30 min window
   const canEditTimeWise = useMemo(() => {
     if (!comment.canEdit) return false;
     const createdAt = new Date(comment.createdAt).getTime();
-    const now = Date.now();
     return (now - createdAt) < (30 * 60 * 1000);
-  }, [comment.canEdit, comment.createdAt]);
+  }, [comment.canEdit, comment.createdAt, now]);
 
   const handleReveal = () => {
-    const token = (comment as any).contentToken;
+    const token = comment.contentToken;
     if (token) {
       onReveal(comment.id, token);
     }
@@ -119,9 +124,11 @@ export const CommentItem = React.memo(function CommentItem({
             compact ? "h-8 w-8" : "h-9 w-9"
           )}>
             {comment.authorInfo?.avatarUrl ? (
-              <img 
+              <Image
                 src={toMediaProxyUrl(comment.authorInfo.avatarUrl) || ''} 
                 alt={comment.authorInfo.displayName} 
+                width={72}
+                height={72}
                 className="h-full w-full object-cover" 
               />
             ) : (

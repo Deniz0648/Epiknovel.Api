@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useComments, CommentItem as CommentItemType } from "@/hooks/useComments";
 import { CommentItem } from "./CommentItem";
 import { CommentInput } from "./CommentInput";
-import { MessageSquare, RefreshCw, ChevronUp, X, AlertTriangle, Flag } from "lucide-react";
+import { MessageSquare, RefreshCw, ChevronUp, X, AlertTriangle } from "lucide-react";
 import { connectHub } from "@/lib/signalr-client";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -39,7 +39,7 @@ function ReportModal({ comment, onClose, onSubmit }: ReportModalProps) {
     try {
       await onSubmit(selectedReason, description);
       onClose();
-    } catch (err) {
+    } catch {
       // toast handled in hook
     } finally {
       setIsSubmitting(false);
@@ -79,7 +79,7 @@ function ReportModal({ comment, onClose, onSubmit }: ReportModalProps) {
 
           <div className="bg-base-200/50 rounded-2xl p-4 mb-6 border border-base-content/5">
             <p className="text-xs font-bold text-base-content/40 uppercase tracking-widest mb-2">Seçilen Yorum</p>
-            <p className="text-sm font-medium line-clamp-2 italic">"{comment.content.replace(/<[^>]*>/g, '')}"</p>
+            <p className="text-sm font-medium line-clamp-2 italic">&quot;{comment.content.replace(/<[^>]*>/g, '')}&quot;</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-6">
@@ -182,7 +182,12 @@ export function CommentSection({
     const hub = connectHub("/hubs/notifications", {
       onInvocation: (msg) => {
         if (msg.target === "NewCommentArrived") {
-          const payload = msg.args[0] as any;
+          const payload = msg.args[0] as {
+            bookId?: string;
+            chapterId?: string;
+            paragraphId?: string;
+            userId?: string;
+          };
           // Check if it belongs to current scope
           const isMatching = 
             (bookId && payload.bookId === bookId) || 
@@ -202,7 +207,7 @@ export function CommentSection({
     });
 
     return () => hub.dispose();
-  }, [bookId, chapterId, paragraphId]);
+  }, [bookId, chapterId, loadComments, paragraphId, profile]);
 
   const participants = useMemo(() => {
     const names = comments.map((c: CommentItemType) => c.authorInfo?.displayName).filter(Boolean) as string[];
@@ -223,11 +228,11 @@ export function CommentSection({
       onCommentAdded?.(paragraphId);
       setActiveReplyId(null);
       loadComments(1, true); 
-    } catch (err) {}
+    } catch {}
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className={clsx("flex flex-col gap-6", className)}>
       <AnimatePresence>
         {reportingComment && (
           <ReportModal 

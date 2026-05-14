@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   ClipboardList,
-  ChevronRight,
   Zap,
   UserPlus,
   CreditCard,
@@ -11,7 +10,6 @@ import {
   Clock,
   Search,
   Filter,
-  MoreVertical,
   Loader2,
   FileText,
   ShieldCheck,
@@ -19,7 +17,6 @@ import {
   Check,
   X
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/lib/toast";
@@ -28,7 +25,7 @@ import { ModerationTicketsView } from "@/components/management/moderation-ticket
 type RequestType = 'author' | 'paid' | 'moderation';
 type RequestStatus = 'active' | 'history';
 
-interface AuthorApplication {
+type AuthorApplication = {
   id: string;
   userId: string;
   userName: string;
@@ -37,9 +34,9 @@ interface AuthorApplication {
   plannedWork: string;
   status: number; // 0: Pending, 1: Approved, 2: Rejected
   createdAt: string;
-}
+};
 
-interface PaidAuthorApplication {
+type PaidAuthorApplication = {
   id: string;
   userId: string;
   userName: string;
@@ -49,7 +46,27 @@ interface PaidAuthorApplication {
   gvkExemptionCertificateUrl: string;
   status: number;
   createdAt: string;
-}
+};
+
+type ModerationTicket = {
+  id: string;
+  reporterName?: string;
+  targetType?: string;
+  contentType?: string;
+  reason?: string;
+  topReason?: string;
+  reportCount?: number;
+  initialDescription?: string;
+  createdAt: string;
+};
+
+type RequestItem = AuthorApplication | PaidAuthorApplication | ModerationTicket;
+
+const isAuthorApplication = (item: RequestItem): item is AuthorApplication => "sampleContent" in item;
+const isPaidAuthorApplication = (item: RequestItem): item is PaidAuthorApplication => "iban" in item;
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 export default function RequestsPage() {
   const router = useRouter();
@@ -60,9 +77,9 @@ export default function RequestsPage() {
   const currentStatus = (searchParams.get('status') as RequestStatus) || 'active';
 
   const [isLoading, setIsLoading] = useState(true);
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<RequestItem[]>([]);
 
-  const [selectedApplication, setSelectedApplication] = useState<any | null>(null);
+  const [selectedApplication, setSelectedApplication] = useState<AuthorApplication | PaidAuthorApplication | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [note, setNote] = useState("");
   const [modalMode, setModalMode] = useState<'view' | 'rejecting'>('view');
@@ -99,18 +116,14 @@ export default function RequestsPage() {
       
       setData(prev => prev.filter(item => item.id !== selectedApplication.id));
       setSelectedApplication(null);
-    } catch (error: any) {
-      toast.error({ description: error.message || "İşlem sırasında bir hata oluştu." });
+    } catch (error) {
+      toast.error({ description: getErrorMessage(error, "İşlem sırasında bir hata oluştu.") });
     } finally {
       setActionLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [currentType, currentStatus]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       let endpoint = '';
@@ -120,19 +133,23 @@ export default function RequestsPage() {
 
       const statusParam = currentStatus === 'active' ? (currentType === 'moderation' ? '' : '?status=0') : '';
 
-      const response = await apiRequest<any[]>(`${endpoint}${statusParam}`);
+      const response = await apiRequest<RequestItem[]>(`${endpoint}${statusParam}`);
 
       if (currentStatus === 'history' && currentType !== 'moderation') {
-        setData(response.filter(item => item.status !== 0));
+        setData(response.filter(item => "status" in item && item.status !== 0));
       } else {
         setData(response);
       }
-    } catch (error) {
+    } catch {
       toast.error({ description: "Veriler yüklenirken bir hata oluştu." });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentStatus, currentType]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const setTabState = (type: RequestType, status: RequestStatus) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -150,7 +167,7 @@ export default function RequestsPage() {
     }
   };
 
-  const RequestCard = ({ item }: { item: any }) => {
+  const RequestCard = ({ item }: { item: AuthorApplication | PaidAuthorApplication }) => {
     const badge = getBadgeInfo(item.status);
     const dateStr = new Date(item.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
@@ -177,18 +194,18 @@ export default function RequestsPage() {
         </div>
 
         <div className="mt-4 pt-4 border-t border-base-content/5 space-y-3">
-          {currentType === 'author' ? (
+          {isAuthorApplication(item) ? (
             <>
               <div className="space-y-1">
                 <span className="text-[9px] font-black uppercase text-base-content/30 tracking-thighter">Deneyim:</span>
-                <p className="text-[11px] font-medium text-base-content/60 leading-relaxed italic line-clamp-2">"{item.experience}"</p>
+                <p className="text-[11px] font-medium text-base-content/60 leading-relaxed italic line-clamp-2">&quot;{item.experience}&quot;</p>
               </div>
               <div className="space-y-1">
                 <span className="text-[9px] font-black uppercase text-base-content/30 tracking-thighter">Planlanan Eser:</span>
-                <p className="text-[11px] font-medium text-base-content/60 italic line-clamp-2">"{item.plannedWork}"</p>
+                <p className="text-[11px] font-medium text-base-content/60 italic line-clamp-2">&quot;{item.plannedWork}&quot;</p>
               </div>
             </>
-          ) : (
+          ) : isPaidAuthorApplication(item) ? (
             <>
               <div className="flex items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-base-content/30 italic">{item.bankName}</span>
@@ -203,7 +220,7 @@ export default function RequestsPage() {
                 </a>
               </div>
             </>
-          )}
+          ) : null}
         </div>
 
         {/* Action Button */}
@@ -316,12 +333,12 @@ export default function RequestsPage() {
             </div>
           ) : currentType === 'moderation' ? (
             <ModerationTicketsView 
-              tickets={data} 
+              tickets={data.filter((item): item is ModerationTicket => !("status" in item))} 
               onRefresh={fetchData} 
             />
           ) : data.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-              {data.map((item) => (
+              {data.filter((item): item is AuthorApplication | PaidAuthorApplication => "status" in item).map((item) => (
                 <RequestCard key={item.id} item={item} />
               ))}
             </div>
@@ -370,7 +387,7 @@ export default function RequestsPage() {
 
             {/* Modal Body */}
             <div className="space-y-6 overflow-y-auto pr-2 custom-scrollbar flex-1 pb-4">
-               {currentType === 'author' ? (
+               {isAuthorApplication(selectedApplication) ? (
                   <>
                      <div className="space-y-2">
                         <span className="text-[10px] font-black uppercase text-base-content/30 tracking-widest">Yazarlık Deneyimi</span>
@@ -391,7 +408,7 @@ export default function RequestsPage() {
                         </div>
                      </div>
                   </>
-               ) : (
+               ) : isPaidAuthorApplication(selectedApplication) ? (
                   <>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -418,7 +435,7 @@ export default function RequestsPage() {
                         </a>
                      </div>
                   </>
-               )}
+               ) : null}
 
                {modalMode === 'rejecting' && (
                   <div className="pt-6 mt-6 border-t border-error/10 animate-in fade-in slide-in-from-top-4 duration-300">

@@ -22,7 +22,14 @@ type BookItem = {
   chapterCount: number;
   status: string;
 };
-type UpdateItem = { bookTitle: string; bookSlug: string; chapterTitle: string; publishedAt: string; bookCoverImageUrl?: string };
+type UpdateItem = {
+  bookTitle: string;
+  bookSlug: string;
+  chapterTitle: string;
+  chapterSlug: string;
+  publishedAt: string;
+  bookCoverImageUrl?: string;
+};
 type AuthorItem = { userId: string; displayName: string; slug: string; avatarUrl?: string; followersCount: number; booksCount: number; initials?: string };
 type ReviewItem = { id: string; userName: string; userAvatar?: string; content: string; rating: number; likeCount: number; isLikedByMe: boolean; type: string; bookTitle: string; bookSlug: string };
 type AnnouncementItem = { id: string; title: string; content: string; publishedAt?: string; createdAt: string };
@@ -39,14 +46,28 @@ async function getHomepageData() {
     backendApiRequest<PagedResult<AnnouncementItem>>("/infrastructure/announcements?pageSize=6", { token: accessToken }),
   ]);
 
+  const reportHomepageFailure = (section: string, result: PromiseSettledResult<unknown>) => {
+    if (result.status === "rejected") {
+      console.error(`[HOME] ${section} verisi yuklenemedi:`, result.reason);
+    }
+  };
+
+  reportHomepageFailure("editorChoice", editorChoiceRes);
+  reportHomepageFailure("updates", updatesRes);
+  reportHomepageFailure("popularAuthors", popularAuthorsRes);
+  reportHomepageFailure("mostRead", mostReadRes);
+  reportHomepageFailure("recommendations", recommendationsRes);
+  reportHomepageFailure("reviews", reviewsRes);
+  reportHomepageFailure("announcements", announcementsRes);
+
   const data = {
-    editorChoice: (editorChoiceRes.status === 'fulfilled' && editorChoiceRes.value?.items) ? editorChoiceRes.value.items : [],
-    updates: (updatesRes.status === 'fulfilled' && updatesRes.value?.updates) ? updatesRes.value.updates : [],
-    popularAuthors: (popularAuthorsRes.status === 'fulfilled' && popularAuthorsRes.value?.items) ? popularAuthorsRes.value.items : [],
-    mostRead: (mostReadRes.status === 'fulfilled' && mostReadRes.value?.items) ? mostReadRes.value.items : [],
-    recommendations: (recommendationsRes.status === 'fulfilled' && recommendationsRes.value?.items) ? recommendationsRes.value.items : [],
-    reviews: reviewsRes.status === 'fulfilled' ? (reviewsRes.value || []) : [],
-    announcements: (announcementsRes.status === 'fulfilled' && announcementsRes.value?.items) ? announcementsRes.value.items : [],
+    editorChoice: (editorChoiceRes.status === "fulfilled" && editorChoiceRes.value?.items) ? editorChoiceRes.value.items : [],
+    updates: (updatesRes.status === "fulfilled" && updatesRes.value?.updates) ? updatesRes.value.updates : [],
+    popularAuthors: (popularAuthorsRes.status === "fulfilled" && popularAuthorsRes.value?.items) ? popularAuthorsRes.value.items : [],
+    mostRead: (mostReadRes.status === "fulfilled" && mostReadRes.value?.items) ? mostReadRes.value.items : [],
+    recommendations: (recommendationsRes.status === "fulfilled" && recommendationsRes.value?.items) ? recommendationsRes.value.items : [],
+    reviews: reviewsRes.status === "fulfilled" ? (reviewsRes.value || []) : [],
+    announcements: (announcementsRes.status === "fulfilled" && announcementsRes.value?.items) ? announcementsRes.value.items : [],
   };
 
   return data;
@@ -77,6 +98,7 @@ export default async function Home() {
     book: u.bookTitle || "Bilinmeyen Başlık",
     bookSlug: u.bookSlug || "",
     chapter: u.chapterTitle || "Yeni İçerik",
+    chapterSlug: u.chapterSlug || "",
     time: u.publishedAt ? timeAgo(u.publishedAt) : "Bilinmiyor",
     cover: resolveMediaUrl(u.bookCoverImageUrl) || "/covers/cover-golge.svg"
   }));
@@ -125,7 +147,7 @@ export default async function Home() {
     review: r.content || ""
   }));
 
-  const announcementItems = data.announcements.map((a: any) => ({
+  const announcementItems = data.announcements.map((a) => ({
     title: a.title,
     description: a.content,
     date: timeAgo(a.publishedAt || a.createdAt)

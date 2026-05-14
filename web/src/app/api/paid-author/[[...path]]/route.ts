@@ -80,7 +80,7 @@ async function handleProxyRequest(request: NextRequest, method: string) {
 
     if (tokens?.refreshedTokens) applyRefreshedTokens(response, tokens.refreshedTokens);
     return response;
-  } catch (error: any) {
+  } catch (error) {
     if (isApiErrorLike(error)) {
       const resp = NextResponse.json(
         { isSuccess: false, message: error.message, errors: error.errors },

@@ -16,7 +16,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     void refreshNotifications();
-  }, []);
+  }, [refreshNotifications]);
 
   const filteredItems = useMemo(() => {
     if (filter === "unread") {

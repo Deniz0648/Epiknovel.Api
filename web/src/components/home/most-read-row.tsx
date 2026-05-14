@@ -4,7 +4,6 @@ import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { Flame, Star } from "lucide-react";
 import { type TouchEvent, useMemo, useRef, useState } from "react";
-import { toBookSlug } from "@/lib/books";
 
 const SWIPE_THRESHOLD = 44;
 

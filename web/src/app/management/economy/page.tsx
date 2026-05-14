@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-   getWalletPackages,
    getAdminWalletPackages,
    createWalletPackage,
    updateWalletPackage,
@@ -31,7 +30,7 @@ import { getCategories, getAdminBooks, type CategoryDto, type ManagementBookDto 
 import { toast } from "@/lib/toast";
 import {
    Coins, TrendingUp, Wallet, Banknote, Package, History, Percent,
-   FileText, Plus, Edit2, Trash2, Save, X, Check, Power, LayoutGrid,
+   FileText, Plus, Edit2, Trash2, Save, X, Check, Power,
    FilePlus, Download, Upload, Loader2, Search, AlertCircle, ChevronLeft, ChevronRight
 } from "lucide-react";
 
@@ -127,6 +126,7 @@ function EconomyManagementContent() {
       if (activeTab === "discounts") fetchCampaigns();
       if (activeTab === "invoices") fetchOrders();
       if (activeTab === "withdrawals") fetchWithdrawals();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
    }, [
       activeTab,
       withdrawFilter,
@@ -146,7 +146,7 @@ function EconomyManagementContent() {
          });
          setWithdrawals(data.items);
          setWithdrawalsState(prev => ({ ...prev, total: data.totalCount }));
-      } catch (e) {
+      } catch {
          toast.error({ description: "Talepler yüklenemedi." });
       } finally {
          setIsWithdrawLoading(false);
@@ -177,7 +177,7 @@ function EconomyManagementContent() {
          toast.success({ description: "Talep işlendi." });
          setIsWithdrawModalOpen(false);
          fetchWithdrawals();
-      } catch (e) {
+      } catch {
          toast.error({ description: "İşlem başarısız." });
       } finally {
          setIsWithdrawLoading(false);
@@ -203,7 +203,7 @@ function EconomyManagementContent() {
          } else {
             throw new Error(json.message);
          }
-      } catch (e) {
+      } catch {
          toast.error({ description: "Dekont yüklenemedi." });
       } finally {
          setWithdrawProcessData(prev => ({ ...prev, isUploading: false }));
@@ -219,7 +219,7 @@ function EconomyManagementContent() {
          });
          setOrders(data.items);
          setOrdersState(prev => ({ ...prev, total: data.totalCount }));
-      } catch (e) {
+      } catch {
          toast.error({ description: "Siparişler yüklenemedi." });
       } finally {
          setIsOrderLoading(false);
@@ -245,7 +245,7 @@ function EconomyManagementContent() {
          });
          setCampaigns(data.items);
          setCampaignsState(prev => ({ ...prev, total: data.totalCount }));
-      } catch (error) {
+      } catch {
          toast.error({ description: "Kampanyalar yüklenemedi." });
       }
    }
@@ -259,7 +259,7 @@ function EconomyManagementContent() {
          });
          setPackages(data.items);
          setPackagesState(prev => ({ ...prev, total: data.totalCount }));
-      } catch (error) {
+      } catch {
          toast.error({ description: "Paketler yüklenemedi." });
       } finally {
          setIsLoading(false);
@@ -321,7 +321,7 @@ function EconomyManagementContent() {
          }
          setIsModalOpen(false);
          fetchPackages();
-      } catch (error) {
+      } catch {
          toast.error({ description: "İşlem başarısız oldu." });
       }
    };
@@ -332,7 +332,7 @@ function EconomyManagementContent() {
          await deleteWalletPackage(id);
          toast.success({ description: "Paket silindi." });
          fetchPackages();
-      } catch (error) {
+      } catch {
          toast.error({ description: "Silme işlemi başarısız." });
       }
    };
@@ -341,7 +341,7 @@ function EconomyManagementContent() {
       try {
          await updateWalletPackage(pkg.id, { ...pkg, isActive: !pkg.isActive });
          fetchPackages();
-      } catch (error) {
+      } catch {
          toast.error({ description: "Durum güncellenemedi." });
       }
    };
@@ -394,7 +394,7 @@ function EconomyManagementContent() {
          }
          setIsCampaignModalOpen(false);
          fetchCampaigns();
-      } catch (error) {
+      } catch {
          toast.error({ description: "Kampanya kaydedilirken hata oluştu." });
       }
    };
@@ -404,7 +404,7 @@ function EconomyManagementContent() {
       try {
          await deleteCampaign(id);
          fetchCampaigns();
-      } catch (error) {
+      } catch {
          toast.error({ description: "Silme başarısız." });
       }
    };
@@ -447,7 +447,7 @@ function EconomyManagementContent() {
          toast.success({ description: "Manuel sipariş ve fatura girişi başarıyla tamamlandı." });
          setIsOrderModalOpen(false);
          fetchOrders();
-      } catch (e) {
+      } catch {
          toast.error({ description: "Sipariş oluşturulurken hata oluştu." });
       } finally {
          setIsOrderLoading(false);
@@ -468,7 +468,7 @@ function EconomyManagementContent() {
          await uploadInvoice(orderId, json.data.documentId);
          toast.success({ description: "Fatura başarıyla yüklendi." });
          fetchOrders();
-      } catch (e) {
+      } catch {
          toast.error({ description: "Fatura yüklenemedi." });
       } finally {
          setIsUploadingInvoice(null);
@@ -1272,7 +1272,7 @@ function EconomyManagementContent() {
                         </div>
                         <div className="flex-1">
                            <p className="text-sm font-black">En Avantajlı Paket</p>
-                           <p className="text-[10px] font-bold text-base-content/40 uppercase tracking-widest">Kullanıcılara "Fırsat" etiketiyle gösterilir</p>
+                            <p className="text-[10px] font-bold text-base-content/40 uppercase tracking-widest">Kullanıcılara &quot;Fırsat&quot; etiketiyle gösterilir</p>
                         </div>
                      </div>
                   </div>

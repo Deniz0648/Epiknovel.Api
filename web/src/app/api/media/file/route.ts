@@ -6,8 +6,6 @@ import path from "path";
 export const dynamic = "force-dynamic";
 
 const BACKEND_PUBLIC_ORIGIN = new URL(BACKEND_API_BASE_URL).origin;
-const RETRYABLE_STATUSES = new Set([404, 500, 502, 503, 504]);
-
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -44,8 +42,9 @@ export async function GET(request: NextRequest) {
       });
       
       if (upstreamResponse?.ok) break;
-    } catch (err: any) {
-      console.error(`[MEDIA_PROXY] Attempt ${attempt + 1} failed: ${err.message}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[MEDIA_PROXY] Attempt ${attempt + 1} failed: ${message}`);
       upstreamResponse = null;
     }
 

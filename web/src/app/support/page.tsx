@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { HelpCircle, Home, LifeBuoy, Mail, MessageCircle, ArrowRight, Plus, FileQuestion, Clock, ChevronRight, X, Loader2 } from "lucide-react";
+import { HelpCircle, Home, LifeBuoy, Mail, MessageCircle, ArrowRight, Plus, Clock, ChevronRight, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
 

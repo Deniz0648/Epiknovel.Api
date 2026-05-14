@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BookCover } from "@/components/ui/book-cover";
 import { ArrowDown, BookText, Clock, History, Home, Search } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { apiRequest, resolveMediaUrl, COVER_DEFAULT } from "@/lib/api";
+import { apiRequest } from "@/lib/api";
 
 type UpdateItem = {
   chapterId: string;

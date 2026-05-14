@@ -67,7 +67,7 @@ export async function backendApiRequest<T>(
   if (!isJson) {
       // JSON degilse ama response ok ise, text olarak don (veya hata firlat)
       // Ancak mevcut backendApiRequest kontrati T donduruyor, genellikle JSON beklenir.
-      if (response.ok) return text as any;
+      if (response.ok) return text as T;
       throw new ApiError("Backend gecersiz format dondu.", response.status);
   }
 
@@ -136,8 +136,8 @@ export async function backendFetch(
             signal: controller.signal,
         });
         return response;
-    } catch (err: any) {
-        if (err.name === 'AbortError') {
+    } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
             console.error(`[BACKEND_FETCH] TIMEOUT for ${url}`);
         }
         throw err;

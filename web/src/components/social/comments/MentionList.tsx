@@ -2,6 +2,7 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
 } from 'react'
 
@@ -12,7 +13,7 @@ export interface MentionListProps {
 
 export const MentionList = forwardRef((props: MentionListProps, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const items = props.items || []
+  const items = useMemo(() => props.items || [], [props.items])
 
   const selectItem = (index: number) => {
     const item = items[index]
@@ -33,7 +34,10 @@ export const MentionList = forwardRef((props: MentionListProps, ref) => {
     selectItem(selectedIndex)
   }
 
-  useEffect(() => setSelectedIndex(0), [items])
+  useEffect(() => {
+    const resetTask = window.setTimeout(() => setSelectedIndex(0), 0)
+    return () => window.clearTimeout(resetTask)
+  }, [items])
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {

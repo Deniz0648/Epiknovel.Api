@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
        return NextResponse.json({ isSuccess: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await backendApiRequest<any>(`/management/author-applications${search}`, {
+    const data = await backendApiRequest<unknown>(`/management/author-applications${search}`, {
       method: "GET",
       token: tokens.accessToken,
       headers: buildProxyHeaders(request.headers),
@@ -31,10 +31,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function handleProxyError(error: any) {
+function handleProxyError(error: unknown) {
   if (isApiErrorLike(error)) {
     const response = NextResponse.json(
-      { isSuccess: false, message: error.message, errors: (error as any).errors },
+      { isSuccess: false, message: error.message, errors: (error as { errors?: unknown }).errors },
       { status: error.status }
     );
     if (error.status === 401) clearAuthCookies(response);

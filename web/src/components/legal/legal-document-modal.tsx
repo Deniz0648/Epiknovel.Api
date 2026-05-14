@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { X, Loader2, ShieldCheck } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
@@ -16,13 +16,7 @@ export function LegalDocumentModal({ slug, isOpen, onClose }: LegalDocumentModal
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && slug) {
-      loadDocument();
-    }
-  }, [isOpen, slug]);
-
-  const loadDocument = async () => {
+  const loadDocument = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -30,12 +24,18 @@ export function LegalDocumentModal({ slug, isOpen, onClose }: LegalDocumentModal
       const res = await apiRequest<{ title: string; content: string }>(`/compliance/legal/${slug}`);
       setContent(res.content);
       setTitle(res.title);
-    } catch (err: any) {
+    } catch {
       setError("Belge yüklenirken bir hata oluştu.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [slug]);
+
+  useEffect(() => {
+    if (isOpen && slug) {
+      loadDocument();
+    }
+  }, [isOpen, loadDocument, slug]);
 
   if (!isOpen) return null;
 

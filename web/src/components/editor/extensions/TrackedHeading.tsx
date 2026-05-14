@@ -4,9 +4,10 @@ import { v4 as uuidv4 } from 'uuid'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react'
 import { GripVertical } from 'lucide-react'
+import type { NodeViewProps } from '@tiptap/react'
 
 // Render for the heading node
-function HeadingNodeView(props: any) {
+function HeadingNodeView(props: NodeViewProps) {
   // Extract the level from TipTap attributes
   const level = props.node.attrs.level || 1;
 
@@ -25,15 +26,15 @@ function HeadingNodeView(props: any) {
         <NodeViewContent as="h1" className="m-0 text-4xl font-black tracking-tight text-base-content leading-tight" />
       )}
       {level === 2 && (
-        // @ts-expect-error
+        // @ts-expect-error TipTap NodeViewContent supports heading tag names at runtime.
         <NodeViewContent as="h2" className="m-0 text-3xl font-bold tracking-tight text-base-content leading-snug" />
       )}
       {level === 3 && (
-        // @ts-expect-error
+        // @ts-expect-error TipTap NodeViewContent supports heading tag names at runtime.
         <NodeViewContent as="h3" className="m-0 text-2xl font-bold text-base-content leading-snug" />
       )}
       {level > 3 && (
-        // @ts-expect-error
+        // @ts-expect-error TipTap NodeViewContent supports heading tag names at runtime.
         <NodeViewContent as="h4" className="m-0 text-xl font-bold text-base-content" />
       )}
     </NodeViewWrapper>

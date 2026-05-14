@@ -1,18 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { use } from "react";
-import { Home, Send, User, ChevronRight, LifeBuoy, Clock, ArrowLeft, Loader2 } from "lucide-react";
+import { Send, ArrowLeft, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import { connectHub } from "@/lib/signalr-client";
 import { useRef } from "react";
 
+type SupportMessage = {
+  id: string;
+  userDisplayName: string;
+  content: string;
+  createdAt: string;
+  isAdminResponse: boolean;
+};
+type SupportTicket = {
+  id: string;
+  title: string;
+  description?: string;
+  status: number;
+  messages: SupportMessage[];
+};
 
 export default function TicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [ticket, setTicket] = useState<any>(null);
+  const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -28,20 +42,20 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     }
   }, [ticket?.messages]);
 
-  async function loadTicket() {
+  const loadTicket = useCallback(async () => {
     try {
-      const data = await apiRequest<any>(`/management/support/tickets/${id}`);
+      const data = await apiRequest<SupportTicket>(`/management/support/tickets/${id}`);
       setTicket(data);
     } catch (err) {
       console.error("Talep yuklenirken hata:", err);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
     loadTicket();
-  }, [id]);
+  }, [loadTicket]);
 
   useEffect(() => {
     if (!id) return;
@@ -49,12 +63,12 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
     const hub = connectHub("/hubs/support", {
       onInvocation: (msg) => {
         if (msg.target === "ReceiveMessage") {
-          const newMsg = msg.args[0] as any;
+          const newMsg = msg.args[0] as SupportMessage;
           // Note: Backend gives us the message object. 
           // userId, content, isAdminResponse, createdAt etc.
-          setTicket((prev: any) => {
+          setTicket((prev) => {
             if (!prev) return prev;
-            if (prev.messages.some((m: any) => m.id === newMsg.id)) return prev;
+            if (prev.messages.some((m) => m.id === newMsg.id)) return prev;
             return {
               ...prev,
               messages: [...prev.messages, newMsg]
@@ -87,7 +101,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
       });
       setNewMessage("");
       loadTicket(); // Refresh messages
-    } catch (err) {
+      } catch {
       console.error("Mesaj gonderilirken hata:", err);
       showToast({ title: "Hata", description: "Mesaj gönderilemedi.", tone: "error" });
     } finally {
@@ -175,7 +189,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
 
           {/* Chat Messages Area - THE SCROLLABLE PART */}
           <div className="flex-1 flex flex-col gap-4 mb-4 overflow-y-auto pr-2 custom-scrollbar min-h-0">
-            {ticket.messages.map((msg: any) => (
+            {ticket.messages.map((msg) => (
               <div key={msg.id} className={`flex flex-col ${!msg.isAdminResponse ? "items-end" : "items-start"}`}>
                 <div className={`max-w-[80%] rounded-[1.5rem] px-5 py-3 ${
                   !msg.isAdminResponse 

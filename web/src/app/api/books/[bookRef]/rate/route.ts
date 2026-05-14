@@ -12,7 +12,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const body = await request.text();
     
     // Auth token ile backend'e (RateBook endpoint) proxy yap
-    const result = await performAuthenticatedIdentityRequest<any>(
+    const result = await performAuthenticatedIdentityRequest<unknown>(
       `/books/${bookRef}/rate`,
       {
         method: "POST",

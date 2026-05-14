@@ -1,9 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useRef } from "react";
-import { apiRequest } from "@/lib/api";
-import { connectHub, type HubInvocation } from "@/lib/signalr-client";
-import { toast } from "@/lib/toast";
+import { connectHub } from "@/lib/signalr-client";
 
 type PublicSettings = {
   SITE_Name: string;

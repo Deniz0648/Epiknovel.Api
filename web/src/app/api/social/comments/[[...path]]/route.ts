@@ -4,7 +4,6 @@ import {
   applyRefreshedTokens, 
   clearAuthCookies, 
   getAuthenticatedTokens,
-  refreshSessionTokensWithHeaders 
 } from "@/lib/server-auth";
 import { backendApiRequest, buildProxyHeaders } from "@/lib/backend-api";
 
@@ -30,7 +29,7 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
     const tokens = await getAuthenticatedTokens(request.headers);
     
     // 2. Perform request
-    const data = await backendApiRequest<any>(fullPath, {
+    const data = await backendApiRequest<unknown>(fullPath, {
       method,
       body,
       token: tokens?.accessToken,

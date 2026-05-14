@@ -73,7 +73,7 @@ export function ChapterReorderList({ bookId, bookSlug, initialChapters, onOrderS
           tone: "error",
         });
       }
-    } catch (error) {
+    } catch {
       showToast({
         title: "Sistem Hatası",
         description: "Sıralama işlemi sırasında bir hata oluştu.",

@@ -1,7 +1,6 @@
 import { auth } from "@/lib/auth-utils"
 import { redirect, notFound } from "next/navigation"
 import { EditChapterForm } from "@/components/editor/EditChapterForm"
-import { getApiUrl } from "@/lib/config"
 
 export const metadata = {
   title: "Bölüm Düzenle | Epiknovel",

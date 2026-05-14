@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Users, BookOpenText, ChevronRight, Filter, Globe2, Home, Loader2, Search, Sparkles, UserRound } from "lucide-react";
+import { Users, BookOpenText, Filter, Home, Loader2, Search, Sparkles, UserRound } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { getPublicUserProfiles, type PublicUserListItem } from "@/lib/auth";
 import { useAuth } from "@/components/providers/auth-provider";
@@ -12,7 +12,7 @@ const joinedAtFormatter = new Intl.DateTimeFormat("tr-TR", {
 });
 
 export default function CommunityView() {
-  const { profile, isLoading: isSessionLoading } = useAuth();
+  const { isLoading: isSessionLoading } = useAuth();
 
   const [queryInput, setQueryInput] = useState("");
   const [query, setQuery] = useState("");

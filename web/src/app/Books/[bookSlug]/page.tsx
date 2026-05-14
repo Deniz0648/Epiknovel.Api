@@ -17,7 +17,7 @@ async function getBookData(bookSlug: string, token?: string | null) {
       next: token ? undefined : { revalidate: 3600 }
     });
     return bookData;
-  } catch (e) {
+  } catch {
     return null;
   }
 }

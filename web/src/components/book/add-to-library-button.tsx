@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Plus,
   Check,
@@ -16,8 +16,32 @@ import {
 import { apiRequest } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useRouter } from "next/navigation";
 
 type LibraryStatus = "Reading" | "Completed" | "Dropped" | "PlanToRead" | "OnHold" | "Archived" | null;
+type LibraryStatusValue = number | LibraryStatus;
+type LibraryCheckResponse = {
+  isAdded?: boolean;
+  IsAdded?: boolean;
+  libraryItem?: {
+    id?: string;
+    Id?: string;
+    status?: LibraryStatusValue;
+    Status?: LibraryStatusValue;
+  };
+  LibraryItem?: {
+    id?: string;
+    Id?: string;
+    status?: LibraryStatusValue;
+    Status?: LibraryStatusValue;
+  };
+};
+type LibraryMutationResponse = {
+  id?: string;
+  Id?: string;
+  status?: LibraryStatusValue;
+  Status?: LibraryStatusValue;
+};
 
 interface AddToLibraryButtonProps {
   bookId: string;
@@ -28,12 +52,13 @@ interface AddToLibraryButtonProps {
 
 export function AddToLibraryButton({ bookId, bookStatus, className, direction = "down" }: AddToLibraryButtonProps) {
   const { profile, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const [libraryEntryId, setLibraryEntryId] = useState<string | null>(null);
   const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const getStatusText = (status: any) => {
+  const getStatusText = (status: LibraryStatusValue | undefined) => {
     if (status === 0 || status === "Reading") return "Okuyorum";
     if (status === 1 || status === "Completed") return "Tamamlandı";
     if (status === 2 || status === "Dropped") return "Bırakıldı";
@@ -43,7 +68,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
     return status?.toString() || "Kütüphanede";
   };
 
-  const checkLibraryStatus = async () => {
+  const checkLibraryStatus = useCallback(async () => {
     if (!profile) {
       setIsLoading(false);
       return;
@@ -51,15 +76,12 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
 
     try {
       setIsLoading(true);
-      const res = await apiRequest<{
-        isAdded: boolean;
-        libraryItem?: { id: string; status: any; Id?: string; Status?: any }
-      } | null>(`/social/library/check/${bookId}`);
+      const res = await apiRequest<LibraryCheckResponse | null>(`/social/library/check/${bookId}`);
 
-      const isAdded = res?.isAdded ?? (res as any)?.IsAdded;
+      const isAdded = res?.isAdded ?? res?.IsAdded;
 
       if (isAdded && res) {
-        const libItem = res.libraryItem ?? (res as any).LibraryItem;
+        const libItem = res.libraryItem ?? res.LibraryItem;
         if (libItem) {
           setLibraryEntryId(libItem.id || libItem.Id || null);
           const statusVal = libItem.status !== undefined ? libItem.status : libItem.Status;
@@ -77,7 +99,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [bookId, profile]);
 
   useEffect(() => {
     if (!bookId) {
@@ -94,7 +116,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
         checkLibraryStatus();
       }
     }
-  }, [bookId, profile, isAuthLoading]);
+  }, [bookId, profile, isAuthLoading, checkLibraryStatus]);
 
   const handleLibraryAction = async (targetStatus?: number) => {
     if (!profile) {
@@ -103,6 +125,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
         description: "Kütüphane işlemleri için lütfen giriş yapın.",
         tone: "error",
       });
+      router.push("/login");
       return;
     }
 
@@ -152,7 +175,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
       if (!libraryEntryId) {
         if (targetStatus === undefined) return;
 
-        const response = await apiRequest<{ id?: string; Id?: string; status?: any; Status?: any }>("/social/library", {
+        const response = await apiRequest<LibraryMutationResponse>("/social/library", {
           method: "POST",
           body: JSON.stringify({
             bookId: bookId,
@@ -172,13 +195,14 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
           tone: "success",
         });
       }
-    } catch (err: any) {
-      if (err.message?.includes("zaten kütüphanenizde")) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "İşlem gerçekleştirilemedi.";
+      if (message.includes("zaten kütüphanenizde")) {
         await checkLibraryStatus();
       } else {
         showToast({
           title: "Hata",
-          description: err.message || "İşlem gerçekleştirilemedi.",
+          description: message,
           tone: "error",
         });
       }

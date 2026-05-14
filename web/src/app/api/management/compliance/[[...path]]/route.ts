@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const subPath = pathname.replace("/api/management/compliance", "") || "/";
     
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`/management/compliance${subPath}${search}`, {
+    const data = await backendApiRequest<unknown>(`/management/compliance${subPath}${search}`, {
       method: "GET",
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),
@@ -65,7 +65,7 @@ async function handleProxyRequest(request: NextRequest, method: string) {
     }
 
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<any>(`/management/compliance${subRoute}${search}`, {
+    const data = await backendApiRequest<unknown>(`/management/compliance${subRoute}${search}`, {
       method,
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),

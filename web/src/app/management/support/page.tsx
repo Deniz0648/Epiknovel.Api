@@ -1,18 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import { 
   LifeBuoy, 
   Search, 
-  Filter, 
-  MessageSquare, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
-  ChevronRight,
-  User,
   Loader2,
-  X,
   Send
 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
@@ -20,12 +12,30 @@ import { showToast } from "@/lib/toast";
 import { connectHub } from "@/lib/signalr-client";
 import { useRef } from "react";
 
+type SupportMessage = {
+  id: string;
+  ticketId?: string;
+  userDisplayName: string;
+  content: string;
+  createdAt: string;
+  isAdminResponse: boolean;
+};
+type SupportTicket = {
+  id: string;
+  title: string;
+  description?: string;
+  userDisplayName: string;
+  status: number;
+  createdAt: string;
+  messages: SupportMessage[];
+};
+
 export default function SupportManagementPage() {
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<number | null>(null);
-  const [selectedTicket, setSelectedTicket] = useState<any>(null);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [reply, setReply] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -40,22 +50,22 @@ export default function SupportManagementPage() {
     }
   }, [selectedTicket?.messages]);
 
-  async function loadTickets() {
+  const loadTickets = useCallback(async () => {
     setIsLoading(true);
     try {
       const url = `/management/support/tickets?${selectedStatus !== null ? `status=${selectedStatus}` : ""}`;
-      const data = await apiRequest<{ tickets: any[] }>(url);
+      const data = await apiRequest<{ tickets: SupportTicket[] }>(url);
       setTickets(data.tickets);
     } catch (err) {
       console.error("Talep listesi yuklenirken hata:", err);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [selectedStatus]);
 
   useEffect(() => {
     loadTickets();
-  }, [selectedStatus]);
+  }, [loadTickets]);
 
   useEffect(() => {
     if (!selectedTicket?.id) return;
@@ -63,10 +73,10 @@ export default function SupportManagementPage() {
     const hub = connectHub("/hubs/support", {
       onInvocation: (msg) => {
         if (msg.target === "ReceiveMessage") {
-          const newMsg = msg.args[0] as any;
+          const newMsg = msg.args[0] as SupportMessage;
           if (newMsg.ticketId === selectedTicket.id) {
-            setSelectedTicket((prev: any) => {
-              if (!prev || prev.messages.some((m: any) => m.id === newMsg.id)) return prev;
+            setSelectedTicket((prev) => {
+              if (!prev || prev.messages.some((m) => m.id === newMsg.id)) return prev;
               const next = { 
                 ...prev, 
                 messages: [...prev.messages, newMsg] 
@@ -89,11 +99,11 @@ export default function SupportManagementPage() {
       hub.invoke("LeaveTicket", selectedTicket.id);
       hub.dispose();
     };
-  }, [selectedTicket?.id]);
+  }, [loadTickets, selectedTicket?.id]);
 
   async function loadTicketDetails(id: string) {
     try {
-      const data = await apiRequest<any>(`/management/support/tickets/${id}`);
+      const data = await apiRequest<SupportTicket>(`/management/support/tickets/${id}`);
       setSelectedTicket(data);
     } catch (err) {
       console.error("Talep detaylari yuklenirken hata:", err);
@@ -258,7 +268,7 @@ export default function SupportManagementPage() {
                    </div>
                 </div>
 
-                {selectedTicket.messages.map((msg: any) => (
+                {selectedTicket.messages.map((msg) => (
                   <div key={msg.id} className={`flex flex-col ${msg.isAdminResponse ? "items-end" : "items-start"}`}>
                     <div className={`max-w-[80%] rounded-2xl px-5 py-3 ${
                       msg.isAdminResponse 

@@ -28,7 +28,7 @@ export function SimpleHero() {
         
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <Link
-            href="/Discovery"
+            href="/discovery"
             className="btn btn-primary h-14 w-full sm:w-auto rounded-full px-10 text-base font-bold shadow-xl shadow-primary/30"
           >
             <BookOpen className="h-5 w-5" />

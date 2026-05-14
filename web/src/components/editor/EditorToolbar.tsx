@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, type ReactNode } from 'react'
 import { Editor } from '@tiptap/react'
 import {
     Bold, Italic, Strikethrough, List, ListOrdered, Heading1, Heading2,
-    Heading3, Quote, SquareCode, Undo, Redo, Minus, AlignLeft,
-    AlignCenter, AlignRight, AlignJustify, Underline as UnderlineIcon,
+    Quote, SquareCode, Undo, Redo, AlignLeft,
+    AlignCenter, AlignRight, Underline as UnderlineIcon,
     Link as LinkIcon, X, Check
 } from 'lucide-react'
 
@@ -14,12 +14,36 @@ interface EditorToolbarProps {
     isSimple?: boolean
 }
 
+type ToolbarButtonProps = {
+    onClick: () => void
+    isActive?: boolean
+    disabled?: boolean
+    children: ReactNode
+    title: string
+}
+
+function ToolbarButton({ onClick, isActive, disabled, children, title }: ToolbarButtonProps) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            title={title}
+            className={`p-2 lg:p-1.5 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 ${isActive ? 'bg-gray-200 text-gray-900' : ''}`}
+        >
+            {children}
+        </button>
+    )
+}
+
+function ToolbarDivider() {
+    return <div className="w-px h-6 bg-gray-300 mx-1" />
+}
+
 export function EditorToolbar({ editor, isSimple = false }: EditorToolbarProps) {
     const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false)
     const [linkUrl, setLinkUrl] = useState('')
     const [linkText, setLinkText] = useState('')
-
-    if (!editor) return null
 
     const openLinkDialog = () => {
         const { from, to } = editor.state.selection
@@ -49,21 +73,7 @@ export function EditorToolbar({ editor, isSimple = false }: EditorToolbarProps) 
         setLinkText('')
     }, [editor, linkUrl, linkText])
 
-    const ToolbarButton = ({ onClick, isActive, disabled, children, title }: any) => (
-        <button
-            type="button"
-            onClick={onClick}
-            disabled={disabled}
-            title={title}
-            className={`p-2 lg:p-1.5 text-gray-500 rounded cursor-pointer hover:text-gray-900 hover:bg-gray-100 ${isActive ? 'bg-gray-200 text-gray-900' : ''}`}
-        >
-            {children}
-        </button>
-    )
-
-    const ToolbarDivider = () => (
-        <div className="w-px h-6 bg-gray-300 mx-1"></div>
-    )
+    if (!editor) return null
 
     return (
         <div className="flex flex-col border-b border-base-200 bg-base-100/95 backdrop-blur-md rounded-t-3xl">

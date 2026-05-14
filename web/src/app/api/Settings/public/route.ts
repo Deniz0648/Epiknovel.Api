@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { backendApiRequest } from "@/lib/backend-api";
 import { isApiErrorLike } from "@/lib/api";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const data = await backendApiRequest<Record<string, string>>("/Settings/public", {
       method: "GET",

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Book,
@@ -15,39 +16,96 @@ import {
   EyeOff,
   CheckCircle2,
   AlertCircle,
-  MoreVertical,
   Edit2,
   Trash2,
   X,
-  Globe,
   Check,
   UserPlus,
-  Users,
   MessageSquare,
   Clock,
   ThumbsUp,
-  AlertOctagon,
-  Flag,
   ShieldAlert,
-  Loader2,
-  Save as SaveIcon,
   Star
 } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/api";
 import { toast } from "sonner";
 
 type ContentTab = "books-original" | "books-translated" | "books-editor-choice" | "reviews-editor-choice" | "categories" | "tags" | "quotes" | "faq" | "moderation";
+type ComplianceBook = {
+  id: string;
+  slug: string;
+  title: string;
+  authorName?: string;
+  coverImageUrl?: string | null;
+  isHidden: boolean;
+  isEditorChoice: boolean;
+  viewCount?: number;
+  type?: string;
+  createdAt: string;
+};
+type ListingItem = {
+  id: string;
+  name?: string;
+  question?: string;
+  content?: string;
+  slug?: string;
+  description?: string;
+  authorName?: string;
+  answer?: string;
+  iconUrl?: string;
+};
+type ListingEditData = Partial<ListingItem>;
+type UserSearchResult = {
+  id: string;
+  userId: string;
+  displayName: string;
+  email?: string;
+};
+type AssignedMember = {
+  userId: string;
+  displayName: string;
+  role: string;
+};
+type FeaturedReview = {
+  id: string;
+  userName?: string;
+  bookTitle?: string;
+  content?: string;
+  rating?: number;
+};
+type SocialActivityItem = {
+  id: string;
+  userName?: string;
+  content: string;
+  createdAt: string;
+  rating?: number;
+  isHidden?: boolean;
+  isSpoiler?: boolean;
+  isEditorChoice?: boolean;
+  likeCount?: number;
+  parentId?: string | null;
+};
+type SocialActivity = {
+  reviews?: SocialActivityItem[];
+  bookComments?: SocialActivityItem[];
+  chapterComments?: SocialActivityItem[];
+  inlineComments?: SocialActivityItem[];
+};
+type ComplianceData = {
+  items?: ComplianceBook[];
+  categories?: ListingItem[];
+  tags?: ListingItem[];
+} | ListingItem[] | FeaturedReview[] | null;
 
 export default function CompliancePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<ContentTab>("books-original");
   const [searchQuery, setSearchQuery] = useState("");
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ComplianceData>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [editingBookId, setEditingBookId] = useState<string | null>(null);
-  const [assigningBook, setAssigningBook] = useState<any | null>(null);
-  const [reviewingBook, setReviewingBook] = useState<any | null>(null);
+  const [assigningBook, setAssigningBook] = useState<ComplianceBook | null>(null);
+  const [reviewingBook, setReviewingBook] = useState<ComplianceBook | null>(null);
   const [isAdding, setIsAdding] = useState(false);
 
   // Sync tab with URL
@@ -115,7 +173,7 @@ export default function CompliancePage() {
         // Fallback for direct data or unexpected structures
         setData(Array.isArray(json) ? json : (activeTab.startsWith("books") ? { items: [] } : []));
       }
-    } catch (err) {
+    } catch {
       console.error("Fetch error:", err);
       setData(activeTab.startsWith("books") ? { items: [] } : []); // Set safe default on error
     } finally {
@@ -271,7 +329,7 @@ export default function CompliancePage() {
             <>
               {activeTab.startsWith("books") && (
                 <BookManagementView
-                  books={data?.items || []}
+                  books={!Array.isArray(data) ? data?.items || [] : []}
                   onToggleVisibility={handleToggleVisibility}
                   onToggleEditorChoice={handleToggleEditorChoice}
                   onDelete={handleDelete}
@@ -285,7 +343,7 @@ export default function CompliancePage() {
               {(activeTab === "categories" || activeTab === "tags") && (
                 <SimpleListingView
                   activeTab={activeTab}
-                  items={activeTab === "categories" ? data?.categories : data?.tags}
+                  items={!Array.isArray(data) ? (activeTab === "categories" ? data?.categories : data?.tags) : []}
                   onDelete={handleDelete}
                   isAdding={isAdding}
                   setIsAdding={setIsAdding}
@@ -294,7 +352,7 @@ export default function CompliancePage() {
               {activeTab === "quotes" && (
                 <SimpleListingView
                   activeTab={activeTab}
-                  items={data}
+                  items={Array.isArray(data) ? data as ListingItem[] : []}
                   onDelete={handleDelete}
                   isAdding={isAdding}
                   setIsAdding={setIsAdding}
@@ -303,7 +361,7 @@ export default function CompliancePage() {
               {activeTab === "faq" && (
                 <SimpleListingView
                   activeTab={activeTab}
-                  items={data}
+                  items={Array.isArray(data) ? data as ListingItem[] : []}
                   onDelete={handleDelete}
                   isAdding={isAdding}
                   setIsAdding={setIsAdding}
@@ -311,7 +369,7 @@ export default function CompliancePage() {
               )}
               {activeTab === "reviews-editor-choice" && (
                 <FeaturedReviewsView
-                  reviews={Array.isArray(data) ? data : []}
+                  reviews={Array.isArray(data) ? data as FeaturedReview[] : []}
                   onToggleEditorChoice={handleToggleEditorChoiceFromTab}
                   onRefresh={() => fetchData()}
                 />
@@ -347,12 +405,12 @@ function BookManagementView({
   onReviewSocial,
   onDelete
 }: {
-  books: any[],
+  books: ComplianceBook[],
   onToggleVisibility: (id: string, hidden: boolean) => void,
   onToggleEditorChoice: (id: string, current: boolean) => void,
-  onEdit: (book: any) => void,
-  onAssign: (book: any) => void,
-  onReviewSocial: (book: any) => void,
+  onEdit: (book: ComplianceBook) => void,
+  onAssign: (book: ComplianceBook) => void,
+  onReviewSocial: (book: ComplianceBook) => void,
   onDelete: (id: string) => void
 }) {
   if (!books || books.length === 0) {
@@ -382,9 +440,11 @@ function BookManagementView({
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-base-content/5 border border-base-content/5 shadow-sm">
                     {book.coverImageUrl ? (
-                      <img
+                      <Image
                         src={resolveMediaUrl(book.coverImageUrl)}
                         alt={book.title}
+                        width={96}
+                        height={128}
                         className="h-full w-full object-cover"
                       />
                     ) : (
@@ -488,13 +548,13 @@ function SimpleListingView({
   setIsAdding
 }: {
   activeTab: ContentTab,
-  items: any[] | null,
+  items: ListingItem[] | null | undefined,
   onDelete: (id: string) => void,
   isAdding: boolean,
   setIsAdding: (val: boolean) => void
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState<any>({});
+  const [editData, setEditData] = useState<ListingEditData>({});
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -561,7 +621,7 @@ function SimpleListingView({
         <td className="py-4 pl-6 w-20">
           <div className="relative h-12 w-12 overflow-hidden rounded-2xl bg-base-100 flex items-center justify-center border-2 border-dashed border-primary/20 hover:border-primary/50 transition cursor-pointer group/upload shadow-inner">
             {editData.iconUrl ? (
-              <img src={editData.iconUrl} alt="" className="h-full w-full object-cover" />
+              <Image src={editData.iconUrl} alt="" width={64} height={64} className="h-full w-full object-cover" />
             ) : (
               <Plus className="h-5 w-5 text-primary/30 group-hover/upload:text-primary transition" />
             )}
@@ -705,7 +765,7 @@ function SimpleListingView({
                   <td className="py-5 pl-6">
                     <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-base-100 border border-base-content/5 flex items-center justify-center p-0.5 shadow-sm group-hover:shadow-md transition-shadow">
                       {item.iconUrl ? (
-                        <img src={item.iconUrl} alt={item.name} className="h-full w-full object-contain rounded-xl" />
+                        <Image src={item.iconUrl} alt={item.name} width={64} height={64} className="h-full w-full object-contain rounded-xl" />
                       ) : (
                         <Layers className="h-5 w-5 text-base-content/10" />
                       )}
@@ -764,10 +824,10 @@ function SimpleListingView({
     </div>
   );
 }
-function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void }) {
+function AssignMembersModal({ book, onClose }: { book: ComplianceBook, onClose: () => void }) {
   const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [assignedMembers, setAssignedMembers] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
+  const [assignedMembers, setAssignedMembers] = useState<AssignedMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -778,7 +838,7 @@ function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void 
         const res = await fetch(`/api/management/compliance/books/${book.id}/members`);
         const json = await res.json();
         if (json.isSuccess) {
-          setAssignedMembers(json.data.map((m: any) => ({
+          setAssignedMembers(json.data.map((m: AssignedMember) => ({
             userId: m.userId,
             displayName: m.displayName,
             role: m.role
@@ -811,7 +871,7 @@ function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void 
     return () => clearTimeout(timer);
   }, [query]);
 
-  async function handleAssign(user: any) {
+  async function handleAssign(user: UserSearchResult) {
     if (assignedMembers.some(m => m.userId === user.userId)) return;
     setAssignedMembers([...assignedMembers, { userId: user.userId, displayName: user.displayName, role: "Translator" }]);
   }
@@ -922,11 +982,9 @@ function AssignMembersModal({ book, onClose }: { book: any, onClose: () => void 
 function FeaturedReviewsView({
   reviews,
   onToggleEditorChoice,
-  onRefresh
 }: {
-  reviews: any[],
+  reviews: FeaturedReview[],
   onToggleEditorChoice: (id: string, current: boolean) => void,
-  onRefresh: () => void
 }) {
   if (!reviews || reviews.length === 0) {
     return (
@@ -964,7 +1022,7 @@ function FeaturedReviewsView({
               </td>
               <td className="py-5">
                 <p className="text-sm italic text-base-content/60 max-w-md line-clamp-2 leading-relaxed">
-                  "{review.content}"
+                  &quot;{review.content}&quot;
                 </p>
               </td>
               <td className="py-5">
@@ -991,9 +1049,9 @@ function FeaturedReviewsView({
 }
 
 
-function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void }) {
+function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<"reviews" | "comments" | "inline">("reviews");
-  const [activity, setActivity] = useState<any>(null);
+  const [activity, setActivity] = useState<SocialActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -1032,33 +1090,6 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
     fetchActivity();
   }, [book.id]);
 
-  async function handleToggleHide(type: string, id: string, currentHidden: boolean) {
-    try {
-      const res = await fetch(`/api/social/admin/content/visibility`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, type, isHidden: !currentHidden }),
-      });
-      if (res.ok) {
-        setActivity((prev: any) => {
-          const next = { ...prev };
-          const listName =
-            type === "review"
-              ? "reviews"
-              : type === "comment"
-                ? "chapterComments"
-                : "inlineComments";
-          next[listName] = next[listName].map((item: any) =>
-            item.id === id ? { ...item, isHidden: !currentHidden } : item
-          );
-          return next;
-        });
-      }
-    } catch (err) {
-      console.error("Toggle social visibility error:", err);
-    }
-  }
-
   async function handleToggleReviewEditorChoice(id: string, currentStatus: boolean) {
     try {
       const res = await fetch(`/api/social/admin/reviews/${id}/editor-choice`, {
@@ -1067,15 +1098,15 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
         body: JSON.stringify({ id, isEditorChoice: !currentStatus }),
       });
       if (res.ok) {
-        setActivity((prev: any) => {
+        setActivity((prev) => {
           const next = { ...prev };
-          next.reviews = (next.reviews || []).map((item: any) =>
+          next.reviews = (next.reviews || []).map((item) =>
             item.id === id ? { ...item, isEditorChoice: !currentStatus } : item
           );
           return next;
         });
       }
-    } catch (err) {
+    } catch {
       console.error("Toggle review editor choice error:", err);
     }
   }
@@ -1097,12 +1128,12 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
           if (data.isSuccess) setActivity(data.data);
         }
       }
-    } catch (err) {
+    } catch {
       toast.error("İşlem başarısız.");
     }
   };
 
-  function renderItem(item: any, type: string, isReply = false) {
+  function renderItem(item: SocialActivityItem, type: string, isReply = false) {
     return (
       <div
         key={item.id}
@@ -1123,9 +1154,9 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
               {item.isSpoiler && (
                 <span className="badge badge-error badge-xs font-black text-[8px] uppercase tracking-tighter">SPOILER</span>
               )}
-              {item.rating > 0 && (
+              {(item.rating ?? 0) > 0 && (
                 <span className="flex items-center gap-1 text-[10px] font-black text-warning">
-                  <Star className="ml-2 h-3 w-3 fill-current" /> {item.rating.toFixed(1)}
+                  <Star className="ml-2 h-3 w-3 fill-current" /> {(item.rating ?? 0).toFixed(1)}
                 </span>
               )}
               <span className="ml-auto flex items-center gap-1 text-[10px] font-medium text-base-content/20">
@@ -1170,7 +1201,7 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
   
               {type === "review" && (
                 <button
-                  onClick={() => handleToggleReviewEditorChoice(item.id, item.isEditorChoice)}
+                  onClick={() => handleToggleReviewEditorChoice(item.id, !!item.isEditorChoice)}
                   className={`btn btn-xs rounded-lg font-black uppercase tracking-widest border-none h-8 px-3 ${item.isEditorChoice ? "bg-yellow-500 text-white hover:bg-yellow-600" : "bg-base-content/5 text-base-content/40 hover:bg-yellow-500/20 hover:text-yellow-600"
                     }`}
                 >
@@ -1189,7 +1220,7 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
     );
   }
 
-  function renderList(items: any[], type: string) {
+  function renderList(items: SocialActivityItem[], type: string) {
     const topLevel = (items || []).filter(i => !i.parentId);
     const replies = (items || []).filter(i => i.parentId);
 
@@ -1231,17 +1262,17 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
           </p>
 
           <div className="mt-6 flex gap-2">
-            {[
+            {([
               { 
                 id: "reviews", 
-                label: `İnceleme & Yorum (${(activity?.reviews?.length || activity?.Reviews?.length || 0) + (activity?.bookComments?.length || activity?.BookComments?.length || 0)})` 
+                label: `İnceleme & Yorum (${(activity?.reviews?.length || 0) + (activity?.bookComments?.length || 0)})` 
               },
-              { id: "comments", label: `Bölüm Yorumları (${activity?.chapterComments?.length || activity?.ChapterComments?.length || 0})` },
-              { id: "inline", label: `Satır Yorumları (${activity?.inlineComments?.length || activity?.InlineComments?.length || 0})` },
-            ].map((tab) => (
+              { id: "comments", label: `Bölüm Yorumları (${activity?.chapterComments?.length || 0})` },
+              { id: "inline", label: `Satır Yorumları (${activity?.inlineComments?.length || 0})` },
+            ] as const).map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`transition-all rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest ${activeTab === tab.id
                   ? "bg-primary text-primary-content shadow-lg"
                   : "bg-base-content/5 text-base-content/40 hover:bg-base-content/10"
@@ -1261,15 +1292,15 @@ function SocialActivityModal({ book, onClose }: { book: any; onClose: () => void
           ) : activity ? (
             <>
               {activeTab === "reviews" && renderList([
-                ...(activity?.reviews || activity?.Reviews || []),
-                ...(activity?.bookComments || activity?.BookComments || [])
+                ...(activity?.reviews || []),
+                ...(activity?.bookComments || [])
               ].sort((a, b) => {
                 const dateA = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
                 const dateB = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
                 return dateB - dateA;
               }), "review")}
-              {activeTab === "comments" && renderList(activity?.chapterComments || activity?.ChapterComments || [], "comment")}
-              {activeTab === "inline" && renderList(activity?.inlineComments || activity?.InlineComments || [], "inline")}
+              {activeTab === "comments" && renderList(activity?.chapterComments || [], "comment")}
+              {activeTab === "inline" && renderList(activity?.inlineComments || [], "inline")}
             </>
           ) : (
             <div className="flex h-64 flex-col items-center justify-center opacity-40">

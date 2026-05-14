@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle, BookOpenText, Camera, MailCheck, PencilLine,
-  Quote, Shield, Sparkles, UserPlus2, Users, UserRound, Wallet,
+  AlertTriangle, BookOpenText, Camera, MailCheck,
+  Quote, Shield, UserPlus2, Users, UserRound, Wallet,
   ArrowDownRight, ArrowUpRight, Clock, ChevronLeft, ChevronRight,
   History, Loader2, Search, Download, FileText, Bell
 } from "lucide-react";
@@ -40,7 +40,7 @@ function WalletHistory() {
             setTotalCount(data.totalCount);
             setError(null);
           }
-        } catch (err) {
+        } catch {
           if (isMounted) setError("Islem gecmisi yuklenemedi.");
         } finally {
           if (isMounted) setIsLoading(false);
@@ -193,7 +193,7 @@ function OrderHistory() {
         setOrders(data.items);
         setTotalCount(data.totalCount);
         setError(null);
-      } catch (err) {
+      } catch {
         setError("Sipariş geçmişi yüklenemedi.");
       } finally {
         setIsLoading(false);
@@ -541,7 +541,6 @@ export function ProfileDashboard() {
       });
       setMessage(result.message);
       await refreshProfile();
-      setIsEditModalOpen(false);
     } catch (submitError) {
       if (submitError instanceof ApiError) {
         setError(submitError.message);
@@ -957,9 +956,5 @@ export function ProfileDashboard() {
       ) : null}
     </section>
   );
-}
-
-function setIsEditModalOpen(arg0: boolean) {
-  throw new Error("Function not implemented.");
 }
 

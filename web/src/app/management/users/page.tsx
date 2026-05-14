@@ -1,18 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect } from "react";
 import {
   Users,
   Search,
-  UserPlus,
-  MoreVertical,
   Shield,
   ShieldOff,
   ExternalLink,
-  History,
   Wallet,
   BookOpen,
-  MessageCircle,
   ChevronRight,
   Loader2,
   Filter,
@@ -28,12 +24,54 @@ import { apiRequest } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 import Link from "next/link";
 
+type ManagementUser = {
+  id: string;
+  displayName: string;
+  email: string;
+  slug?: string;
+  roles: string[];
+  createdAt: string;
+  isBanned: boolean;
+  isPaidAuthor?: boolean;
+};
+type UserBook = {
+  id: string;
+  title: string;
+  slug: string;
+  status?: string;
+  viewCount?: number;
+  chapterCount?: number;
+  createdAt?: string;
+};
+type UserPurchase = {
+  id: string;
+  chapterId?: string;
+  bookTitle?: string;
+  chapterTitle?: string;
+  purchasedAt?: string;
+  price?: number;
+};
+type UserTransaction = {
+  id: string;
+  type?: string;
+  amount?: number;
+  description?: string;
+  createdAt?: string;
+};
+type UserDetails = ManagementUser & {
+  tokenBalance?: number;
+  totalChapters?: number;
+  recentTransactions?: UserTransaction[];
+  books?: UserBook[];
+  purchasedChapters?: UserPurchase[];
+};
+
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<ManagementUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<any>(null);
-  const [userDetails, setUserDetails] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<ManagementUser | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [cursor, setCursor] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState("");
@@ -51,11 +89,11 @@ export default function UserManagementPage() {
   const [hasMoreTx, setHasMoreTx] = useState(true);
   const [isLoadingMoreTx, setIsLoadingMoreMoreTx] = useState(false);
 
-  async function loadUsers(initial = true) {
+  const loadUsers = useCallback(async (initial = true) => {
     if (initial) setIsLoading(true);
     try {
       const url = `/management/users?take=20${initial ? "" : cursor ? `&cursor=${cursor}` : ""}${searchQuery ? `&search=${searchQuery}` : ""}${roleFilter ? `&role=${roleFilter}` : ""}${statusFilter ? `&isBanned=${statusFilter === "banned"}` : ""}`;
-      const data = await apiRequest<any[]>(url);
+      const data = await apiRequest<ManagementUser[]>(url);
 
       if (initial) {
         setUsers(data);
@@ -68,20 +106,20 @@ export default function UserManagementPage() {
       } else {
         setCursor(null);
       }
-    } catch (err) {
+    } catch {
       console.error("Kullanıcı listesi yuklenirken hata:", err);
       showToast({ title: "Hata", description: "Kullanıcı listesi yüklenemedi.", tone: "error" });
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [cursor, roleFilter, searchQuery, statusFilter]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       loadUsers(true);
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchQuery, roleFilter, statusFilter]);
+  }, [loadUsers]);
 
   async function loadUserDetails(userId: string) {
     setIsLoadingDetails(true);
@@ -93,14 +131,14 @@ export default function UserManagementPage() {
     setHasMoreTx(true);
 
     try {
-      const data = await apiRequest<any>(`/management/users/${userId}`);
+      const data = await apiRequest<UserDetails>(`/management/users/${userId}`);
       setUserDetails(data);
       
       if ((data.books || []).length < 10) setHasMoreBooks(false);
       if ((data.purchasedChapters || []).length < 10) setHasMorePurchases(false);
       if ((data.recentTransactions || []).length < 10) setHasMoreTx(false);
 
-    } catch (err) {
+    } catch {
       console.error("Kullanıcı detaylari yuklenirken hata:", err);
       showToast({ title: "Hata", description: "Kullanıcı detayları yüklenemedi.", tone: "error" });
     } finally {
@@ -113,15 +151,15 @@ export default function UserManagementPage() {
     setIsLoadingMoreBooks(true);
     try {
       const nextPage = booksPage + 1;
-      const data = await apiRequest<any[]>(`/management/users/${userDetails.id}/books?page=${nextPage}&take=10`);
+      const data = await apiRequest<UserBook[]>(`/management/users/${userDetails.id}/books?page=${nextPage}&take=10`);
       if (data.length < 10) setHasMoreBooks(false);
       
-      setUserDetails((prev: any) => ({
+      setUserDetails((prev) => prev ? ({
         ...prev,
         books: [...(prev.books || []), ...data]
-      }));
+      }) : prev);
       setBooksPage(nextPage);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Daha fazla kitap yüklenemedi.", tone: "error" });
     } finally {
       setIsLoadingMoreBooks(false);
@@ -133,15 +171,15 @@ export default function UserManagementPage() {
     setIsLoadingMorePurchases(true);
     try {
       const nextPage = purchasesPage + 1;
-      const data = await apiRequest<any[]>(`/management/users/${userDetails.id}/purchases?page=${nextPage}&take=20`);
+      const data = await apiRequest<UserPurchase[]>(`/management/users/${userDetails.id}/purchases?page=${nextPage}&take=20`);
       if (data.length < 20) setHasMorePurchases(false);
       
-      setUserDetails((prev: any) => ({
+      setUserDetails((prev) => prev ? ({
         ...prev,
         purchasedChapters: [...(prev.purchasedChapters || []), ...data]
-      }));
+      }) : prev);
       setPurchasesPage(nextPage);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Daha fazla satın alım yüklenemedi.", tone: "error" });
     } finally {
       setIsLoadingMorePurchases(false);
@@ -153,15 +191,15 @@ export default function UserManagementPage() {
     setIsLoadingMoreMoreTx(true);
     try {
       const nextPage = txPage + 1;
-      const data = await apiRequest<any[]>(`/management/users/${userDetails.id}/transactions?page=${nextPage}&take=20`);
+      const data = await apiRequest<UserTransaction[]>(`/management/users/${userDetails.id}/transactions?page=${nextPage}&take=20`);
       if (data.length < 20) setHasMoreTx(false);
       
-      setUserDetails((prev: any) => ({
+      setUserDetails((prev) => prev ? ({
         ...prev,
         recentTransactions: [...(prev.recentTransactions || []), ...data]
-      }));
+      }) : prev);
       setTxPage(nextPage);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Daha fazla işlem yüklenemedi.", tone: "error" });
     } finally {
       setIsLoadingMoreMoreTx(false);
@@ -180,7 +218,7 @@ export default function UserManagementPage() {
       showToast({ title: "Başarılı", description: "Kullanıcı yasaklandı.", tone: "success" });
       loadUsers(true);
       if (userDetails?.id === userId) loadUserDetails(userId);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "İşlem başarısız (Yetki yetersiz olabilir).", tone: "error" });
     }
   }
@@ -196,7 +234,7 @@ export default function UserManagementPage() {
       showToast({ title: "Başarılı", description: "Yasak kaldırıldı.", tone: "success" });
       loadUsers(true);
       if (userDetails?.id === userId) loadUserDetails(userId);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "İşlem başarısız.", tone: "error" });
     }
   }
@@ -225,7 +263,7 @@ export default function UserManagementPage() {
       showToast({ title: "Başarılı", description: "Yetkiler güncellendi.", tone: "success" });
       loadUsers(true);
       if (userDetails?.id === userId) loadUserDetails(userId);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Yetki güncellenemedi.", tone: "error" });
     }
   }
@@ -236,7 +274,7 @@ export default function UserManagementPage() {
     try {
       await apiRequest(`/management/users/${userId}/reset-password`, { method: "POST" });
       showToast({ title: "Başarılı", description: "Sıfırlama e-postası tetiklendi.", tone: "success" });
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "İşlem başarısız.", tone: "error" });
     }
   }
@@ -253,7 +291,7 @@ export default function UserManagementPage() {
       showToast({ title: "Başarılı", description: "Ücretli yazarlık durumu güncellendi.", tone: "success" });
       loadUsers(true);
       if (userDetails?.id === userId) loadUserDetails(userId);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "İşlem başarısız.", tone: "error" });
     }
   }
@@ -550,14 +588,14 @@ export default function UserManagementPage() {
                   {isLoadingDetails ? (
                     <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
                   ) : (
-                    userDetails?.recentTransactions?.map((tx: any) => (
+                    userDetails?.recentTransactions?.map((tx) => (
                       <div key={tx.id} className="flex items-center justify-between p-3 rounded-2xl bg-base-content/2 border border-base-content/5 hover:bg-base-content/5 transition-colors">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black uppercase tracking-tight line-clamp-1">{tx.description}</span>
-                          <span className="text-[8px] font-medium text-base-content/30">{new Date(tx.createdAt).toLocaleString("tr-TR")}</span>
+                          <span className="text-[8px] font-medium text-base-content/30">{tx.createdAt ? new Date(tx.createdAt).toLocaleString("tr-TR") : "-"}</span>
                         </div>
-                        <span className={`text-xs font-black p-1.5 rounded-lg ${tx.amount > 0 ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
-                          {tx.amount > 0 ? "+" : ""}{tx.amount}
+                        <span className={`text-xs font-black p-1.5 rounded-lg ${(tx.amount ?? 0) > 0 ? "bg-success/10 text-success" : "bg-error/10 text-error"}`}>
+                          {(tx.amount ?? 0) > 0 ? "+" : ""}{tx.amount ?? 0}
                         </span>
                       </div>
                     ))
@@ -586,7 +624,7 @@ export default function UserManagementPage() {
                   {isLoadingDetails ? (
                     <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
                   ) : (
-                    userDetails?.books?.map((book: any) => (
+                    userDetails?.books?.map((book) => (
                       <div key={book.id} className="rounded-3xl border border-base-content/5 bg-base-content/2 overflow-hidden">
                         <div className="bg-base-content/5 p-4">
                           <div className="flex items-center justify-between mb-1">
@@ -623,11 +661,11 @@ export default function UserManagementPage() {
                   {isLoadingDetails ? (
                     <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin opacity-20" /></div>
                   ) : (
-                    userDetails?.purchasedChapters?.map((purchase: any) => (
-                      <div key={purchase.chapterId} className="p-4 rounded-3xl bg-base-content/2 border border-base-content/5 hover:bg-base-content/5 transition-colors">
+                    userDetails?.purchasedChapters?.map((purchase) => (
+                      <div key={purchase.chapterId ?? purchase.id} className="p-4 rounded-3xl bg-base-content/2 border border-base-content/5 hover:bg-base-content/5 transition-colors">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-[8px] font-black uppercase text-primary/60 tracking-widest truncate max-w-[150px]">{purchase.bookTitle}</span>
-                          <span className="text-[8px] font-medium text-base-content/20">{new Date(purchase.purchasedAt).toLocaleDateString("tr-TR")}</span>
+                          <span className="text-[8px] font-medium text-base-content/20">{purchase.purchasedAt ? new Date(purchase.purchasedAt).toLocaleDateString("tr-TR") : "-"}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <h4 className="text-xs font-black italic uppercase truncate pr-4">{purchase.chapterTitle}</h4>

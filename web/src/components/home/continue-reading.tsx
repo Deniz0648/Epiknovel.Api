@@ -5,6 +5,7 @@ import { ArrowRight, BookOpen, Bookmark, PlayCircle, Sparkles } from "lucide-rea
 import Link from "next/link";
 import { BookCover } from "@/components/ui/book-cover";
 import { getLibraryList, type LibraryItemResponse, type ReadingStatus } from "@/lib/social";
+import { useAuth } from "@/components/providers/auth-provider";
 
 type ContinueReadingBook = {
   title: string;
@@ -16,6 +17,7 @@ type ContinueReadingBook = {
   imageAlt: string;
   blurDataURL: string;
   status: ReadingStatus;
+  lastReadParagraphId?: string | null;
 };
 
 const SWIPE_THRESHOLD = 48;
@@ -25,7 +27,7 @@ function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
   const cSlug = book.chapterSlug;
   
   const bookHref = (cSlug && cSlug !== "")
-    ? `/read/${bSlug}/${cSlug}`
+    ? `/read/${bSlug}/${cSlug}${book.lastReadParagraphId ? `?p=${book.lastReadParagraphId}` : ""}`
     : `/Books/${bSlug}`;
 
   const isToRead = book.status === "PlanToRead";
@@ -106,6 +108,7 @@ function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
 type TabType = "Reading" | "PlanToRead";
 
 export function ContinueReadingSection() {
+  const { profile, isLoading: isAuthLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("Reading");
   const [books, setBooks] = useState<LibraryItemResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -114,6 +117,12 @@ export function ContinueReadingSection() {
   const touchStartYRef = useRef<number | null>(null);
 
   const fetchLibrary = useCallback(async (status: ReadingStatus) => {
+    if (!profile) {
+      setBooks([]);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const data = await getLibraryList({ status, size: 6 });
@@ -124,11 +133,40 @@ export function ContinueReadingSection() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [profile]);
 
   useEffect(() => {
-    fetchLibrary(activeTab);
-  }, [activeTab, fetchLibrary]);
+    if (!isAuthLoading) {
+      fetchLibrary(activeTab);
+    }
+  }, [activeTab, fetchLibrary, isAuthLoading]);
+
+  if (isAuthLoading) {
+    return (
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="glass-frame h-32 w-full animate-pulse bg-base-content/5" />
+        ))}
+      </section>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <section className="glass-frame flex flex-col items-center justify-center gap-4 px-5 py-10 text-center sm:flex-row sm:justify-between sm:px-7 sm:text-left">
+        <div className="space-y-1">
+          <p className="text-xs font-black uppercase tracking-widest text-primary">Kütüphanem</p>
+          <h2 className="text-xl font-black tracking-tight sm:text-2xl">Kaldığın yeri her cihazda sakla</h2>
+          <p className="max-w-xl text-sm font-medium text-base-content/60">
+            Okuma ilerlemeni, okuyacaklarını ve favori kitaplarını görmek için giriş yap.
+          </p>
+        </div>
+        <Link href="/login" className="btn btn-primary rounded-full px-7 font-black">
+          Giriş Yap
+        </Link>
+      </section>
+    );
+  }
 
   if (!isLoading && books.length === 0 && activeTab === "Reading") {
     return null;
@@ -241,7 +279,8 @@ export function ContinueReadingSection() {
                         image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
                         imageAlt: `${item.bookTitle} kapağı`,
                         blurDataURL: "",
-                        status: item.status
+                        status: item.status,
+                        lastReadParagraphId: item.lastReadParagraphId
                       }}
                     />
                   </div>
@@ -276,7 +315,8 @@ export function ContinueReadingSection() {
                   image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
                   imageAlt: `${item.bookTitle} kapağı`,
                   blurDataURL: "",
-                  status: item.status
+                  status: item.status,
+                  lastReadParagraphId: item.lastReadParagraphId
                 }}
               />
             ))}

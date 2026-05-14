@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,22 +14,58 @@ import {
   ChevronRight
 } from "lucide-react";
 import { getMyBookBySlug, getMyChapters } from "@/lib/auth";
-import { toMediaProxyUrl } from "@/lib/media";
 import { ChapterReorderList } from "@/components/author/ChapterReorderList";
 import { BookCover } from "@/components/ui/book-cover";
-import { COVER_DEFAULT, resolveMediaUrl } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/api";
+
+type ManagedBook = {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string | null;
+  coverImageUrl?: string | null;
+  type?: string | number;
+  status?: string | number;
+  contentRating?: string | number;
+  chapterCount?: number;
+  viewCount?: number | null;
+  averageRating?: number | null;
+  voteCount?: number | null;
+};
+
+type ManagedChapter = {
+  id: string;
+  title: string;
+  authorName?: string | null;
+};
 
 export default function BookManagementPage() {
   const { bookSlug } = useParams() as { bookSlug: string };
-  const [book, setBook] = useState<any>(null);
-  const [chapters, setChapters] = useState<any[]>([]);
-  const [deletedChapters, setDeletedChapters] = useState<any[]>([]);
+  const [book, setBook] = useState<ManagedBook | null>(null);
+  const [chapters, setChapters] = useState<ManagedChapter[]>([]);
+  const [deletedChapters, setDeletedChapters] = useState<ManagedChapter[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isTrashLoading, setIsTrashLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const pageSize = 20;
+
+  const loadChapters = useCallback(async (page: number, search: string) => {
+    try {
+      const chaptersData = await getMyChapters(bookSlug, {
+        pageNumber: page,
+        pageSize: pageSize,
+        search: search || undefined,
+        OnlyDeleted: false
+      });
+      setChapters(chaptersData.items || []);
+      setTotalPages(chaptersData.totalPages || 1);
+      setCurrentPage(page);
+    } catch (error) {
+      console.error("Load chapters error:", error);
+    }
+  }, [bookSlug]);
 
   useEffect(() => {
     let isMounted = true;
@@ -60,23 +96,7 @@ export default function BookManagementPage() {
 
     fetchData();
     return () => { isMounted = false; };
-  }, [bookSlug]);
-
-  async function loadChapters(page: number, search: string) {
-    try {
-      const chaptersData = await getMyChapters(bookSlug, {
-        pageNumber: page,
-        pageSize: pageSize,
-        search: search || undefined,
-        OnlyDeleted: false
-      });
-      setChapters(chaptersData.items || []);
-      setTotalPages(chaptersData.totalPages || 1);
-      setCurrentPage(page);
-    } catch (error) {
-      console.error("Load chapters error:", error);
-    }
-  }
+  }, [bookSlug, loadChapters, searchQuery]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -295,7 +315,7 @@ export default function BookManagementPage() {
                             setDeletedChapters(deletedChaptersData.items || []);
 
                             alert("Bölüm başarıyla geri yüklendi.");
-                          } catch (e) {
+                          } catch {
                             alert("Geri yükleme sırasında bir hata oluştu.");
                           } finally {
                             setIsTrashLoading(false);

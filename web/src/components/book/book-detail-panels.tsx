@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   CalendarDays,
   ChevronLeft,
@@ -9,7 +9,6 @@ import {
   Loader2,
   Lock,
   LockOpen,
-  MessageSquareMore,
   Search,
 } from "lucide-react";
 import Link from "next/link";

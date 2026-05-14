@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronRight, 
@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Clock
 } from "lucide-react";
-import { TiptapEditor, TiptapEditorRef } from "@/components/editor/TiptapEditor";
+import { TiptapEditor } from "@/components/editor/TiptapEditor";
 import { apiRequest } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { toast } from "@/lib/toast";
@@ -26,6 +26,18 @@ const steps = [
   { id: "terms", title: "Onay", icon: ShieldCheck },
 ];
 
+type AuthorApplicationStatus = {
+  id?: string;
+  status?: string | number;
+  createdAt?: string;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
+};
+type ApiEnvelope<T> = {
+  isSuccess?: boolean;
+  data?: T;
+};
+
 export default function AuthorApplyPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [experience, setExperience] = useState("");
@@ -34,18 +46,17 @@ export default function AuthorApplyPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingApplication, setPendingApplication] = useState<any>(null);
+  const [pendingApplication, setPendingApplication] = useState<AuthorApplicationStatus | null>(null);
   const [legalSlug, setLegalSlug] = useState<string | null>(null);
   
-  const editorRef = useRef<TiptapEditorRef>(null);
   const router = useRouter();
 
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const res = await apiRequest("/author/apply", { method: "GET" });
-        if ((res as any).isSuccess && (res as any).data) {
-          setPendingApplication((res as any).data);
+        const res = await apiRequest<ApiEnvelope<AuthorApplicationStatus>>("/author/apply", { method: "GET" });
+        if (res.isSuccess && res.data) {
+          setPendingApplication(res.data);
         }
       } catch (e) {
         console.error("Status check failed", e);
@@ -112,7 +123,7 @@ export default function AuthorApplyPage() {
       // Birleştirilmiş veri
       const finalPlannedWork = plannedWork;
 
-      const res = await apiRequest("/author/apply", {
+      const res = await apiRequest<ApiEnvelope<unknown>>("/author/apply", {
         method: "POST",
         body: JSON.stringify({
           sampleContent,
@@ -121,12 +132,12 @@ export default function AuthorApplyPage() {
         }),
       });
 
-      if ((res as any).isSuccess) {
+      if (res.isSuccess) {
         toast.success({ description: "Başvurunuz başarıyla alındı! Ekibimiz en kısa sürede inceleyecektir." });
         router.push("/profile");
       }
-    } catch (e: any) {
-      toast.error({ description: e.message || "Başvuru sırasında bir hata oluştu." });
+    } catch (e) {
+      toast.error({ description: e instanceof Error ? e.message : "Başvuru sırasında bir hata oluştu." });
     } finally {
       setIsSubmitting(false);
     }
@@ -169,7 +180,7 @@ export default function AuthorApplyPage() {
                     </div>
                     <div>
                         <p className="text-xs text-base-content/40 font-bold uppercase tracking-wider">Başvuru Tarihi</p>
-                        <p className="font-bold">{new Date(pendingApplication.createdAt).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <p className="font-bold">{pendingApplication.createdAt ? new Date(pendingApplication.createdAt).toLocaleDateString("tr-TR", { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -293,7 +304,7 @@ export default function AuthorApplyPage() {
                     </div>
                     <div>
                         <h2 className="text-2xl font-black">Planladığınız Eserler</h2>
-                        <p className="text-base-content/60 text-sm">Epiknovel'deki gelecek projelerinizden bahsedin.</p>
+                        <p className="text-base-content/60 text-sm">Epiknovel&apos;deki gelecek projelerinizden bahsedin.</p>
                     </div>
                   </div>
 
@@ -359,7 +370,7 @@ export default function AuthorApplyPage() {
                     <ul className="space-y-3 text-sm text-base-content/70">
                         <li>• Başvurunuz editör ekibimiz tarafından incelenecektir.</li>
                         <li>• İnceleme süreci yoğunluğa bağlı olarak 3-7 iş günü sürebilir.</li>
-                        <li>• Onay durumunda profilinize "Yazar" rozeti eklenecek ve yazar paneline erişiminiz açılacaktır.</li>
+                        <li>• Onay durumunda profilinize &quot;Yazar&quot; rozeti eklenecek ve yazar paneline erişiminiz açılacaktır.</li>
                         <li>• Paylaştığınız örnek metnin özgün olması zorunludur. Alıntı veya çalıntı durumunda platformdan süresiz uzaklaştırılabilirsiniz.</li>
                     </ul>
                   </div>

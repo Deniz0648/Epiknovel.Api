@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { apiRequest } from "@/lib/api";
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "@/components/providers/auth-provider";
 import { BookCover } from "@/components/ui/book-cover";
 import {
   Library as LibraryIcon,
@@ -25,19 +26,36 @@ const LIBRARY_TABS = [
   { id: "dropped", status: 2, label: "Bırakılanlar", icon: XCircle },
 ];
 
+type LibraryPageItem = {
+  id: string;
+  bookTitle: string;
+  bookSlug: string;
+  bookCoverImageUrl?: string | null;
+  progressPercentage: number;
+  lastReadChapterSlug?: string | null;
+  lastReadParagraphId?: string | null;
+};
+
 export default function LibraryPage() {
+  const { profile, isLoading: isAuthLoading } = useAuth();
   const [activeTab, setActiveTab] = useState("reading");
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<LibraryPageItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     async function loadLibrary() {
+      if (!profile) {
+        setItems([]);
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         const tab = LIBRARY_TABS.find(t => t.id === activeTab);
         const status = tab ? tab.status : 0;
-        const response = await apiRequest<any[]>(`/social/library?status=${status}`);
+        const response = await apiRequest<LibraryPageItem[]>(`/social/library?status=${status}`);
         setItems(response || []);
       } catch (err) {
         console.error("Kütüphane yükleme hatası:", err);
@@ -45,8 +63,10 @@ export default function LibraryPage() {
         setIsLoading(false);
       }
     }
-    loadLibrary();
-  }, [activeTab]);
+    if (!isAuthLoading) {
+      loadLibrary();
+    }
+  }, [activeTab, isAuthLoading, profile]);
 
   const filteredItems = useMemo(() => {
     if (!searchQuery) return items;
@@ -112,9 +132,22 @@ export default function LibraryPage() {
           </div>
 
           {/* Library Content */}
-          {isLoading ? (
+          {isAuthLoading || isLoading ? (
             <div className="flex min-h-[400px] items-center justify-center">
               <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
+            </div>
+          ) : !profile ? (
+            <div className="flex flex-col items-center justify-center gap-6 rounded-[2.5rem] border border-dashed border-base-content/15 bg-base-100/10 py-24 text-center">
+              <LibraryIcon className="h-16 w-16 text-base-content/20" strokeWidth={1} />
+              <div className="max-w-sm space-y-2">
+                <h2 className="text-xl font-black uppercase italic text-base-content/80">Kütüphanen için giriş yap</h2>
+                <p className="text-xs font-bold uppercase tracking-widest text-base-content/40">
+                  Okuma ilerlemeni, listelerini ve kaldığın bölümleri hesabınla eşleştiriyoruz.
+                </p>
+              </div>
+              <Link href="/login" className="btn btn-primary btn-md rounded-full px-8 font-black uppercase tracking-wider shadow-lg shadow-primary/25">
+                Giriş Yap
+              </Link>
             </div>
           ) : filteredItems.length > 0 ? (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 xl:gap-6">

@@ -4,20 +4,18 @@ import { useEffect, useState } from "react";
 import { 
   Bell, 
   Plus, 
-  Search, 
   Calendar, 
   Clock, 
   Pin, 
   Trash2, 
   Edit3, 
-  Eye, 
   CheckCircle2, 
-  AlertCircle,
   Loader2,
   Save,
   X,
   Image as ImageIcon
 } from "lucide-react";
+import Image from "next/image";
 import { apiRequest } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 
@@ -32,6 +30,19 @@ type Announcement = {
   expiresAt?: string;
   createdAt: string;
 };
+
+type AnnouncementPayload = {
+  title: string;
+  content: string;
+  imageUrl: string | null;
+  isPinned: boolean;
+  isActive: boolean;
+  publishedAt: string | null;
+  expiresAt: string | null;
+};
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof Error && error.message ? error.message : fallback;
 
 export default function AnnouncementsManagementPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -59,7 +70,7 @@ export default function AnnouncementsManagementPage() {
       setIsLoading(true);
       const res = await apiRequest<{ items: Announcement[] }>("/management/infrastructure/announcements");
       setAnnouncements(res?.items || []);
-    } catch (err) {
+    } catch {
       showToast({ title: "Hata", description: "Duyurular yüklenemedi.", tone: "error" });
     } finally {
       setIsLoading(false);
@@ -99,8 +110,8 @@ export default function AnnouncementsManagementPage() {
       await apiRequest(`/infrastructure/announcements/${id}`, { method: "DELETE" });
       showToast({ title: "Başarılı", description: "Duyuru silindi.", tone: "success" });
       loadAnnouncements();
-    } catch (err: any) {
-      showToast({ title: "Hata", description: err.message || "Silinemedi.", tone: "error" });
+    } catch (err) {
+      showToast({ title: "Hata", description: getErrorMessage(err, "Silinemedi."), tone: "error" });
     }
   };
 
@@ -115,7 +126,7 @@ export default function AnnouncementsManagementPage() {
       const url = selectedId ? `/infrastructure/announcements/${selectedId}` : "/infrastructure/announcements";
       const method = selectedId ? "PATCH" : "POST";
       
-      const body: any = {
+      const body: AnnouncementPayload = {
         title,
         content,
         imageUrl: imageUrl || null,
@@ -133,8 +144,8 @@ export default function AnnouncementsManagementPage() {
       showToast({ title: "Başarılı", description: "Duyuru kaydedildi.", tone: "success" });
       setShowEditor(false);
       loadAnnouncements();
-    } catch (err: any) {
-      showToast({ title: "Hata", description: err.message || "Kaydedilemedi.", tone: "error" });
+    } catch (err) {
+      showToast({ title: "Hata", description: getErrorMessage(err, "Kaydedilemedi."), tone: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -313,7 +324,7 @@ export default function AnnouncementsManagementPage() {
                         GÖRSEL ÖNİZLEME
                       </h4>
                       <div className="aspect-video rounded-2xl overflow-hidden border border-base-content/10 bg-base-content/5">
-                        <img src={imageUrl} alt="Duyuru Görseli" className="w-full h-full object-cover" />
+                        <Image src={imageUrl} alt="Duyuru Görseli" width={640} height={360} className="h-full w-full object-cover" />
                       </div>
                     </div>
                   )}
@@ -362,7 +373,7 @@ export default function AnnouncementsManagementPage() {
                             <div className="flex items-center gap-4">
                               {item.imageUrl ? (
                                 <div className="h-10 w-16 rounded-lg overflow-hidden border border-base-content/10 shrink-0">
-                                  <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                                  <Image src={item.imageUrl} alt="" width={160} height={100} className="h-full w-full object-cover" />
                                 </div>
                               ) : (
                                 <div className="h-10 w-16 rounded-lg bg-base-content/5 border border-base-content/5 flex items-center justify-center shrink-0">

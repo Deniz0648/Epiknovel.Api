@@ -40,8 +40,9 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ isSuccess: true, message: "Medya yuklendi.", data: result.data });
     applyRefreshedTokens(response, result.refreshedTokens);
     return response;
-  } catch (error: any) {
-    console.error("[MEDIA_PROXY] CATAL ERROR:", error.message || error);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[MEDIA_PROXY] CATAL ERROR:", message);
     if (isApiErrorLike(error)) {
       console.error(`[MEDIA_PROXY] API ERROR Status: ${error.status} | Msg: ${error.message}`);
       const response = NextResponse.json({ isSuccess: false, message: error.message, errors: error.errors }, { status: error.status });

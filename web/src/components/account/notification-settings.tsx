@@ -16,7 +16,7 @@ export function NotificationSettings() {
       try {
         const result = await getMyNotificationPreferences();
         setPreferences(result);
-      } catch (err) {
+      } catch {
         setError("Bildirim tercihleri yüklenemedi.");
       } finally {
         setIsLoading(false);

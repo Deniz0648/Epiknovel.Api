@@ -32,7 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
         icon: favicon,
       },
     };
-  } catch (e) {
+  } catch {
     return {
       title: "EpikNovel",
       description: "Modern Okuma Platformu",

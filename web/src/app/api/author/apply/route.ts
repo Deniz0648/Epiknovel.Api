@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
        return NextResponse.json({ isSuccess: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await backendApiRequest<any>("/author/apply", {
+    const data = await backendApiRequest<unknown>("/author/apply", {
       method: "GET",
       token: tokens.accessToken,
       headers: buildProxyHeaders(request.headers),
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     if (isApiErrorLike(error)) {
       const response = NextResponse.json(
-        { isSuccess: false, message: error.message, errors: (error as any).errors },
+        { isSuccess: false, message: error.message, errors: (error as { errors?: unknown }).errors },
         { status: error.status }
       );
       if (error.status === 401) clearAuthCookies(response);
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
        return NextResponse.json({ isSuccess: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await backendApiRequest<any>("/author/apply", {
+    const data = await backendApiRequest<unknown>("/author/apply", {
       method: "POST",
       token: tokens.accessToken,
       headers: buildProxyHeaders(request.headers),
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (isApiErrorLike(error)) {
       const response = NextResponse.json(
-        { isSuccess: false, message: error.message, errors: (error as any).errors },
+        { isSuccess: false, message: error.message, errors: (error as { errors?: unknown }).errors },
         { status: error.status }
       );
       if (error.status === 401) clearAuthCookies(response);

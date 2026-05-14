@@ -27,7 +27,7 @@ async function handleRequest(request: NextRequest, { params }: { params: Promise
   try {
     const tokens = await getAuthenticatedTokens(request.headers);
     
-    const data = await backendApiRequest<any>(fullPath, {
+    const data = await backendApiRequest<unknown>(fullPath, {
       method,
       body,
       token: tokens?.accessToken,

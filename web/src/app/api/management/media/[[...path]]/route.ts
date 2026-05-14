@@ -11,12 +11,14 @@ export async function POST(request: NextRequest) {
     const tokens = await getAuthenticatedTokens();
     const formData = await request.formData();
 
+    const proxyHeaders = new Headers(buildProxyHeaders(request.headers));
+
     // Use regular fetch for FormData to avoid backendApiRequest structure overhead
     const response = await fetch(`${BACKEND_API_BASE_URL}/management/media${subRoute}${search}`, {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${tokens?.accessToken}`,
-        ...Object.fromEntries(buildProxyHeaders(request.headers) as any)
+        ...Object.fromEntries(proxyHeaders)
       },
       body: formData
     });

@@ -5,7 +5,7 @@ import { performAuthenticatedIdentityRequest } from '@/lib/server-auth'
 import { isApiErrorLike } from '@/lib/api'
 
 interface ChapterData {
-    title: any
+    title: string
     content: string
     lines: { id: string; order: number; content: string; type: number }[]
     order: number
@@ -17,9 +17,26 @@ interface ChapterData {
     isTitleSpoiler: boolean
 }
 
+type ApiResponseEnvelope = {
+    isSuccess?: boolean | string
+    IsSuccess?: boolean | string
+    message?: string
+    Message?: string
+    data?: {
+        id?: string
+        slug?: string
+        message?: string
+    }
+    Data?: {
+        id?: string
+        slug?: string
+        Message?: string
+    }
+}
+
 export async function createChapter(bookSlug: string, bookId: string, data: ChapterData) {
     try {
-        const result = await performAuthenticatedIdentityRequest<any>("/books/chapters", {
+        const result = await performAuthenticatedIdentityRequest<ApiResponseEnvelope>("/books/chapters", {
             method: 'POST',
             body: JSON.stringify({
                 ...data,
@@ -51,7 +68,7 @@ export async function createChapter(bookSlug: string, bookId: string, data: Chap
 
 export async function updateChapter(bookSlug: string, chapterId: string, data: ChapterData) {
     try {
-        const result = await performAuthenticatedIdentityRequest<any>(`/books/chapters/${chapterId}`, {
+        const result = await performAuthenticatedIdentityRequest<ApiResponseEnvelope>(`/books/chapters/${chapterId}`, {
             method: 'PATCH',
             body: JSON.stringify({
                 ...data,
@@ -83,7 +100,7 @@ export async function updateChapter(bookSlug: string, chapterId: string, data: C
 
 export async function deleteChapter(bookSlug: string, chapterId: string) {
     try {
-        await performAuthenticatedIdentityRequest<any>(`/books/chapters/${chapterId}`, {
+        await performAuthenticatedIdentityRequest<unknown>(`/books/chapters/${chapterId}`, {
             method: 'DELETE'
         })
         

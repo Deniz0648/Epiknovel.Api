@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Home, Send, AlertCircle, MessageCircle, Lightbulb, HelpCircle, ChevronRight, Loader2 } from "lucide-react";
+import { Home, Send, AlertCircle, MessageCircle, Lightbulb, HelpCircle, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/lib/toast";
