@@ -5,6 +5,7 @@ import BookDetailView from "@/components/book/book-detail-view";
 import { getSessionTokens } from "@/lib/server-auth";
 import Script from "next/script";
 import type { BookCategoryItem } from "@/lib/auth";
+import { notFound } from "next/navigation";
 
 type BookDetailData = {
   id: string;
@@ -50,10 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const book = await getBookData(bookSlug);
 
   if (!book) {
-    return {
-      title: "Kitap Bulunamadı",
-      description: "Aradığınız kitap sistemimizde bulunamadı.",
-    };
+    notFound();
   }
 
   const title = `${book.title} - ${book.authorName}`;
@@ -89,13 +87,7 @@ export default async function Page({ params }: Props) {
   const bookData = await getBookData(bookSlug, accessToken);
 
   if (!bookData) {
-    return (
-      <main className="relative overflow-hidden">
-        <div className="site-shell mx-auto flex min-h-screen items-center justify-center px-4 sm:px-8">
-          <p className="text-sm font-semibold text-error">Kitap bulunamadı.</p>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
   const mappedData = {

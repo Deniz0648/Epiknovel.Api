@@ -10,8 +10,31 @@ import { backendApiRequest } from "@/lib/backend-api";
 import { resolveMediaUrl } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 import { getSessionTokens } from "@/lib/server-auth";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "EpikNovel - Roman, Webnovel ve Hikaye Platformu",
+  description:
+    "EpikNovel'de özgün ve çeviri hikayeleri keşfet, popüler kitapları incele, yazarlara ulaş ve yeni bölümleri takip et.",
+  openGraph: {
+    title: "EpikNovel - Roman, Webnovel ve Hikaye Platformu",
+    description:
+      "Özgün ve çeviri hikayeleri keşfet, popüler kitapları incele ve yeni bölümleri EpikNovel'de takip et.",
+    type: "website",
+    url: "https://epiknovel.com",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "EpikNovel - Roman, Webnovel ve Hikaye Platformu",
+    description:
+      "Özgün ve çeviri hikayeleri keşfet, popüler kitapları incele ve yeni bölümleri EpikNovel'de takip et.",
+  },
+  alternates: {
+    canonical: "https://epiknovel.com",
+  },
+};
 
 // API Response Tipleri (Sadece gerekli alanlar)
 type PagedResult<T> = { items: T[]; totalCount: number };

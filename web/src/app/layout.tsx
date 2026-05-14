@@ -5,43 +5,21 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import { NotificationsProvider } from "@/components/providers/notifications-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { SettingsProvider } from "@/components/providers/settings-provider";
-import { backendApiRequest } from "@/lib/backend-api";
-import { resolveMediaUrl } from "@/lib/api";
+const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "EpikNovel";
+const siteDescription =
+  process.env.NEXT_PUBLIC_SITE_DESCRIPTION || "Modern Okuma Platformu";
 
-export const dynamic = "force-dynamic";
-
-export async function generateMetadata(): Promise<Metadata> {
-  try {
-    const settings = await backendApiRequest<Record<string, string>>("/Settings/public", { 
-      next: { 
-        revalidate: 3600, // 1 saat önbelleğe al
-        tags: ["settings"] 
-      } 
-    });
-    const siteName = settings?.SITE_Name || "EpikNovel";
-    const slogan = settings?.SITE_Slogan || "Modern Okuma Platformu";
-    const favicon = resolveMediaUrl(settings?.SITE_FaviconUrl) || "/favicon.svg";
-
-    return {
-      title: {
-        template: `%s | ${siteName}`,
-        default: `${siteName} - ${slogan}`,
-      },
-      description: slogan,
-      icons: {
-        icon: favicon,
-      },
-    };
-  } catch {
-    return {
-      title: "EpikNovel",
-      description: "Modern Okuma Platformu",
-      icons: {
-        icon: "/favicon.svg",
-      },
-    };
-  }
-}
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://epiknovel.com"),
+  title: {
+    template: `%s | ${siteName}`,
+    default: `${siteName} - ${siteDescription}`,
+  },
+  description: siteDescription,
+  icons: {
+    icon: "/favicon.svg",
+  },
+};
 
 export default function RootLayout({
   children,

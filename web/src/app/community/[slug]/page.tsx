@@ -4,6 +4,7 @@ import { resolveMediaUrl } from "@/lib/api";
 import ProfileView from "../../../components/community/profile-view";
 import Script from "next/script";
 import type { PublicUserProfile } from "@/lib/auth";
+import { notFound } from "next/navigation";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -25,10 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const profile = await getProfileData(slug);
 
   if (!profile) {
-    return {
-      title: "Profil Bulunamadı",
-      description: "Aradığınız profil sistemimizde bulunamadı.",
-    };
+    notFound();
   }
 
   const title = `${profile.displayName} (@${profile.slug}) - EpikNovel`;
@@ -62,13 +60,7 @@ export default async function Page({ params }: Props) {
   const profile = await getProfileData(slug);
 
   if (!profile) {
-    return (
-      <main className="relative overflow-hidden">
-        <div className="site-shell mx-auto flex min-h-screen items-center justify-center px-4 sm:px-8">
-          <p className="text-sm font-semibold text-error">Profil bulunamadı.</p>
-        </div>
-      </main>
-    );
+    notFound();
   }
 
   const jsonLd = {
