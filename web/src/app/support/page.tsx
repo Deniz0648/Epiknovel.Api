@@ -5,15 +5,21 @@ import { useState, useEffect } from "react";
 import { HelpCircle, Home, LifeBuoy, Mail, MessageCircle, ArrowRight, Plus, Clock, ChevronRight, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/api";
 
+type SupportTicketListItem = {
+  id: string;
+  title: string;
+  status: number;
+  createdAt: string;
+};
 
 export default function SupportPage() {
-  const [tickets, setTickets] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<SupportTicketListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadTickets() {
       try {
-        const data = await apiRequest<{ tickets: any[] }>("/management/support/tickets/mine");
+        const data = await apiRequest<{ tickets: SupportTicketListItem[] }>("/management/support/tickets/mine");
         setTickets(data.tickets);
       } catch (err) {
         console.error("Biletler yuklenirken hata:", err);

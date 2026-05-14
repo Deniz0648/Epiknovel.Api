@@ -82,7 +82,10 @@ export default function AuditLogsPage() {
   }, [actionFilter, moduleFilter, searchQuery, take]);
 
   useEffect(() => {
-    fetchLogs();
+    const run = async () => {
+      await fetchLogs();
+    };
+    void run();
   }, [fetchLogs]);
 
   const handleSearch = (e: React.FormEvent) => {

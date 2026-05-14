@@ -35,6 +35,7 @@ interface ReaderSettings {
 
 export default function ReaderPage() {
   const params = useParams<{ bookSlug: string; chapterSlug: string }>();
+  const chapterSlug = params?.chapterSlug;
   const searchParams = useSearchParams();
   const { profile, isLoading: isAuthLoading } = useAuth();
 
@@ -59,28 +60,34 @@ export default function ReaderPage() {
   const skipNextUrlUpdate = useRef(false);
   const lastSaveTime = useRef(0);
 
-  const [settings, setSettings] = useState<ReaderSettings>({
-    fontSize: 16,
-    fontFamily: 'serif',
-    theme: 'light',
-    lineHeight: 1.6,
-    maxWidth: 'normal',
-    readingMode: 'paged',
-    isPinned: false, // Dinamik okuma headerı
-    isSiteHeaderVisible: false // Tam ekran (Site header kapalı)
-  });
+  const [settings, setSettings] = useState<ReaderSettings>(() => {
+    const defaults: ReaderSettings = {
+      fontSize: 16,
+      fontFamily: 'serif',
+      theme: 'light',
+      lineHeight: 1.6,
+      maxWidth: 'normal',
+      readingMode: 'paged',
+      isPinned: false,
+      isSiteHeaderVisible: false
+    };
 
-  useEffect(() => {
-    const saved = localStorage.getItem("reader-settings");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSettings(prev => ({ ...prev, ...parsed }));
-      } catch (error) {
-        console.error(error);
-      }
+    if (typeof window === "undefined") {
+      return defaults;
     }
-  }, []);
+
+    try {
+      const saved = localStorage.getItem("reader-settings");
+      if (!saved) {
+        return defaults;
+      }
+
+      return { ...defaults, ...JSON.parse(saved) };
+    } catch (error) {
+      console.error(error);
+      return defaults;
+    }
+  });
 
   useEffect(() => {
     localStorage.setItem("reader-settings", JSON.stringify(settings));
@@ -104,7 +111,7 @@ export default function ReaderPage() {
         body: JSON.stringify({
           bookId: currentChapter.bookId,
           chapterId: currentChapter.id,
-          chapterSlug: params?.chapterSlug || currentChapter.slug,
+          chapterSlug: chapterSlug || currentChapter.slug,
           chapterTitle: currentChapter.title,
           chapterOrder: currentChapter.order,
           paragraphId: paragraphId,
@@ -114,7 +121,7 @@ export default function ReaderPage() {
     } catch (err) {
       console.error("[PROGRESS] Kayıt hatası:", err);
     }
-  }, [profile, chapters, params?.chapterSlug]);
+  }, [profile, chapters, chapterSlug]);
 
   const fetchParagraphCommentCounts = useCallback(async (chapterId: string) => {
     try {
@@ -151,12 +158,12 @@ export default function ReaderPage() {
 
   useEffect(() => {
     async function loadFirstChapter() {
-      if (isAuthLoading || !params?.chapterSlug) return;
-      if (chapters.some(c => c.slug === params.chapterSlug)) return;
+      if (isAuthLoading || !chapterSlug) return;
+      if (chapters.some(c => c.slug === chapterSlug)) return;
 
       try {
         setIsLoading(true);
-        const data = await apiRequest<ChapterDetail>(`/books/chapters/${params.chapterSlug}`);
+        const data = await apiRequest<ChapterDetail>(`/books/chapters/${chapterSlug}`);
         setChapters([data]);
         void fetchParagraphCommentCounts(data.id);
 
@@ -166,7 +173,7 @@ export default function ReaderPage() {
             const el = document.getElementById(targetPId);
             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           } else {
-            const savedProgress = localStorage.getItem(`read-progress-${params.chapterSlug}`);
+            const savedProgress = localStorage.getItem(`read-progress-${chapterSlug}`);
             if (savedProgress) {
               const scrollHeight = document.documentElement.scrollHeight;
               window.scrollTo({ top: parseFloat(savedProgress) * scrollHeight, behavior: 'instant' });
@@ -191,7 +198,7 @@ export default function ReaderPage() {
         .then(res => setCoinBalance(res.coinBalance))
         .catch(console.error);
     }
-  }, [params?.chapterSlug, isAuthLoading, searchParams, profile, chapters, fetchParagraphCommentCounts]);
+  }, [chapterSlug, isAuthLoading, searchParams, profile, chapters, fetchParagraphCommentCounts]);
 
   const loadNextChapter = useCallback(async () => {
     const lastChapter = chapters[chapters.length - 1];
@@ -265,8 +272,8 @@ export default function ReaderPage() {
       const currentScrollY = window.scrollY;
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
-      if (params?.chapterSlug && currentScrollY > 0) {
-        localStorage.setItem(`read-progress-${params?.chapterSlug}`, (currentScrollY / scrollHeight).toString());
+      if (chapterSlug && currentScrollY > 0) {
+        localStorage.setItem(`read-progress-${chapterSlug}`, (currentScrollY / scrollHeight).toString());
       }
       if (settings.isPinned) setShowHeader(true);
       else if (currentScrollY < 100) setShowHeader(true);
@@ -280,7 +287,7 @@ export default function ReaderPage() {
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [settings.isPinned, settings.readingMode, loadNextChapter, params?.chapterSlug]);
+  }, [settings.isPinned, settings.readingMode, loadNextChapter, chapterSlug]);
 
   useEffect(() => {
     const gh = document.getElementById('global-header-container');
@@ -420,7 +427,7 @@ export default function ReaderPage() {
                               <span className="text-xl font-black text-amber-500 font-mono">{coinBalance ?? "..."}</span>
                             </div>
                             <button
-                              onClick={() => handlePurchase(chapter.id, chapter.slug || params.chapterSlug)}
+                              onClick={() => handlePurchase(chapter.id, chapter.slug || chapterSlug)}
                               disabled={isPurchasing || (coinBalance !== null && coinBalance < chapter.price)}
 
                               className="btn btn-primary btn-lg w-full rounded-2xl font-black gap-3 shadow-lg shadow-primary/20 h-16 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 text-white"

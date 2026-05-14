@@ -54,7 +54,10 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
   }, [id]);
 
   useEffect(() => {
-    loadTicket();
+    const run = async () => {
+      await loadTicket();
+    };
+    void run();
   }, [loadTicket]);
 
   useEffect(() => {
@@ -167,7 +170,7 @@ export default function TicketDetailPage({ params }: { params: Promise<{ id: str
                         await apiRequest(`/management/support/tickets/${id}/close`, { method: "POST" });
                         showToast({ title: "Başarılı", description: "Bilet kapatıldı.", tone: "success" });
                         loadTicket();
-                      } catch (err) {
+                      } catch {
                         showToast({ title: "Hata", description: "Bilet kapatılamadı.", tone: "error" });
                       }
                     }}

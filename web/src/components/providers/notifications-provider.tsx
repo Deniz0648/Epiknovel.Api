@@ -154,7 +154,10 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    void refreshNotifications();
+    const run = async () => {
+      await refreshNotifications();
+    };
+    void run();
   }, [refreshNotifications]);
 
   useEffect(() => {

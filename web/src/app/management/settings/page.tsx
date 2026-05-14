@@ -276,7 +276,7 @@ export default function SettingsPage() {
 
   const currentTab = (searchParams.get('tab') as TabType) || 'site';
 
-  const [activeTab, _setActiveTab] = useState<TabType>(currentTab);
+  const activeTab = currentTab;
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>(HARDCODED_TEMPLATES[0].key);
   const [isLoading, setIsLoading] = useState(true);
@@ -284,24 +284,10 @@ export default function SettingsPage() {
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
 
   const setActiveTab = (tab: TabType) => {
-    _setActiveTab(tab);
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', tab);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   };
-
-  useEffect(() => {
-    if (activeTab !== currentTab) {
-      _setActiveTab(currentTab);
-    }
-  }, [activeTab, currentTab]);
-
-  useEffect(() => {
-    fetchSettings();
-    if (activeTab === 'templates') {
-      fetchTemplates();
-    }
-  }, [activeTab]);
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -328,6 +314,58 @@ export default function SettingsPage() {
       toast.error({ description: "Şablonlar yüklenemedi." });
     }
   };
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadSettings() {
+      setIsLoading(true);
+      try {
+        const data = await apiRequest<SettingItem[]>('/management/settings');
+        if (isCancelled) {
+          return;
+        }
+
+        const mapped: Record<string, string> = {};
+        data.forEach((s) => {
+          mapped[s.key] = s.value;
+        });
+        setLocalSettings(mapped);
+      } catch {
+        if (!isCancelled) {
+          toast.error({ description: "Ayarlar yüklenemedi." });
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    async function loadTemplates() {
+      if (activeTab !== 'templates') {
+        return;
+      }
+
+      try {
+        const data = await apiRequest<{ items: EmailTemplate[] }>('/management/system/emails/templates');
+        if (!isCancelled) {
+          setEmailTemplates(data.items);
+        }
+      } catch {
+        if (!isCancelled) {
+          toast.error({ description: "Şablonlar yüklenemedi." });
+        }
+      }
+    }
+
+    void loadSettings();
+    void loadTemplates();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeTab]);
 
   const handleInputChange = (key: string, value: string) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));

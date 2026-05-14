@@ -29,6 +29,14 @@ export function SearchModal() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  const handleClose = () => {
+    document.body.style.overflow = "unset";
+    setQuery("");
+    setResults([]);
+    setSelectedIndex(-1);
+    setIsOpen(false);
+  };
+
   // Handle global shortcut Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -37,7 +45,7 @@ export function SearchModal() {
         setIsOpen(true);
       }
       if (e.key === "Escape") {
-        setIsOpen(false);
+        handleClose();
       }
     };
 
@@ -52,7 +60,7 @@ export function SearchModal() {
       if (customEvent.detail === "search") {
         setIsOpen(true);
       } else {
-        setIsOpen(false);
+        handleClose();
       }
     };
 
@@ -65,17 +73,12 @@ export function SearchModal() {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
       document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-      setQuery("");
-      setResults([]);
     }
   }, [isOpen]);
 
   // Handle Search API
   useEffect(() => {
     if (!query.trim() || query.length < 2) {
-      setResults([]);
       return;
     }
 
@@ -103,7 +106,7 @@ export function SearchModal() {
     } else {
       router.push(`/Books?search=${encodeURIComponent(item.title)}`);
     }
-    setIsOpen(false);
+    handleClose();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -127,14 +130,14 @@ export function SearchModal() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
             className="fixed inset-0 z-[100] bg-base-300/40 backdrop-blur-md"
           />
 
           {/* Modal Container */}
           <div 
             className="fixed inset-0 z-[101] flex items-start justify-center p-4 pt-[10vh] sm:p-6 sm:pt-[15vh]"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}

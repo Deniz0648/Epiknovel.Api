@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import { Bell, Mail, Smartphone, ShieldCheck, Loader2 } from "lucide-react";
 import { getMyNotificationPreferences, updateMyNotificationPreferences, type NotificationPreference } from "@/lib/auth";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function NotificationSettings() {
   const [preferences, setPreferences] = useState<NotificationPreference | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,8 +44,8 @@ export function NotificationSettings() {
       await updateMyNotificationPreferences({ [key]: newValue });
       setMessage("Tercihleriniz güncellendi.");
       setTimeout(() => setMessage(null), 3000);
-    } catch (err: any) {
-      setError(err.message || "Güncelleme başarısız oldu.");
+    } catch (error) {
+      setError(getErrorMessage(error, "Güncelleme başarısız oldu."));
       // Rollback on error
       setPreferences(preferences);
     } finally {

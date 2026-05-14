@@ -8,6 +8,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 const ICON_MAP: Record<string, LucideIcon> = {
   Zap,
   TrendingUp,
@@ -54,8 +58,8 @@ export default function WalletPage() {
     try {
       const response = await initializeCoinPurchase(targetId);
       setCheckoutHtml(response.checkoutFormContent);
-    } catch (error: any) {
-      toast.error({ title: error.message || "Ödeme başlatılamadı." });
+    } catch (error) {
+      toast.error({ title: getErrorMessage(error, "Ödeme başlatılamadı.") });
       setIsPurchasing(false);
     }
   };

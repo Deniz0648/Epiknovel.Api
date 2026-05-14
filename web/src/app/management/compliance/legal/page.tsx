@@ -56,10 +56,6 @@ export default function LegalManagementPage() {
 
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
 
-  useEffect(() => {
-    loadDocuments();
-  }, []);
-
   const loadDocuments = async () => {
     try {
       setIsLoading(true);
@@ -131,8 +127,8 @@ export default function LegalManagementPage() {
       }
       showToast({ title: "Başarılı", description: `${count} yeni şablon eklendi.`, tone: "success" });
       loadDocuments();
-    } catch (err: any) {
-      showToast({ title: "Hata", description: err.message || "Bazı şablonlar eklenemedi.", tone: "error" });
+    } catch (error) {
+      showToast({ title: "Hata", description: error instanceof Error ? error.message : "Bazı şablonlar eklenemedi.", tone: "error" });
     } finally {
       setIsLoading(false);
     }
@@ -163,12 +159,19 @@ export default function LegalManagementPage() {
       setShowEditor(false);
       loadDocuments();
       if (slug) loadHistory(slug);
-    } catch (err: any) {
-      showToast({ title: "Hata", description: err.message || "Kaydedilemedi.", tone: "error" });
+    } catch (error) {
+      showToast({ title: "Hata", description: error instanceof Error ? error.message : "Kaydedilemedi.", tone: "error" });
     } finally {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    const run = async () => {
+      await loadDocuments();
+    };
+    void run();
+  }, []);
 
   return (
     <div className="space-y-8">

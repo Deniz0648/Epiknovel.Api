@@ -97,24 +97,31 @@ type ComplianceData = {
   tags?: ListingItem[];
 } | ListingItem[] | FeaturedReview[] | null;
 
+const VALID_CONTENT_TABS: ContentTab[] = [
+  "books-original",
+  "books-translated",
+  "books-editor-choice",
+  "reviews-editor-choice",
+  "categories",
+  "tags",
+  "quotes",
+  "faq",
+  "moderation",
+];
+
 export default function CompliancePage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<ContentTab>("books-original");
+  const tabParam = searchParams.get("tab");
+  const activeTab: ContentTab = VALID_CONTENT_TABS.includes(tabParam as ContentTab)
+    ? (tabParam as ContentTab)
+    : "books-original";
   const [searchQuery, setSearchQuery] = useState("");
   const [data, setData] = useState<ComplianceData>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [assigningBook, setAssigningBook] = useState<ComplianceBook | null>(null);
   const [reviewingBook, setReviewingBook] = useState<ComplianceBook | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-
-  // Sync tab with URL
-  useEffect(() => {
-    const tabParam = searchParams.get("tab") as ContentTab;
-    if (tabParam && ["books-original", "books-translated", "books-editor-choice", "categories", "tags", "quotes", "faq", "moderation"].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
 
   const tabs = [
     { id: "books-original", label: "Ozgun Kitaplar", icon: Book },
@@ -264,7 +271,6 @@ export default function CompliancePage() {
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveTab(tab.id as ContentTab);
                   router.push(`/management/compliance?tab=${tab.id}`);
                 }}
                 className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-black uppercase tracking-widest transition-all ${isActive
@@ -829,6 +835,7 @@ function AssignMembersModal({ book, onClose }: { book: ComplianceBook, onClose: 
   const [assignedMembers, setAssignedMembers] = useState<AssignedMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const visibleSearchResults = query.length < 3 ? [] : searchResults;
 
   useEffect(() => {
     // Fetch current members
@@ -852,7 +859,6 @@ function AssignMembersModal({ book, onClose }: { book: ComplianceBook, onClose: 
 
   useEffect(() => {
     if (query.length < 3) {
-      setSearchResults([]);
       return;
     }
     const timer = setTimeout(async () => {
@@ -945,7 +951,7 @@ function AssignMembersModal({ book, onClose }: { book: ComplianceBook, onClose: 
           {/* Search Results */}
           <div className="max-h-48 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
             {isLoading && <div className="text-center py-4 text-xs font-bold animate-pulse text-primary/40">Aranıyor...</div>}
-            {searchResults.map(user => (
+            {visibleSearchResults.map(user => (
               <button
                 key={user.id}
                 onClick={() => handleAssign(user)}

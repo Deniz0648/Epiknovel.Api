@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { GripVertical, Save, LoaderCircle } from "lucide-react";
 import { showToast } from "@/lib/toast";
@@ -25,19 +25,15 @@ interface ChapterReorderListProps {
 }
 
 export function ChapterReorderList({ bookId, bookSlug, initialChapters, onOrderSaved }: ChapterReorderListProps) {
-  const [items, setItems] = useState<Chapter[]>(initialChapters);
+  const [items, setItems] = useState<Chapter[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-
-  useEffect(() => {
-    // initialChapters değiştiğinde (yazar yeni bölüm eklediğinde vs) state'i güncelle
-    setItems(initialChapters);
-  }, [initialChapters]);
+  const visibleItems = useMemo(() => (hasChanges ? items : initialChapters), [hasChanges, items, initialChapters]);
 
   const onDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
-    const newItems = Array.from(items);
+    const newItems = Array.from(visibleItems);
     const [reorderedItem] = newItems.splice(result.source.index, 1);
     newItems.splice(result.destination.index, 0, reorderedItem);
 
@@ -48,7 +44,7 @@ export function ChapterReorderList({ bookId, bookSlug, initialChapters, onOrderS
   const saveOrder = async () => {
     try {
       setIsSaving(true);
-      const chapterIds = items.map((c) => c.id);
+      const chapterIds = visibleItems.map((c) => c.id);
 
       const response = await fetch(`/api/books/${bookId}/chapters/reorder`, {
         method: "POST",
@@ -115,7 +111,7 @@ export function ChapterReorderList({ bookId, bookSlug, initialChapters, onOrderS
               ref={provided.innerRef}
               className="flex flex-col gap-2"
             >
-              {items.map((chapter, index) => (
+              {visibleItems.map((chapter, index) => (
                 <Draggable key={chapter.id} draggableId={chapter.id} index={index}>
                   {(provided, snapshot) => (
                     <div

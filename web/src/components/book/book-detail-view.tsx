@@ -124,7 +124,10 @@ export default function BookDetailView({ initialData, bookSlug }: { initialData:
   }, [bookSlug, debouncedQuery, detail?.id, filters.page, filters.pageSize, filters.sort]);
 
   useEffect(() => {
-    void loadChapters(true);
+    const run = async () => {
+      await loadChapters(true);
+    };
+    void run();
   }, [loadChapters]);
 
   if (!detail) return null;

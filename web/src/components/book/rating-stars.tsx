@@ -1,7 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { apiRequest } from "@/lib/api";
 import { showToast } from "@/lib/toast";
 
@@ -12,15 +12,16 @@ interface RatingStarsProps {
   onRatingUpdated: (newRating: number, totalVotes: number, myRating: number) => void;
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export function RatingStars({ bookId, initialRating, myRating, onRatingUpdated }: RatingStarsProps) {
   const [hoverRating, setHoverRating] = useState<number | null>(null);
-  const [localMyRating, setLocalMyRating] = useState<number | null>(myRating ?? null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedRating, setSubmittedRating] = useState<number | null>(null);
 
-  // Prop güncellendiğinde local state'i güncelle (Sayfa ilk açılışında)
-  useEffect(() => {
-    if (myRating !== undefined) setLocalMyRating(myRating);
-  }, [myRating]);
+  const displayedRating = myRating ?? submittedRating ?? null;
 
   const handleRate = async (value: number) => {
     try {
@@ -39,12 +40,12 @@ export function RatingStars({ bookId, initialRating, myRating, onRatingUpdated }
         tone: "success",
       });
 
-      setLocalMyRating(value);
+      setSubmittedRating(value);
       onRatingUpdated(response.newAverageRating, response.totalVotes, value);
-    } catch (err: any) {
+    } catch (error) {
       showToast({
         title: "Hata",
-        description: err.message || "Puan kaydedilemedi.",
+        description: getErrorMessage(error, "Puan kaydedilemedi."),
         tone: "error",
       });
     } finally {
@@ -59,9 +60,9 @@ export function RatingStars({ bookId, initialRating, myRating, onRatingUpdated }
         // Yıldızın dolu olma kuralı: 
         // 1. Hover varsa hover değeri
         // 2. Kullanıcın puanı varsa o
-        const isFilled = (hoverRating ?? localMyRating ?? 0) >= starValue;
+        const isFilled = (hoverRating ?? displayedRating ?? 0) >= starValue;
         // 3. Hiçbiri yoksa ortalama puanı sönük göster (Görsel Rehber)
-        const isAverageOnly = !hoverRating && !localMyRating && Math.round(initialRating) >= starValue;
+        const isAverageOnly = !hoverRating && !displayedRating && Math.round(initialRating) >= starValue;
 
         return (
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Plus,
   Check,
@@ -55,8 +55,11 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
   const router = useRouter();
   const [libraryEntryId, setLibraryEntryId] = useState<string | null>(null);
   const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const isLoading = isAuthLoading || isCheckingStatus;
+  const effectiveLibraryEntryId = profile ? libraryEntryId : null;
+  const effectiveLibraryStatus = profile ? libraryStatus : null;
 
   const getStatusText = (status: LibraryStatusValue | undefined) => {
     if (status === 0 || status === "Reading") return "Okuyorum";
@@ -68,55 +71,56 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
     return status?.toString() || "Kütüphanede";
   };
 
-  const checkLibraryStatus = useCallback(async () => {
-    if (!profile) {
-      setIsLoading(false);
+  useEffect(() => {
+    if (!bookId) {
       return;
     }
 
-    try {
-      setIsLoading(true);
-      const res = await apiRequest<LibraryCheckResponse | null>(`/social/library/check/${bookId}`);
+    if (isAuthLoading || !profile) {
+      return;
+    }
 
-      const isAdded = res?.isAdded ?? res?.IsAdded;
+    let isCancelled = false;
 
-      if (isAdded && res) {
-        const libItem = res.libraryItem ?? res.LibraryItem;
-        if (libItem) {
-          setLibraryEntryId(libItem.id || libItem.Id || null);
-          const statusVal = libItem.status !== undefined ? libItem.status : libItem.Status;
-          setLibraryStatus(getStatusText(statusVal));
+    async function loadLibraryStatus() {
+      try {
+        setIsCheckingStatus(true);
+        const res = await apiRequest<LibraryCheckResponse | null>(`/social/library/check/${bookId}`);
+        if (isCancelled) {
+          return;
+        }
+
+        const isAdded = res?.isAdded ?? res?.IsAdded;
+
+        if (isAdded && res) {
+          const libItem = res.libraryItem ?? res.LibraryItem;
+          if (libItem) {
+            setLibraryEntryId(libItem.id || libItem.Id || null);
+            const statusVal = libItem.status !== undefined ? libItem.status : libItem.Status;
+            setLibraryStatus(getStatusText(statusVal));
+          } else {
+            setLibraryEntryId(null);
+            setLibraryStatus(null);
+          }
         } else {
           setLibraryEntryId(null);
           setLibraryStatus(null);
         }
-      } else {
-        setLibraryEntryId(null);
-        setLibraryStatus(null);
-      }
-    } catch (err) {
-      console.error("Kutuphane durumu alinamadı:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [bookId, profile]);
-
-  useEffect(() => {
-    if (!bookId) {
-      setIsLoading(false);
-      return;
-    }
-
-    if (!isAuthLoading) {
-      if (!profile) {
-        setIsLoading(false);
-        setLibraryEntryId(null);
-        setLibraryStatus(null);
-      } else {
-        checkLibraryStatus();
+      } catch (err) {
+        console.error("Kutuphane durumu alinamadı:", err);
+      } finally {
+        if (!isCancelled) {
+          setIsCheckingStatus(false);
+        }
       }
     }
-  }, [bookId, profile, isAuthLoading, checkLibraryStatus]);
+
+    void loadLibraryStatus();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [bookId, profile, isAuthLoading]);
 
   const handleLibraryAction = async (targetStatus?: number) => {
     if (!profile) {
@@ -133,8 +137,8 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
       setIsActionLoading(true);
 
       // 1️⃣ Kütüphaneden Çıkarma
-      if (libraryEntryId && targetStatus === undefined) {
-        await apiRequest(`/social/library/${libraryEntryId}`, { method: "DELETE" });
+      if (effectiveLibraryEntryId && targetStatus === undefined) {
+        await apiRequest(`/social/library/${effectiveLibraryEntryId}`, { method: "DELETE" });
         setLibraryEntryId(null);
         setLibraryStatus(null);
         showToast({
@@ -157,8 +161,8 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
       }
 
       // 2️⃣ Durum Güncelleme
-      if (libraryEntryId && targetStatus !== undefined) {
-        await apiRequest(`/social/library/${libraryEntryId}`, {
+      if (effectiveLibraryEntryId && targetStatus !== undefined) {
+        await apiRequest(`/social/library/${effectiveLibraryEntryId}`, {
           method: "PATCH",
           body: JSON.stringify({ status: targetStatus }),
         });
@@ -172,7 +176,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
       }
 
       // 3️⃣ Kütüphaneye Ekleme
-      if (!libraryEntryId) {
+      if (!effectiveLibraryEntryId) {
         if (targetStatus === undefined) return;
 
         const response = await apiRequest<LibraryMutationResponse>("/social/library", {
@@ -198,7 +202,20 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
     } catch (err) {
       const message = err instanceof Error ? err.message : "İşlem gerçekleştirilemedi.";
       if (message.includes("zaten kütüphanenizde")) {
-        await checkLibraryStatus();
+        try {
+          setIsCheckingStatus(true);
+          const res = await apiRequest<LibraryCheckResponse | null>(`/social/library/check/${bookId}`);
+          const isAdded = res?.isAdded ?? res?.IsAdded;
+
+          if (isAdded && res) {
+            const libItem = res.libraryItem ?? res.LibraryItem;
+            setLibraryEntryId(libItem?.id || libItem?.Id || null);
+            const statusVal = libItem?.status !== undefined ? libItem.status : libItem?.Status;
+            setLibraryStatus(getStatusText(statusVal));
+          }
+        } finally {
+          setIsCheckingStatus(false);
+        }
       } else {
         showToast({
           title: "Hata",
@@ -216,7 +233,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
       <button
         tabIndex={0}
         type="button"
-        className={`flex h-12 w-full items-center justify-between rounded-2xl border px-6 transition-all duration-500 shadow-sm ${libraryEntryId
+        className={`flex h-12 w-full items-center justify-between rounded-2xl border px-6 transition-all duration-500 shadow-sm ${effectiveLibraryEntryId
           ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 shadow-primary/5"
           : "border-base-content/15 bg-base-100/30 hover:bg-base-100/50 hover:border-base-content/25"
           } ${isLoading || isActionLoading ? "opacity-50 pointer-events-none" : ""}`}
@@ -230,7 +247,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
         <div className="flex items-center gap-3">
           {isLoading || isActionLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
-          ) : libraryEntryId ? (
+          ) : effectiveLibraryEntryId ? (
             <div className="flex items-center justify-center h-6 w-6 rounded-lg bg-primary/20">
               <Check className="h-3.5 w-3.5 stroke-3" />
             </div>
@@ -239,7 +256,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
           )}
 
           <span className="font-bold tracking-tight">
-            {libraryEntryId ? libraryStatus : "Kütüphaneye Ekle"}
+            {effectiveLibraryEntryId ? effectiveLibraryStatus : "Kütüphaneye Ekle"}
           </span>
         </div>
 
@@ -283,7 +300,7 @@ export function AddToLibraryButton({ bookId, bookStatus, className, direction = 
           </button>
         </li>
 
-        {libraryEntryId && (
+        {effectiveLibraryEntryId && (
           <>
             <div className="divider mx-3 my-1 opacity-10"></div>
             <li>

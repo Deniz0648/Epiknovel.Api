@@ -100,7 +100,6 @@ function AuthorPanelContent() {
   const [books, setBooks] = useState<MyBookListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
 
   const [searchInput, setSearchInput] = useState("");
   const [query, setQuery] = useState("");
@@ -126,8 +125,6 @@ function AuthorPanelContent() {
   const [legalSlug, setLegalSlug] = useState<string | null>(null);
   const [paidTermsAccepted, setPaidTermsAccepted] = useState(false);
   const [isPaidModalOpen, setIsPaidModalOpen] = useState(false);
-
-  useEffect(() => { setIsMounted(true); }, []);
 
   useEffect(() => {
     if (isSessionLoading) return;
@@ -175,8 +172,6 @@ function AuthorPanelContent() {
       }
     };
     if (hasAuthorPanelAccess(profile)) {
-      setBooks([]);
-      setDeletedBooks([]);
       if (activeTab === "trash") loadBooks(true);
       else loadBooks(false); // Dashboard ve Eserlerim için kitaplar yüklenmeli
     }
@@ -402,7 +397,7 @@ function AuthorPanelContent() {
                     <Eye className="w-3 h-3 text-primary" /> Toplam Okunma
                   </div>
                   <div className="text-3xl font-black tracking-tighter text-primary">
-                    {isMounted ? stats.totalViews.toLocaleString("tr-TR") : "0"}
+                    {stats.totalViews.toLocaleString("tr-TR")}
                   </div>
                 </div>
 
@@ -411,7 +406,7 @@ function AuthorPanelContent() {
                     <Star className="w-3 h-3 text-warning" /> Ortalama Puan
                   </div>
                   <div className="text-3xl font-black tracking-tighter text-base-content/80">
-                    {isMounted ? stats.avgRating : "0.0"}
+                    {stats.avgRating}
                   </div>
                 </div>
 
@@ -420,7 +415,7 @@ function AuthorPanelContent() {
                     <MessageSquare className="w-3 h-3 text-secondary" /> Toplam Oy
                   </div>
                   <div className="text-3xl font-black tracking-tighter text-base-content/80">
-                    {isMounted ? stats.totalVotes.toLocaleString("tr-TR") : "0"}
+                    {stats.totalVotes.toLocaleString("tr-TR")}
                   </div>
                 </div>
               </div>
@@ -607,7 +602,7 @@ function AuthorPanelContent() {
                             <div className="flex flex-wrap gap-5 border-t border-base-content/5 pt-4">
                               <div className="flex items-center gap-2 text-xs font-black text-base-content/60">
                                 <Eye className="w-4 h-4 text-primary" />
-                                {isMounted ? book.viewCount?.toLocaleString("tr-TR") : "0"}
+                                {book.viewCount?.toLocaleString("tr-TR") || "0"}
                               </div>
                               <div className="flex items-center gap-2 text-xs font-black text-base-content/60">
                                 <BookOpen className="w-4 h-4 text-secondary" />
@@ -615,7 +610,7 @@ function AuthorPanelContent() {
                               </div>
                               <div className="hidden sm:flex items-center gap-2 text-[10px] font-bold text-base-content/30 uppercase tracking-widest italic ml-auto mr-1">
                                 <Clock className="w-3.5 h-3.5" />
-                                {isMounted ? new Date(book.updatedAt).toLocaleDateString("tr-TR") : "-"}
+                                {book.updatedAt ? new Date(book.updatedAt).toLocaleDateString("tr-TR") : "-"}
                               </div>
                             </div>
                           </div>

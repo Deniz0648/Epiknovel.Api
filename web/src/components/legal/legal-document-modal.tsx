@@ -33,7 +33,10 @@ export function LegalDocumentModal({ slug, isOpen, onClose }: LegalDocumentModal
 
   useEffect(() => {
     if (isOpen && slug) {
-      loadDocument();
+      const run = async () => {
+        await loadDocument();
+      };
+      void run();
     }
   }, [isOpen, loadDocument, slug]);
 

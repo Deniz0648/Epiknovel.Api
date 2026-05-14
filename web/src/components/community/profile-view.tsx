@@ -26,8 +26,6 @@ export default function ProfileView({ initialData, slug }: { initialData: Public
 
   useEffect(() => {
     if (!publicProfile?.isAuthor) {
-      setAuthorBooks([]);
-      setIsBooksLoading(false);
       return;
     }
 

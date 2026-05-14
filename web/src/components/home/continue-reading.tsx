@@ -1,6 +1,6 @@
 "use client";
 
-import { type TouchEvent, useRef, useState, useEffect, useCallback } from "react";
+import { type TouchEvent, useRef, useState, useEffect } from "react";
 import { ArrowRight, BookOpen, Bookmark, PlayCircle, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { BookCover } from "@/components/ui/book-cover";
@@ -111,35 +111,47 @@ export function ContinueReadingSection() {
   const { profile, isLoading: isAuthLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("Reading");
   const [books, setBooks] = useState<LibraryItemResponse[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingBooks, setIsFetchingBooks] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
+  const isLoading = isAuthLoading || (Boolean(profile) && isFetchingBooks);
+  const visibleBooks = profile ? books : [];
 
-  const fetchLibrary = useCallback(async (status: ReadingStatus) => {
-    if (!profile) {
-      setBooks([]);
-      setIsLoading(false);
+  useEffect(() => {
+    if (isAuthLoading) {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const data = await getLibraryList({ status, size: 6 });
-      setBooks(data);
-      setActiveIndex(0);
-    } catch (err) {
-      console.error("Library fetch error:", err);
-    } finally {
-      setIsLoading(false);
+    if (!profile) {
+      return;
     }
-  }, [profile]);
 
-  useEffect(() => {
-    if (!isAuthLoading) {
-      fetchLibrary(activeTab);
+    let isCancelled = false;
+
+    async function loadLibrary() {
+      setIsFetchingBooks(true);
+      try {
+        const data = await getLibraryList({ status: activeTab, size: 6 });
+        if (!isCancelled) {
+          setBooks(data);
+          setActiveIndex(0);
+        }
+      } catch (err) {
+        console.error("Library fetch error:", err);
+      } finally {
+        if (!isCancelled) {
+          setIsFetchingBooks(false);
+        }
+      }
     }
-  }, [activeTab, fetchLibrary, isAuthLoading]);
+
+    void loadLibrary();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeTab, profile, isAuthLoading]);
 
   if (isAuthLoading) {
     return (
@@ -168,19 +180,19 @@ export function ContinueReadingSection() {
     );
   }
 
-  if (!isLoading && books.length === 0 && activeTab === "Reading") {
+  if (!isLoading && visibleBooks.length === 0 && activeTab === "Reading") {
     return null;
   }
 
   const showNext = () => {
     setActiveIndex((currentIndex) =>
-      currentIndex === books.length - 1 ? 0 : currentIndex + 1,
+      currentIndex === visibleBooks.length - 1 ? 0 : currentIndex + 1,
     );
   };
 
   const showPrevious = () => {
     setActiveIndex((currentIndex) =>
-      currentIndex === 0 ? books.length - 1 : currentIndex - 1,
+      currentIndex === 0 ? visibleBooks.length - 1 : currentIndex - 1,
     );
   };
 
@@ -255,7 +267,7 @@ export function ContinueReadingSection() {
             <div key={i} className="glass-frame h-32 w-full animate-pulse bg-base-content/5" />
           ))}
         </div>
-      ) : books.length > 0 ? (
+      ) : visibleBooks.length > 0 ? (
         <>
           <div className="space-y-4 lg:hidden">
             <div
@@ -267,7 +279,7 @@ export function ContinueReadingSection() {
                 className="flex transition-transform duration-500 ease-out"
                 style={{ transform: `translateX(-${activeIndex * 100}%)` }}
               >
-                {books.map((item) => (
+                {visibleBooks.map((item) => (
                   <div key={item.id} className="min-w-full px-1">
                     <ContinueReadingCard
                       book={{
@@ -289,7 +301,7 @@ export function ContinueReadingSection() {
             </div>
 
             <div className="flex items-center justify-center gap-1.5">
-              {books.map((_, index) => (
+              {visibleBooks.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setActiveIndex(index)}
@@ -303,7 +315,7 @@ export function ContinueReadingSection() {
           </div>
 
           <div className="hidden gap-4 lg:grid lg:grid-cols-2 xl:grid-cols-3">
-            {books.slice(0, 6).map((item) => (
+            {visibleBooks.slice(0, 6).map((item) => (
               <ContinueReadingCard
                 key={item.id}
                 book={{

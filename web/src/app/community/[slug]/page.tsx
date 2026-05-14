@@ -3,6 +3,7 @@ import { backendApiRequest } from "@/lib/backend-api";
 import { resolveMediaUrl } from "@/lib/api";
 import ProfileView from "../../../components/community/profile-view";
 import Script from "next/script";
+import type { PublicUserProfile } from "@/lib/auth";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -10,7 +11,7 @@ type Props = {
 
 async function getProfileData(slug: string) {
   try {
-    const profile = await backendApiRequest<any>(`/users/${slug}`, {
+    const profile = await backendApiRequest<PublicUserProfile>(`/users/${slug}`, {
       next: { revalidate: 3600 }
     });
     return profile;

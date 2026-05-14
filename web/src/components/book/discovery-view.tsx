@@ -309,7 +309,10 @@ export default function DiscoveryView() {
   }, [currentPage, pageSize, activeQuickFilter, searchQuery, selectedCategoryId, selectedStatus, selectedWorkType, selectedAgeRange, editorOnly]);
 
   useEffect(() => {
-    void fetchBooks();
+    const run = async () => {
+      await fetchBooks();
+    };
+    void run();
   }, [fetchBooks]);
 
   const books = useMemo(() => apiResponse?.items.map(hydrateBookFromApi) || [], [apiResponse]);

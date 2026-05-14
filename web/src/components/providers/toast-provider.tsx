@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import { getToastEventName, type ToastPayload } from "@/lib/toast";
 
@@ -48,7 +48,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
   const timersRef = useRef<Map<string, number>>(new Map());
 
-  function removeToast(id: string) {
+  const removeToast = useCallback((id: string) => {
     const timerId = timersRef.current.get(id);
     if (timerId) {
       window.clearTimeout(timerId);
@@ -56,9 +56,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
 
     setItems((current) => current.filter((item) => item.id !== id));
-  }
+  }, []);
 
-  function pushToast(payload: ToastPayload) {
+  const pushToast = useCallback((payload: ToastPayload) => {
     const id = createToastId();
     const durationMs = payload.durationMs ?? DEFAULT_DURATION_MS;
     setItems((current) => [...current.slice(-3), { ...payload, id }]);
@@ -67,10 +67,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       removeToast(id);
     }, durationMs);
     timersRef.current.set(id, timerId);
-  }
+  }, [removeToast]);
 
   useEffect(() => {
     const eventName = getToastEventName();
+    const timers = timersRef.current;
 
     function handleToast(event: Event) {
       const customEvent = event as CustomEvent<ToastPayload>;
@@ -80,12 +81,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     window.addEventListener(eventName, handleToast);
     return () => {
       window.removeEventListener(eventName, handleToast);
-      for (const timerId of timersRef.current.values()) {
+      for (const timerId of timers.values()) {
         window.clearTimeout(timerId);
       }
-      timersRef.current.clear();
+      timers.clear();
     };
-  }, []);
+  }, [pushToast]);
 
   return (
     <ToastContext.Provider value={{ pushToast }}>

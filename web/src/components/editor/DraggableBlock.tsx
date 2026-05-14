@@ -1,8 +1,8 @@
-import { NodeViewContent, NodeViewWrapper } from '@tiptap/react'
+import { NodeViewContent, NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { GripVertical } from 'lucide-react'
 import React from 'react'
 
-export const DraggableBlock = (props: any) => {
+export const DraggableBlock = (props: NodeViewProps) => {
     const isHeading = props.node.type.name === 'heading'
     const isBlockquote = props.node.type.name === 'blockquote'
     const isCodeBlock = props.node.type.name === 'codeBlock'
@@ -11,8 +11,6 @@ export const DraggableBlock = (props: any) => {
     const level = props.node.attrs.level
 
     let contentClass = 'text-lg leading-relaxed mb-4 min-h-[1.5em]'
-    let Tag: any = 'div'
-
     if (isHeading) {
         if (level === 1) contentClass = 'text-4xl font-bold mt-8 mb-4'
         else if (level === 2) contentClass = 'text-2xl font-semibold mt-6 mb-3'
@@ -23,10 +21,8 @@ export const DraggableBlock = (props: any) => {
         contentClass = 'font-mono text-sm bg-base-200 p-4 rounded-lg my-4 overflow-x-auto'
     } else if (isBulletList) {
         contentClass = 'list-disc pl-6 mb-4'
-        Tag = 'ul'
     } else if (isOrderedList) {
         contentClass = 'list-decimal pl-6 mb-4'
-        Tag = 'ol'
     }
 
     return (
@@ -43,7 +39,6 @@ export const DraggableBlock = (props: any) => {
                 <GripVertical size={18} />
             </div>
             <NodeViewContent
-                as={Tag}
                 className={`flex-1 min-w-0 ${contentClass} !mb-0`} 
                 style={{ textAlign: props.node.attrs.textAlign }}
             />

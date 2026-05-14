@@ -332,8 +332,8 @@ function BillingAddressForm() {
       const result = await (await import("@/lib/auth")).updateMyBillingAddress(formData);
       setMessage(result.message);
       await refreshProfile();
-    } catch (err: any) {
-      setError(err.message || "Fatura bilgileri guncellenemedi.");
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Fatura bilgileri guncellenemedi.");
     } finally {
       setIsSubmitting(false);
     }
@@ -417,8 +417,8 @@ export function ProfileDashboard() {
   const router = useRouter();
   const { profile, isLoading, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<ProfileTab>("profile");
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
+  const [displayName, setDisplayName] = useState(() => profile?.displayName ?? "");
+  const [bio, setBio] = useState(() => profile?.bio ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [avatarMessage, setAvatarMessage] = useState<string | null>(null);
@@ -436,15 +436,6 @@ export function ProfileDashboard() {
       router.replace("/");
     }
   }, [isLoading, profile, router]);
-
-  useEffect(() => {
-    if (!profile) {
-      return;
-    }
-
-    setDisplayName(profile.displayName);
-    setBio(profile.bio ?? "");
-  }, [profile]);
 
   useEffect(() => {
     if (!avatarPreviewUrl || !profile?.avatarUrl) {

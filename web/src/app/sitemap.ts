@@ -1,6 +1,12 @@
 import { MetadataRoute } from 'next';
 import { backendApiRequest } from '@/lib/backend-api';
 
+type SitemapBook = {
+  slug: string;
+  updatedAt?: string | null;
+  createdAt: string;
+};
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.SITE_URL || 'https://epiknovel.com';
 
@@ -23,12 +29,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Kitaplari dinamik olarak ekle
     // Not: Build sirasinda backend ayakta degilse burasi hata verebilir.
     // Bu yüzden try-catch icinde ve fallback mekanizmali olmali.
-    const books = await backendApiRequest<any[]>('/Books/list?take=1000', {
+    const books = await backendApiRequest<SitemapBook[]>('/Books/list?take=1000', {
         next: { revalidate: 3600 }
     });
 
     if (Array.isArray(books)) {
-      const bookRoutes = books.map((book: any) => ({
+      const bookRoutes = books.map((book) => ({
         url: `${baseUrl}/Books/${book.slug}`,
         lastModified: new Date(book.updatedAt || book.createdAt),
         changeFrequency: 'weekly' as const,

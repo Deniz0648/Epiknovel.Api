@@ -3,8 +3,8 @@ services:
   postgres_db:
     image: postgres:18.3-alpine3.23
     restart: always
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     container_name: epiknovel_db
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -34,8 +34,8 @@ services:
       dockerfile: Epiknovel.api/Dockerfile
     restart: always
     container_name: epiknovel_api
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     depends_on:
       postgres_db:
         condition: service_healthy
@@ -69,8 +69,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     container_name: epiknovel_web
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       - epiknovel_api
     environment:

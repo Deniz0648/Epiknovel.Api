@@ -19,6 +19,16 @@ type PopularBook = {
   slug: string;
 };
 
+type PopularBookApiItem = {
+  slug: string;
+  title: string;
+  description: string;
+  coverImageUrl?: string | null;
+  averageRating?: number | null;
+  viewCount?: number | null;
+  categoryNames?: string[];
+};
+
 export function PopularBooksSlider({ className = "" }: { className?: string }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [books, setBooks] = useState<PopularBook[]>([]);
@@ -28,19 +38,23 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
     async function loadPopularBooks() {
       try {
         // Parametreleri kucuk harf yaparak proxy rotasiyla uyumlu hale getir (Ana sayfa ile ayni sorgu)
-        const res = await apiRequest<{ items: any[] }>("/books?sortBy=viewCount&sortDescending=true&pageSize=6");
-        const items = (res as any).items || [];
+        const res = await apiRequest<{ items: PopularBookApiItem[] }>("/books?sortBy=viewCount&sortDescending=true&pageSize=6");
+        const items = res.items || [];
         
-        const mappedBooks = items.map((item: any) => ({
+        const mappedBooks = items.map((item) => {
+          const viewCount = item.viewCount ?? 0;
+
+          return {
           id: item.slug,
           title: item.title,
           category: item.categoryNames?.[0] || "Genel",
           description: item.description,
           image: resolveMediaUrl(item.coverImageUrl) || "/hero-cover.svg",
           rating: (item.averageRating || 0).toFixed(1),
-          reads: item.viewCount >= 1000 ? `${(item.viewCount / 1000).toFixed(1)}K` : (item.viewCount || 0).toString(),
+          reads: viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount.toString(),
           slug: item.slug
-        }));
+          };
+        });
         setBooks(mappedBooks);
       } catch (error) {
         console.error("Popular books could not be loaded", error);

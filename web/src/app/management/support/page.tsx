@@ -64,7 +64,10 @@ export default function SupportManagementPage() {
   }, [selectedStatus]);
 
   useEffect(() => {
-    loadTickets();
+    const run = async () => {
+      await loadTickets();
+    };
+    void run();
   }, [loadTickets]);
 
   useEffect(() => {

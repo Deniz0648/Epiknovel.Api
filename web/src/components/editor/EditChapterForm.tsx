@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef } from "react"
 import { createChapter, updateChapter, deleteChapter } from "@/app/author/[bookSlug]/chapters/actions"
 import { useRouter } from "next/navigation"
 import { showToast } from "@/lib/toast"
@@ -35,6 +35,24 @@ interface EditChapterFormProps {
   bookSlug?: string
 }
 
+type ChapterPayload = {
+  title: string
+  content: string
+  lines: Array<{
+    id: string
+    order: number
+    content: string
+    type: number
+  }>
+  order: number
+  status: number
+  slug: string
+  isFree: boolean
+  price: number
+  isTitleSpoiler: boolean
+  scheduledPublishDate: string | null
+}
+
 export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, bookTitle, bookSlug }: EditChapterFormProps) {
   const { profile } = useAuth()
   const { isEnableEconomy: siteEconomyEnabled, settings } = usePublicSettings()
@@ -43,8 +61,11 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
   const canSetPrice = siteEconomyEnabled && authorHasPaidPermission
 
   const [loading, setLoading] = useState(false)
-  const [wordCount, setWordCount] = useState(0)
-  const [enableEconomy, setEnableEconomy] = useState(canSetPrice)
+  const [wordCount, setWordCount] = useState(() => {
+    if (!initialData?.content) return 0
+    return initialData.content.trim().split(/\s+/).filter(w => w).length
+  })
+  const enableEconomy = canSetPrice
   const [isScheduled, setIsScheduled] = useState(initialData?.status === 2)
   const [publishDate, setPublishDate] = useState<string>(() => {
     // 🕒 LOCAL TIME FORMATTER: UTC'den Yerel Saate Dönüştür
@@ -72,17 +93,6 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
   const router = useRouter()
   const editorRef = useRef<TiptapEditorRef>(null)
 
-  useEffect(() => {
-    setEnableEconomy(canSetPrice)
-  }, [canSetPrice])
-
-  useEffect(() => {
-    if (initialData?.content) {
-      const count = initialData.content.trim().split(/\s+/).filter(w => w).length
-      setWordCount(count)
-    }
-  }, [initialData])
-
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -94,15 +104,16 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
 
     const statusValue = parseInt(formData.get("status") as string)
     const finalStatus = isScheduled ? 2 : statusValue
+    const title = String(formData.get("title") || "")
 
-    const data: any = {
-      title: formData.get("title"),
+    const data: ChapterPayload = {
+      title,
       content: content,
       lines: paragraphs.map(p => ({
         id: p.id,
         order: p.order,
         content: p.content,
-        type: p.type
+        type: Number(p.type)
       })),
       order: parseInt(formData.get("order") as string) || (initialData?.order ?? nextOrder),
       status: finalStatus,
@@ -161,9 +172,9 @@ export function EditChapterForm({ bookId, chapterId, initialData, nextOrder, boo
           }
         }
       }
-    } catch (err: any) {
+    } catch (error) {
       showToast({ title: "Sistem Hatası", description: "İşlem sırasında beklenmedik bir hata oluştu.", tone: "error" })
-      console.error(err)
+      console.error(error)
     } finally {
       setLoading(false)
     }

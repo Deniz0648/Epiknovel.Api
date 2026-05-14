@@ -148,7 +148,10 @@ export default function RequestsPage() {
   }, [currentStatus, currentType]);
 
   useEffect(() => {
-    fetchData();
+    const run = async () => {
+      await fetchData();
+    };
+    void run();
   }, [fetchData]);
 
   const setTabState = (type: RequestType, status: RequestStatus) => {

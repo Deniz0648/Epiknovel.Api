@@ -44,6 +44,7 @@ export default function UpdatesView() {
   const [searchQuery, setSearchQuery] = useState("");
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeSearch, setActiveSearch] = useState("");
   const [totalCount, setTotalCount] = useState(0);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,9 +75,10 @@ export default function UpdatesView() {
   }, []);
 
   useEffect(() => {
-    setCurrentPage(1);
     const timer = setTimeout(() => {
       void fetchUpdates(1, searchQuery, false);
+      setCurrentPage(1);
+      setActiveSearch(searchQuery);
     }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery, fetchUpdates]);
@@ -84,7 +86,7 @@ export default function UpdatesView() {
   const handleLoadMore = () => {
     const nextPage = currentPage + 1;
     setCurrentPage(nextPage);
-    void fetchUpdates(nextPage, searchQuery, true);
+    void fetchUpdates(nextPage, activeSearch, true);
   };
 
   return (

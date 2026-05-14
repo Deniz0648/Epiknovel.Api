@@ -61,10 +61,6 @@ export default function AnnouncementsManagementPage() {
   const [publishedAt, setPublishedAt] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
-  useEffect(() => {
-    loadAnnouncements();
-  }, []);
-
   const loadAnnouncements = async () => {
     try {
       setIsLoading(true);
@@ -150,6 +146,13 @@ export default function AnnouncementsManagementPage() {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    const run = async () => {
+      await loadAnnouncements();
+    };
+    void run();
+  }, []);
 
   return (
     <div className="space-y-8">

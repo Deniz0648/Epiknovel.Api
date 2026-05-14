@@ -131,7 +131,7 @@ export default function EditBookPage({ params }: { params: Promise<{ bookSlug: s
         setContentRating(currentRating);
         setBookType(currentType);
         setOriginalAuthorName(bookData.originalAuthorName || "");
-        setSelectedCategories(bookData.categories.map(c => (c as any).id || c));
+        setSelectedCategories(bookData.categories.map((category) => category.id));
 
         setCategories(categoriesData.categories);
         setTagSuggestions(tagsData.tags);

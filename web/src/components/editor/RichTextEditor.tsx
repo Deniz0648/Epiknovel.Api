@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
+import type { JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
 import CharacterCount from "@tiptap/extension-character-count";
@@ -10,8 +11,8 @@ import { TrackedParagraph } from "./extensions/TrackedParagraph";
 import { TrackedHeading } from "./extensions/TrackedHeading";
 
 interface RichTextEditorProps {
-  initialContent?: any;
-  onChange?: (json: any, textCount: number) => void;
+  initialContent?: JSONContent | string;
+  onChange?: (json: JSONContent, textCount: number) => void;
   placeholder?: string;
 }
 
