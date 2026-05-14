@@ -29,6 +29,13 @@ test.epiknovel.com {
     reverse_proxy epiknovel_web:3000
 }
 
+# Legacy Frontend Domain
+epiknovel.com, www.epiknovel.com {
+    import common
+
+    reverse_proxy epiknovel_web:3000
+}
+
 # Backend API
 api.epiknovel.com {
     import common
