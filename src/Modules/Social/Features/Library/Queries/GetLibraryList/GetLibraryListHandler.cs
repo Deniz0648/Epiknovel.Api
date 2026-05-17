@@ -42,7 +42,14 @@ public class GetLibraryListHandler(SocialDbContext dbContext) : IRequestHandler<
                 LastReadChapterTitle = x.p != null ? x.p.LastReadChapterTitle : null,
                 LastReadParagraphId = x.p != null ? x.p.LastReadParagraphId : (Guid?)null,
                 ProgressPercentage = (x.p != null && x.p.TotalChapters > 0)
-                    ? (double)x.p.LastReadChapterOrder / x.p.TotalChapters * 100.0
+                    ? Math.Clamp(
+                        (
+                            (Math.Max(x.p.LastReadChapterOrder, 1) - 1) +
+                            Math.Clamp(x.p.ScrollPercentage, 0.0, 100.0) / 100.0
+                        ) / x.p.TotalChapters * 100.0,
+                        0.0,
+                        100.0
+                    )
                     : 0.0
             })
             .ToListAsync(ct);

@@ -10,14 +10,70 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+type PublicUserListItem = {
+  slug: string;
+  displayName: string;
+  bio?: string | null;
+  avatarUrl?: string | null;
+  followersCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+  isAuthor?: boolean;
+};
+
+type PublicUserListResponse = {
+  items: PublicUserListItem[];
+};
+
 async function getProfileData(slug: string) {
+  const normalizedSlug = slug.trim().toLowerCase();
+  const encodedSlug = encodeURIComponent(slug);
   try {
-    const profile = await backendApiRequest<PublicUserProfile>(`/users/${slug}`, {
+    const profile = await backendApiRequest<PublicUserProfile>(`/users/${encodedSlug}`, {
       next: { revalidate: 3600 }
     });
     return profile;
   } catch {
-    return null;
+    // Fallback 1: go through Next API route (adds forwarded headers/token handling)
+    try {
+      const proxyRes = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL ?? "https://test.epiknovel.com"}/api/users/${encodedSlug}`, {
+        cache: "no-store",
+      });
+      if (proxyRes.ok) {
+        const proxyPayload = await proxyRes.json() as { isSuccess?: boolean; data?: PublicUserProfile };
+        if (proxyPayload?.isSuccess && proxyPayload.data) {
+          return proxyPayload.data;
+        }
+      }
+    } catch {
+      // continue to list fallback
+    }
+
+    try {
+      const list = await backendApiRequest<PublicUserListResponse>(
+        `/users?query=${encodeURIComponent(normalizedSlug)}&pageNumber=1&pageSize=20`,
+        { next: { revalidate: 300 } }
+      );
+
+      const match = list.items.find((item) => item.slug?.toLowerCase() === normalizedSlug);
+      if (!match) return null;
+
+      const fallbackProfile: PublicUserProfile = {
+        slug: match.slug,
+        displayName: match.displayName,
+        bio: match.bio,
+        avatarUrl: match.avatarUrl,
+        followersCount: match.followersCount,
+        followingCount: match.followingCount,
+        isFollowing: match.isFollowing,
+        isAuthor: match.isAuthor ?? false,
+        isRedirected: false
+      };
+
+      return fallbackProfile;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -26,7 +82,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const profile = await getProfileData(slug);
 
   if (!profile) {
-    notFound();
+    return {
+      title: "Topluluk Profili - EpikNovel",
+      description: "EpikNovel topluluk profili.",
+      alternates: {
+        canonical: `https://epiknovel.com/community/${slug}`,
+      }
+    };
   }
 
   const title = `${profile.displayName} (@${profile.slug}) - EpikNovel`;

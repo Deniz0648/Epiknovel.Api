@@ -13,6 +13,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 const AUTO_SLIDE_MS = 8000;
 const SWIPE_THRESHOLD = 48;
@@ -232,9 +233,10 @@ export function HeroFrame({ slides }: { slides: BookSlide[] }) {
             <Link
               href={activeBookHref}
               className="btn btn-primary h-12 flex-1 rounded-2xl px-0 shadow-lg shadow-primary/30"
+              onClick={() => trackEvent("hero_cta_click", { section: "hero_frame", book_slug: activeSlide.slug })}
             >
               <Play className="h-4 w-4 fill-current" aria-hidden="true" />
-              <span className="truncate">Simdi Oku</span>
+              <span className="truncate">Hemen Oku</span>
             </Link>
             <AddToLibraryButton
               bookId={activeSlide.id}

@@ -44,13 +44,13 @@ public class Endpoint(
         var userIdStrRaw = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
         Guid currentUserId = Guid.Empty;
         bool isAuthenticated = !string.IsNullOrEmpty(userIdStrRaw) && Guid.TryParse(userIdStrRaw, out currentUserId);
-        
         var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
         bool isConfirmed = false;
         if (isAuthenticated)
         {
             isConfirmed = env == "Development" || await userAccountProvider.IsEmailConfirmedAsync(currentUserId, ct);
         }
+        
 
         // 1. Cache Stampede Korumalı Data Alımı (Technical Decision 1 & 4)
         // Eğer bölüm Published ise cache'den gelir, yoksa DB'den çekilip cache'lenir.
@@ -103,9 +103,11 @@ public class Endpoint(
                 hasFullAccess = await walletProvider.HasUserUnlockedChapterAsync(currentUserId, response.Id, ct);
             }
 
-            // Kısıtlama Koşulları: E-posta onaylanmamışsa (Order > 1) VEYA Ücretli olup satın alınmamışsa
+            // Kısıtlama Koşulları:
+            // 1) E-posta onaysız kullanıcı: 2. ve sonrası bölümlerde %15
+            // 2) E-posta onaylı kullanıcı: ücretli + satın alınmamış bölümlerde %15
             bool restrictedByEmail = !isConfirmed && response.Order > 1;
-            bool restrictedByPayment = !hasFullAccess && !response.IsFree;
+            bool restrictedByPayment = isConfirmed && !hasFullAccess && !response.IsFree;
 
             if (restrictedByEmail || restrictedByPayment)
             {
@@ -114,7 +116,7 @@ public class Endpoint(
                 if (takeCount < 1 && originalCount > 0) takeCount = 1;
                 response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
                 response.IsPreview = true;
-                response.PreviewMessage = restrictedByPayment 
+                response.PreviewMessage = restrictedByPayment
                     ? "Bu bölüm ücretlidir. Tamamını okumak için lütfen satın alın."
                     : "Bu bölümün sadece %15'lik kısmını görmektesiniz. Tamamını okumak için lütfen hesabınızı onaylayın.";
                 
@@ -124,18 +126,17 @@ public class Endpoint(
         }
         else
         {
-            // Giriş yapmamış kullanıcı tüm bölümleri (ücretsiz olsa dahi) sadece preview olarak görebilir
+            // Misafir kullanıcı: her durumda %15 preview
             int originalCount = response.Paragraphs.Count;
             int takeCount = (int)Math.Ceiling(originalCount * 0.15);
             if (takeCount < 1 && originalCount > 0) takeCount = 1;
             response.Paragraphs = response.Paragraphs.Take(takeCount).ToList();
             response.IsPreview = true;
-            
-            response.PreviewMessage = response.IsFree 
-                ? "Bu bölüm ücretsizdir ancak okumak için lütfen giriş yapın."
+            response.PreviewMessage = response.IsFree
+                ? "Bu bölümün tamamını okumak için lütfen giriş yapın."
                 : "Bu bölüm ücretlidir. Okumak için lütfen giriş yapın ve satın alın.";
 
-            Serilog.Log.Information("[CHAPTER_RESTRICT] Guest | Chapter: {ChapterId} | Truncated: {Original} -> {New}", 
+            Serilog.Log.Information("[CHAPTER_RESTRICT] Guest | Chapter: {ChapterId} | Truncated: {Original} -> {New}",
                 response.Id, originalCount, response.Paragraphs.Count);
         }
 

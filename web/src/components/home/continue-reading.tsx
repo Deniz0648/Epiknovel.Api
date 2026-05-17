@@ -6,6 +6,7 @@ import Link from "next/link";
 import { BookCover } from "@/components/ui/book-cover";
 import { getLibraryList, type LibraryItemResponse, type ReadingStatus } from "@/lib/social";
 import { useAuth } from "@/components/providers/auth-provider";
+import { resolveMediaUrl } from "@/lib/api";
 
 type ContinueReadingBook = {
   title: string;
@@ -173,9 +174,14 @@ export function ContinueReadingSection() {
             Okuma ilerlemeni, okuyacaklarını ve favori kitaplarını görmek için giriş yap.
           </p>
         </div>
-        <Link href="/login" className="btn btn-primary rounded-full px-7 font-black">
-          Giriş Yap
-        </Link>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Link href="/Books" className="btn btn-ghost rounded-full px-7 font-black">
+            Popüler Kitaplar
+          </Link>
+          <Link href="/login" className="btn btn-primary rounded-full px-7 font-black">
+            Giriş Yap
+          </Link>
+        </div>
       </section>
     );
   }
@@ -288,7 +294,7 @@ export function ContinueReadingSection() {
                         chapter: item.lastReadChapterTitle || item.lastReadChapterSlug || "Bölüm Seçilmedi",
                         chapterSlug: item.lastReadChapterSlug || "",
                         percent: Math.round(item.progressPercentage),
-                        image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
+                        image: resolveMediaUrl(item.bookCoverImageUrl) || "/covers/cover-placeholder.svg",
                         imageAlt: `${item.bookTitle} kapağı`,
                         blurDataURL: "",
                         status: item.status,
@@ -324,7 +330,7 @@ export function ContinueReadingSection() {
                   chapter: item.lastReadChapterTitle || item.lastReadChapterSlug || "Bölüm Seçilmedi",
                   chapterSlug: item.lastReadChapterSlug || "",
                   percent: Math.round(item.progressPercentage),
-                  image: item.bookCoverImageUrl || "/covers/cover-placeholder.svg",
+                  image: resolveMediaUrl(item.bookCoverImageUrl) || "/covers/cover-placeholder.svg",
                   imageAlt: `${item.bookTitle} kapağı`,
                   blurDataURL: "",
                   status: item.status,
@@ -338,8 +344,8 @@ export function ContinueReadingSection() {
         <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-base-content/15 bg-base-100/10 py-16 text-center">
            <Bookmark className="h-10 w-10 text-base-content/10" />
            <div className="space-y-1">
-              <p className="text-sm font-bold text-base-content/40 italic">Bu liste henüz boş.</p>
-              <Link href="/Books" className="text-xs font-black text-primary uppercase hover:underline">Kitap Keşfet</Link>
+              <p className="text-sm font-bold text-base-content/40 italic">Henüz bir kitap eklemedin.</p>
+              <Link href="/Books" className="text-xs font-black text-primary uppercase hover:underline">Kesfe Git</Link>
            </div>
         </div>
       )}

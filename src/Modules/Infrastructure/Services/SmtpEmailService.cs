@@ -21,7 +21,8 @@ public class SmtpEmailService(
             
             var userName = await GetSettingOrEnvAsync("SMTP_Username", "SMTP_USERNAME", null);
             var password = await GetSettingOrEnvAsync("SMTP_Password", "SMTP_PASSWORD", null);
-            var fromEmail = await GetSettingOrEnvAsync("SMTP_FromEmail", "SMTP_FROM_EMAIL", "no-reply@epiknovel.com");
+            var fromEmail = await GetSettingOrEnvAsync("SMTP_FromEmail", "SMTP_FROM_EMAIL", "no-reply@epiknovel.com") 
+                ?? "no-reply@epiknovel.com";
             var fromName = await GetSettingOrEnvAsync("SMTP_FromName", "SMTP_FROM_NAME", "Epiknovel");
             
             var sslStr = await GetSettingOrEnvAsync("SMTP_EnableSsl", "SMTP_ENABLE_SSL", "true");
@@ -31,9 +32,8 @@ public class SmtpEmailService(
             // Eğer ayarlar boşsa (Yeni kurulum), Console üzerinden log bas (Failsafe)
             if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
             {
-                logger.LogWarning("SMTP Settings are not configured (Username/Password missing). Logging email to console instead.");
-                logger.LogInformation($"[SIMULATED EMAIL] To: {to} | Subject: {subject} | Body: {body}");
-                return;
+                logger.LogError("SMTP settings are not configured (username/password missing). Mail send aborted.");
+                throw new InvalidOperationException("SMTP credentials are missing.");
             }
 
             logger.LogInformation($"[SMTP] Attempting to send email to {to} via {host}:{port} (SSL: {enableSsl})");

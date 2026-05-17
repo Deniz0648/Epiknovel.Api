@@ -42,12 +42,14 @@ public class Endpoint(UserManager<User> userManager, IEmailService emailService)
         var token = await userManager.GenerateChangeEmailTokenAsync(user, req.NewEmail);
         
         // 2. Yeni e-postaya onay linki gönder
-        var confirmLink = $"https://epiknovel.com/confirm-change-email?email={req.NewEmail}&token={Uri.EscapeDataString(token)}";
+        var siteUrl = Environment.GetEnvironmentVariable("SITE_URL") ?? "https://epiknovel.com";
+        var confirmLink = $"{siteUrl.TrimEnd('/')}/confirm-change-email?email={Uri.EscapeDataString(req.NewEmail)}&token={Uri.EscapeDataString(token)}";
         
         await emailService.SendEmailAsync(
             req.NewEmail, 
             "Epiknovel - E-posta Değiştirme Onayı", 
-            $"E-posta adresinizi güncellemek için şu linki kullanın: {confirmLink}");
+            $"E-posta adresinizi güncellemek için şu linki kullanın: {confirmLink}",
+            ct);
 
         await Send.ResponseAsync(Result<Response>.Success(new Response
         {

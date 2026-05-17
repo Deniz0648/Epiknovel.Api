@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import DiscoveryView from "../../components/book/discovery-view";
 
 export const metadata: Metadata = {
@@ -15,5 +16,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <DiscoveryView />;
+  return (
+    <Suspense fallback={<main className="site-shell mx-auto min-h-screen px-4 pb-8 pt-28 sm:px-8 sm:pb-12 sm:pt-32" />}>
+      <DiscoveryView />
+    </Suspense>
+  );
 }

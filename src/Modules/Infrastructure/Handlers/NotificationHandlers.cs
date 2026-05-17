@@ -360,7 +360,7 @@ public class NotificationHandlers(
             { "{UserName}", displayName ?? "Üye" },
             { "{Email}", notification.Email },
             { "{ResetToken}", notification.ResetToken },
-            { "{ResetLink}", $"{{SiteUrl}}/auth/reset-password?token={notification.ResetToken}&email={notification.Email}" }
+            { "{ResetLink}", $"{{SiteUrl}}/reset-password?token={Uri.EscapeDataString(notification.ResetToken)}&email={Uri.EscapeDataString(notification.Email)}" }
         };
 
         var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("PasswordReset", templateVariables, ct);

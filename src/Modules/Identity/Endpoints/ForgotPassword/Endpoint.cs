@@ -8,6 +8,7 @@ using Epiknovel.Shared.Core.Attributes;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace Epiknovel.Modules.Identity.Endpoints.ForgotPassword;
 
@@ -15,7 +16,8 @@ namespace Epiknovel.Modules.Identity.Endpoints.ForgotPassword;
 public class Endpoint(
     UserManager<User> userManager, 
     IEmailService emailService,
-    Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService emailTemplateService) : Endpoint<Request, Result<Response>>
+    Epiknovel.Shared.Core.Interfaces.Management.IEmailTemplateService emailTemplateService,
+    IConfiguration configuration) : Endpoint<Request, Result<Response>>
 {
     public override void Configure()
     {
@@ -38,19 +40,34 @@ public class Endpoint(
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        var resetLink = $"{req.BaseUrl}/auth/reset-password?token={Uri.EscapeDataString(token)}&email={req.Email}";
+        var normalizedBaseUrl = GetNormalizedBaseUrl(req.BaseUrl, configuration["SITE_URL"]);
+        var resetLink = $"{normalizedBaseUrl}/reset-password?token={Uri.EscapeDataString(token)}&email={Uri.EscapeDataString(req.Email)}";
 
-        // 📧 CENTRAL TEMPLATE: ResetPassword
+        // 📧 CENTRAL TEMPLATE: PasswordReset
         var variables = new Dictionary<string, string>
         {
-            { "{USER_NAME}", user.DisplayName ?? "Üye" },
-            { "{RESET_LINK}", resetLink },
-            { "{RESET_URL}", resetLink }
+            { "{UserName}", user.DisplayName ?? "Üye" },
+            { "{ResetLink}", resetLink }
         };
 
-        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("ResetPassword", variables, ct);
-        await emailService.SendEmailAsync(user.Email!, subject, body);
+        var (subject, body) = await emailTemplateService.GetRenderedEmailAsync("PasswordReset", variables, ct);
+        await emailService.SendEmailAsync(user.Email!, subject, body, ct);
 
         await Send.ResponseAsync(Result<Response>.Success(new Response { Message = "Sifre sifirlama talimati e-posta adresinize gonderildi." }), 200, ct);
+    }
+
+    private static string GetNormalizedBaseUrl(string? requestBaseUrl, string? siteBaseUrl)
+    {
+        static bool IsAbsoluteHttpUrl(string? value)
+            => Uri.TryCreate(value, UriKind.Absolute, out var uri)
+               && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
+        var selected = IsAbsoluteHttpUrl(requestBaseUrl)
+            ? requestBaseUrl!
+            : IsAbsoluteHttpUrl(siteBaseUrl)
+                ? siteBaseUrl!
+                : "https://test.epiknovel.com";
+
+        return selected.TrimEnd('/');
     }
 }

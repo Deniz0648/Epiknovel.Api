@@ -14,7 +14,9 @@ import {
   Archive,
   XCircle,
   Sparkles,
-  Search
+  Search,
+  ArrowRight,
+  BookOpen
 } from "lucide-react";
 
 const LIBRARY_TABS = [
@@ -75,6 +77,16 @@ export default function LibraryPage() {
       item.bookTitle?.toLowerCase().includes(query)
     );
   }, [items, searchQuery]);
+
+  const continueItem = useMemo(() => {
+    if (!profile) return null;
+    const readingTabId = "reading";
+    const isReadingTab = activeTab === readingTabId;
+    if (!isReadingTab) return null;
+    return filteredItems
+      .filter((item) => item.progressPercentage > 0)
+      .sort((a, b) => b.progressPercentage - a.progressPercentage)[0] ?? null;
+  }, [filteredItems, activeTab, profile]);
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -150,7 +162,40 @@ export default function LibraryPage() {
               </Link>
             </div>
           ) : filteredItems.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 xl:gap-6">
+            <div className="space-y-6">
+              {continueItem && (
+                <div className="rounded-3xl border border-primary/20 bg-primary/5 p-4 sm:p-6">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary">Kaldığın Yerden Devam Et</p>
+                      <h2 className="text-lg font-black text-base-content sm:text-2xl">{continueItem.bookTitle}</h2>
+                      <p className="text-xs font-bold text-base-content/55">
+                        {continueItem.lastReadChapterSlug ? `Bölüm bağlantısı hazır` : "Detaya gidip bölüm seçebilirsin"}
+                      </p>
+                    </div>
+                    <Link
+                      href={continueItem.lastReadChapterSlug
+                        ? `/read/${continueItem.bookSlug}/${continueItem.lastReadChapterSlug}${continueItem.lastReadParagraphId ? `?p=${continueItem.lastReadParagraphId}` : ''}`
+                        : `/Books/${continueItem.bookSlug}`
+                      }
+                      className="btn btn-primary rounded-xl px-5 font-black text-[10px] uppercase tracking-wider"
+                    >
+                      Devam Et <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
+                  <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-base-content/10">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-700"
+                      style={{ width: `${continueItem.progressPercentage}%` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-[10px] font-black uppercase tracking-widest text-base-content/45">
+                    %{Math.round(continueItem.progressPercentage)} ilerleme
+                  </p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 xl:gap-6">
               {filteredItems.map((item) => (
                 <div key={item.id} className="group relative flex flex-col gap-3 transition-all duration-300">
                   <Link
@@ -162,7 +207,7 @@ export default function LibraryPage() {
                         <BookCover
                           src={item.bookCoverImageUrl}
                           alt={item.bookTitle}
-                          sizes="(max-width: 640px) 150px, (max-width: 1024px) 180px, 200px"
+                          sizes="(max-width: 640px) 92vw, (max-width: 1024px) 44vw, (max-width: 1280px) 24vw, 18vw"
                         />
                         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
@@ -196,7 +241,7 @@ export default function LibraryPage() {
                           }
                           className="btn btn-primary btn-xs h-9 w-full rounded-xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95"
                         >
-                          Devam Et
+                          Devam Et <BookOpen className="h-3.5 w-3.5" />
                         </Link>
                       </div>
                     ) : (
@@ -210,6 +255,7 @@ export default function LibraryPage() {
                   </div>
                 </div>
               ))}
+            </div>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-6 rounded-[2.5rem] border border-dashed border-base-content/15 bg-base-100/10 py-32 text-center">

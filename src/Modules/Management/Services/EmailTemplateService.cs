@@ -2,6 +2,7 @@ using Epiknovel.Modules.Management.Data;
 using Epiknovel.Modules.Management.Domain;
 using Epiknovel.Shared.Core.Interfaces.Management;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Epiknovel.Modules.Management.Services;
@@ -9,6 +10,7 @@ namespace Epiknovel.Modules.Management.Services;
 public class EmailTemplateService(
     ManagementDbContext dbContext, 
     ISystemSettingProvider settingProvider,
+    IConfiguration configuration,
     ILogger<EmailTemplateService> logger) : IEmailTemplateService
 {
     public async Task<string> RenderTemplateAsync(string key, Dictionary<string, string> variables, CancellationToken ct = default)
@@ -49,7 +51,14 @@ public class EmailTemplateService(
         }
 
         // Global Değişkenleri Ekle
-        var siteUrl = await settingProvider.GetSettingValueAsync("SITE_Url", ct) ?? "https://epiknovel.com";
+        var envMailBaseUrl = configuration["MAIL_BASE_URL"];
+        var configuredSiteUrl = await settingProvider.GetSettingValueAsync("SITE_Url", ct);
+        var siteUrl = !string.IsNullOrWhiteSpace(envMailBaseUrl)
+            ? envMailBaseUrl
+            : !string.IsNullOrWhiteSpace(configuredSiteUrl)
+                ? configuredSiteUrl
+                : "https://epiknovel.com";
+        siteUrl = siteUrl.TrimEnd('/');
         if (!variables.ContainsKey("{SiteUrl}"))
         {
             variables["{SiteUrl}"] = siteUrl;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Sparkles, BookOpen, PenTool, ChevronRight } from "lucide-react";
+import { trackEvent } from "@/lib/analytics";
 
 export function SimpleHero() {
   return (
@@ -17,27 +18,28 @@ export function SimpleHero() {
         </div>
         
         <h1 className="hero-title-gradient mb-6 max-w-4xl text-balance text-4xl font-black leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
-          Hayal Gücünüzün <br className="hidden sm:block" />
-          <span className="text-primary">Yeni Adresi:</span> Epiknovel
+          Her gün güncellenen <br className="hidden sm:block" />
+          <span className="text-primary">epik hikayeler</span> burada
         </h1>
         
         <p className="mb-10 max-w-2xl text-pretty text-lg font-medium leading-relaxed text-base-content/70 sm:text-xl">
-          Binlerce özgün hikaye, tutkulu bir okur kitlesi ve yazarlar için gelişmiş araçlar. 
-          Kendi dünyanızı kurmaya veya başkalarının dünyasında kaybolmaya hazır mısınız?
+          Okumaya saniyeler içinde başla, favorilerini kütüphanene ekle ve yeni bölümleri kaçırmadan takip et.
         </p>
         
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <Link
-            href="/discovery"
+            href="/Books"
             className="btn btn-primary h-14 w-full sm:w-auto rounded-full px-10 text-base font-bold shadow-xl shadow-primary/30"
+            onClick={() => trackEvent("hero_cta_click", { section: "simple_hero", target: "/Books" })}
           >
             <BookOpen className="h-5 w-5" />
-            Keşfetmeye Başla
+            Hemen Oku
           </Link>
           
           <Link
             href="/author/apply"
             className="btn btn-ghost h-14 w-full sm:w-auto rounded-full px-10 text-base font-bold border border-base-content/10 hover:bg-base-content/5"
+            onClick={() => trackEvent("hero_cta_click", { section: "simple_hero", target: "/author/apply" })}
           >
             <PenTool className="h-5 w-5" />
             Yazar Ol
@@ -47,16 +49,16 @@ export function SimpleHero() {
 
         <div className="mt-12 grid grid-cols-2 sm:grid-cols-3 gap-8 pt-8 border-t border-base-content/5 w-full">
           <div>
-            <p className="text-3xl font-black text-primary">100%</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Özgür İçerik</p>
+            <p className="text-3xl font-black text-primary">Her Gün</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Yeni Bölümler</p>
           </div>
           <div>
-            <p className="text-3xl font-black text-primary">7/24</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Kesintisiz Erişim</p>
+            <p className="text-3xl font-black text-primary">Anında</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Kütüphane</p>
           </div>
           <div className="col-span-2 sm:col-span-1">
-            <p className="text-3xl font-black text-primary">Binlerce</p>
-            <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Aktif Okur</p>
+            <p className="text-3xl font-black text-primary">Tek Hesap</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Çoklu Cihaz</p>
           </div>
         </div>
       </div>

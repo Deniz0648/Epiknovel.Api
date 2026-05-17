@@ -11,6 +11,7 @@ interface BookCoverProps {
   className?: string;
   fill?: boolean;
   priority?: boolean;
+  quality?: number;
   blurDataUrl?: string | null;
   sizes?: string;
 }
@@ -25,6 +26,7 @@ export function BookCover({
   className,
   fill = true,
   priority = false,
+  quality = 75,
   blurDataUrl,
   sizes = "(max-width: 768px) 150px, (max-width: 1200px) 300px, 600px",
 }: BookCoverProps) {
@@ -37,6 +39,8 @@ export function BookCover({
         alt={alt}
         fill={fill}
         priority={priority}
+        loading={priority ? "eager" : "lazy"}
+        quality={quality}
         placeholder={blurDataUrl ? "blur" : "empty"}
         blurDataURL={blurDataUrl || undefined}
         sizes={sizes}

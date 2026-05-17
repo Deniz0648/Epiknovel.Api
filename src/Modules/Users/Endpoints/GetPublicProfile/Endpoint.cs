@@ -23,17 +23,33 @@ public class Endpoint(UsersDbContext dbContext, IFileService fileService) : Endp
 
     public override async Task HandleAsync(Request req, CancellationToken ct)
     {
-        var normalizedSlug = SlugHelper.ToSlug(req.Slug);
-        if (string.IsNullOrWhiteSpace(normalizedSlug))
+        var rawSlug = req.Slug?.Trim();
+        var normalizedSlug = SlugHelper.ToSlug(rawSlug ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(rawSlug) && string.IsNullOrWhiteSpace(normalizedSlug))
         {
             await Send.ResponseAsync(Result<Response>.Failure("Profil bulunamadı."), 404, ct);
             return;
         }
 
+        var slugCandidates = new List<string>();
+        if (!string.IsNullOrWhiteSpace(rawSlug))
+        {
+            slugCandidates.Add(rawSlug);
+            var lowerRaw = rawSlug.ToLowerInvariant();
+            if (!slugCandidates.Contains(lowerRaw))
+            {
+                slugCandidates.Add(lowerRaw);
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(normalizedSlug) && !slugCandidates.Contains(normalizedSlug))
+        {
+            slugCandidates.Add(normalizedSlug);
+        }
+
         // 1. Profil kaydını bul (Slug üzerinden) - Performans: İzleme Kapalı (ReadOnly)
         var profile = await dbContext.UserProfiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Slug == normalizedSlug, ct);
+            .FirstOrDefaultAsync(x => slugCandidates.Contains(x.Slug), ct);
 
         var isRedirected = false;
 
@@ -41,7 +57,7 @@ public class Endpoint(UsersDbContext dbContext, IFileService fileService) : Endp
         {
             var legacyUserId = await dbContext.UserSlugHistories
                 .AsNoTracking()
-                .Where(x => x.Slug == normalizedSlug)
+                .Where(x => slugCandidates.Contains(x.Slug))
                 .OrderByDescending(x => x.CreatedAt)
                 .Select(x => (Guid?)x.UserId)
                 .FirstOrDefaultAsync(ct);

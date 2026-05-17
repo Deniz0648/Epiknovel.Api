@@ -4,6 +4,7 @@ import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
 import { Sparkles, Star } from "lucide-react";
 import { type TouchEvent, useMemo, useRef, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 
 const SWIPE_THRESHOLD = 44;
 
@@ -13,6 +14,9 @@ type RecommendationBook = {
   title: string;
   category: string;
   rating: number;
+  viewCount: number;
+  chapterCount: number;
+  status: string;
   image: string;
   imageAlt: string;
   blurDataURL: string;
@@ -24,7 +28,11 @@ function RecommendationCard({ book }: { book: RecommendationBook }) {
   const bookHref = `/Books/${book.slug}`;
 
   return (
-    <Link href={bookHref} className="glass-frame group block h-full p-3 sm:p-3.5">
+    <Link
+      href={bookHref}
+      className="glass-frame group block h-full p-3 sm:p-3.5"
+      onClick={() => trackEvent("book_card_click", { section: "recommendations", book_slug: book.slug, book_id: book.id })}
+    >
       <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl border border-base-content/12">
         <BookCover
           src={book.image}
@@ -48,6 +56,11 @@ function RecommendationCard({ book }: { book: RecommendationBook }) {
           <p className="line-clamp-1 text-right text-sm font-semibold text-primary/95">
             {book.category}
           </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-[11px] font-semibold text-base-content/65">
+          <span>{book.viewCount.toLocaleString("tr-TR")} okunma</span>
+          <span>{book.chapterCount} bolum</span>
+          <span className="text-right">{book.status}</span>
         </div>
       </div>
     </Link>

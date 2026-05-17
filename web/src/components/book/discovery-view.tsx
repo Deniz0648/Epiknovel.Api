@@ -2,9 +2,11 @@
 
 import { BookCover } from "@/components/ui/book-cover";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Filter, Home, Search, Sparkles, Star } from "lucide-react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { apiRequest, resolveMediaUrl } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { PROTECTED_STATUSES, WORK_TYPES, AGE_RANGES } from "@/constants/books";
 
 type QuickFilterKey =
@@ -31,8 +33,10 @@ type Book = {
   reads: number;
   chapters: number;
   trendScore: number;
+  priceLabel: string;
   author: string;
   cover: string;
+  description: string;
 };
 
 type ApiCategory = {
@@ -56,6 +60,13 @@ type BooksApiItem = {
   voteCount: number;
   chapterCount: number;
   categoryNames: string[];
+  isFree?: boolean | null;
+  coinPrice?: number | null;
+  chapterPrice?: number | null;
+  minChapterPrice?: number | null;
+  minimumChapterPrice?: number | null;
+  createdAt?: string;
+  updatedAt?: string | null;
 };
 
 type BooksApiResponse = {
@@ -90,6 +101,28 @@ function hydrateBookFromApi(item: BooksApiItem): Book {
   const statusLabels: BookStatusLabel[] = ["Taslak", "Devam Ediyor", "Tamamlandi", "Ara Verildi", "Iptal Edildi"];
   const ageLabels: AgeRangeLabel[] = ["G", "PG13", "R"];
 
+  const chapterPriceCandidates = [
+    item.coinPrice,
+    item.chapterPrice,
+    item.minChapterPrice,
+    item.minimumChapterPrice
+  ];
+  const firstPrice = chapterPriceCandidates.find((value) => typeof value === "number" && Number.isFinite(value)) ?? 0;
+  const isPaid = firstPrice > 0 || item.isFree === false;
+  const priceLabel = isPaid
+    ? (firstPrice > 0 ? `Bölümler ${firstPrice}+ coin` : "Bölümler coin ile ücretli")
+    : "Ücretsiz";
+  const updatedAtTs = item.updatedAt ? Date.parse(item.updatedAt) : Number.NaN;
+  const createdAtTs = item.createdAt ? Date.parse(item.createdAt) : Number.NaN;
+  const now = Date.now();
+  const recencyDays = Number.isFinite(updatedAtTs)
+    ? Math.max(0, (now - updatedAtTs) / 86400000)
+    : Number.isFinite(createdAtTs)
+      ? Math.max(0, (now - createdAtTs) / 86400000)
+      : 365;
+  const recencyWeight = Math.max(0, 1 - recencyDays / 30);
+  const trendScore = (item.viewCount * 0.55) + (item.averageRating * 220) + (item.voteCount * 8) + (recencyWeight * 1500);
+
   return {
     id: item.slug,
     slug: item.slug,
@@ -102,15 +135,22 @@ function hydrateBookFromApi(item: BooksApiItem): Book {
     rating: item.averageRating,
     reads: item.viewCount,
     chapters: item.chapterCount,
-    trendScore: 0,
+    trendScore,
+    priceLabel,
     author: item.authorName || "Bilinmiyor",
     cover: resolveMediaUrl(item.coverImageUrl) || COVER_ASSETS.default,
+    description: item.description || "",
   };
 }
 
-function BookCard({ book }: { book: Book }) {
+function BookCard({ book, onPreview }: { book: Book; onPreview?: (book: Book) => void }) {
   return (
-    <Link href={`/Books/${book.slug}`} className="glass-frame group block h-full p-3 transition-all duration-300 hover:translate-y-[-4px]">
+    <Link
+      href={`/Books/${book.slug}`}
+      className="glass-frame group block h-full p-3 transition-all duration-300 hover:translate-y-[-4px]"
+      onMouseEnter={() => onPreview?.(book)}
+      onFocus={() => onPreview?.(book)}
+    >
       <div className="relative aspect-2/3 w-full overflow-hidden rounded-xl border border-base-content/12">
         <BookCover src={book.cover} alt={book.title} className="h-full w-full transition duration-300 group-hover:scale-[1.05]" sizes="(max-width: 640px) 115px, (max-width: 768px) 210px, (max-width: 1024px) 240px, 310px" />
         <div className="absolute inset-x-2 top-2 flex flex-col gap-1 pointer-events-none">
@@ -129,6 +169,11 @@ function BookCard({ book }: { book: Book }) {
         <div className="flex items-center justify-between pt-1 opacity-60 text-[10px] font-semibold">
            <span>{book.chapters} Bolum</span>
            <span>{formatCompactRead(book.reads)} Okunma</span>
+        </div>
+        <div className="pt-1">
+          <span className={`rounded-md px-2 py-0.5 text-[10px] font-black ${book.priceLabel === "Ücretsiz" ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+            {book.priceLabel}
+          </span>
         </div>
       </div>
     </Link>
@@ -241,7 +286,11 @@ function PaginationControls({
 }
 
 export default function DiscoveryView() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [activeQuickFilter, setActiveQuickFilter] = useState<QuickFilterKey>("newest");
   const [pageSize, setPageSize] = useState(16);
   const [currentPage, setCurrentPage] = useState(1);
@@ -257,11 +306,100 @@ export default function DiscoveryView() {
   const [apiResponse, setApiResponse] = useState<BooksApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isHydratedFromUrl, setIsHydratedFromUrl] = useState(false);
+  const [previewBook, setPreviewBook] = useState<Book | null>(null);
+  const [libraryBookSlugs, setLibraryBookSlugs] = useState<string[]>([]);
+  const [libraryTitleTokens, setLibraryTitleTokens] = useState<string[]>([]);
+
+  const quickFilterSet = useMemo(() => new Set(QUICK_FILTERS.map((item) => item.key)), []);
+
+  useEffect(() => {
+    const q = searchParams.get("q") ?? "";
+    const quick = searchParams.get("quick");
+    const nextQuick = quick && quickFilterSet.has(quick as QuickFilterKey) ? (quick as QuickFilterKey) : "newest";
+    const nextPageSize = Number.parseInt(searchParams.get("pageSize") ?? "16", 10);
+    const allowedPageSizes = new Set([8, 16, 24, 32, 48, 100]);
+    const nextCurrentPage = Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1);
+    const nextCategoryId = searchParams.get("categoryId");
+    const nextStatus = searchParams.get("status");
+    const nextWorkType = searchParams.get("workType");
+    const nextAgeRange = searchParams.get("ageRange");
+    const nextEditorOnly = searchParams.get("editorOnly") === "1";
+
+    setSearchQuery(q);
+    setDebouncedSearchQuery(q);
+    setActiveQuickFilter(nextQuick);
+    setPageSize(allowedPageSizes.has(nextPageSize) ? nextPageSize : 16);
+    setCurrentPage(nextCurrentPage);
+    setSelectedCategoryId(nextCategoryId || null);
+    setSelectedStatus(nextStatus !== null ? Number.parseInt(nextStatus, 10) : null);
+    setSelectedWorkType(nextWorkType !== null ? Number.parseInt(nextWorkType, 10) : null);
+    setSelectedAgeRange(nextAgeRange !== null ? Number.parseInt(nextAgeRange, 10) : null);
+    setEditorOnly(nextEditorOnly);
+    setIsHydratedFromUrl(true);
+  }, [searchParams, quickFilterSet]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (!isHydratedFromUrl) return;
+
+    const params = new URLSearchParams();
+    if (searchQuery) params.set("q", searchQuery);
+    if (activeQuickFilter !== "newest") params.set("quick", activeQuickFilter);
+    if (pageSize !== 16) params.set("pageSize", String(pageSize));
+    if (currentPage > 1) params.set("page", String(currentPage));
+    if (selectedCategoryId) params.set("categoryId", selectedCategoryId);
+    if (selectedStatus !== null) params.set("status", String(selectedStatus));
+    if (selectedWorkType !== null) params.set("workType", String(selectedWorkType));
+    if (selectedAgeRange !== null) params.set("ageRange", String(selectedAgeRange));
+    if (editorOnly) params.set("editorOnly", "1");
+
+    const nextUrl = params.toString() ? `${pathname}?${params}` : pathname;
+    router.replace(nextUrl, { scroll: false });
+  }, [
+    activeQuickFilter,
+    currentPage,
+    editorOnly,
+    isHydratedFromUrl,
+    pageSize,
+    pathname,
+    router,
+    searchQuery,
+    selectedAgeRange,
+    selectedCategoryId,
+    selectedStatus,
+    selectedWorkType
+  ]);
 
   useEffect(() => {
     apiRequest<{ categories: ApiCategory[] }>("/books/categories")
       .then(res => setCategories(res.categories))
       .catch(() => console.error("Kategoriler yuklenemedi."));
+  }, []);
+
+  useEffect(() => {
+    apiRequest<Array<{ bookSlug: string; bookTitle: string }>>("/social/library?pageSize=50")
+      .then((items) => {
+        const slugs = items.map((x) => x.bookSlug).filter(Boolean);
+        const tokens = items
+          .flatMap((x) => (x.bookTitle || "").toLowerCase().split(/\s+/))
+          .map((t) => t.trim())
+          .filter((t) => t.length >= 4)
+          .slice(0, 80);
+        setLibraryBookSlugs(slugs);
+        setLibraryTitleTokens(tokens);
+      })
+      .catch(() => {
+        setLibraryBookSlugs([]);
+        setLibraryTitleTokens([]);
+      });
   }, []);
 
   const fetchBooks = useCallback(async () => {
@@ -270,7 +408,7 @@ export default function DiscoveryView() {
       const qf = QUICK_FILTERS.find(f => f.key === activeQuickFilter);
       let url = `/books?pageNumber=${currentPage}&pageSize=${pageSize}&sortBy=${qf?.sortBy}&sortDescending=${qf?.sortDescending}`;
       
-      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+      if (debouncedSearchQuery) url += `&search=${encodeURIComponent(debouncedSearchQuery)}`;
       if (selectedCategoryId) url += `&CategoryId=${selectedCategoryId}`;
       if (selectedStatus !== null) url += `&Status=${selectedStatus}`;
       if (selectedWorkType !== null) url += `&Type=${selectedWorkType}`;
@@ -278,7 +416,6 @@ export default function DiscoveryView() {
       if (editorOnly) url += `&IsEditorChoice=true`;
 
       const rawData = await apiRequest<BooksApiResponse>(url);
-      console.log("[DEBUG] Discovery API Raw Data:", rawData);
       
       const normalizedPageNumber = rawData.pageNumber || currentPage;
       const normalizedPageSize = rawData.pageSize || pageSize;
@@ -298,24 +435,93 @@ export default function DiscoveryView() {
         hasPreviousPage: rawData.hasPreviousPage ?? (normalizedPageNumber > 1)
       };
 
-      console.log("[DEBUG] Discovery API Processed Data:", data);
       setApiResponse(data);
       setError(null);
     } catch {
-      setError("Eserler yuklenirken bir sorun yuklendi.");
+      setError("Eserler yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.");
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, pageSize, activeQuickFilter, searchQuery, selectedCategoryId, selectedStatus, selectedWorkType, selectedAgeRange, editorOnly]);
+  }, [currentPage, pageSize, activeQuickFilter, debouncedSearchQuery, selectedCategoryId, selectedStatus, selectedWorkType, selectedAgeRange, editorOnly]);
 
   useEffect(() => {
+    if (!isHydratedFromUrl) return;
     const run = async () => {
       await fetchBooks();
     };
     void run();
-  }, [fetchBooks]);
+  }, [fetchBooks, isHydratedFromUrl]);
 
-  const books = useMemo(() => apiResponse?.items.map(hydrateBookFromApi) || [], [apiResponse]);
+  const books = useMemo(() => {
+    const mapped = apiResponse?.items.map(hydrateBookFromApi) || [];
+    if (activeQuickFilter === "trending") {
+      return [...mapped].sort((a, b) => b.trendScore - a.trendScore);
+    }
+    if (libraryBookSlugs.length > 0 || libraryTitleTokens.length > 0) {
+      return [...mapped].sort((a, b) => {
+        const aInLibrary = libraryBookSlugs.includes(a.slug) ? -1000 : 0;
+        const bInLibrary = libraryBookSlugs.includes(b.slug) ? -1000 : 0;
+        const aTokenBoost = libraryTitleTokens.some((t) => a.title.toLowerCase().includes(t)) ? 100 : 0;
+        const bTokenBoost = libraryTitleTokens.some((t) => b.title.toLowerCase().includes(t)) ? 100 : 0;
+        return (b.trendScore + bTokenBoost + bInLibrary) - (a.trendScore + aTokenBoost + aInLibrary);
+      });
+    }
+    return mapped;
+  }, [apiResponse, activeQuickFilter, libraryBookSlugs, libraryTitleTokens]);
+  const selectedCategoryName = useMemo(
+    () => categories.find((c) => c.id === selectedCategoryId)?.name ?? null,
+    [categories, selectedCategoryId]
+  );
+
+  const activeFilterChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onRemove: () => void }> = [];
+    if (searchQuery.trim()) chips.push({ key: "q", label: `Arama: ${searchQuery.trim()}`, onRemove: () => setSearchQuery("") });
+    if (selectedCategoryId) chips.push({ key: "category", label: `Kategori: ${selectedCategoryName ?? "Secili"}`, onRemove: () => setSelectedCategoryId(null) });
+    if (selectedStatus !== null) {
+      const statusLabel = PROTECTED_STATUSES.find((s) => s.value === selectedStatus)?.label ?? String(selectedStatus);
+      chips.push({ key: "status", label: `Durum: ${statusLabel}`, onRemove: () => setSelectedStatus(null) });
+    }
+    if (selectedWorkType !== null) {
+      const workTypeLabel = WORK_TYPES.find((s) => s.value === selectedWorkType)?.label ?? String(selectedWorkType);
+      chips.push({ key: "workType", label: `Tip: ${workTypeLabel}`, onRemove: () => setSelectedWorkType(null) });
+    }
+    if (selectedAgeRange !== null) {
+      const ageRangeLabel = AGE_RANGES.find((s) => s.value === selectedAgeRange)?.label ?? String(selectedAgeRange);
+      chips.push({ key: "ageRange", label: `Yas: ${ageRangeLabel}`, onRemove: () => setSelectedAgeRange(null) });
+    }
+    if (editorOnly) chips.push({ key: "editor", label: "Editor Secimi", onRemove: () => setEditorOnly(false) });
+    return chips;
+  }, [editorOnly, searchQuery, selectedAgeRange, selectedCategoryId, selectedCategoryName, selectedStatus, selectedWorkType]);
+
+  useEffect(() => {
+    if (!isHydratedFromUrl) return;
+    trackEvent("discovery_filters_changed", {
+      q: searchQuery || "",
+      quick: activeQuickFilter,
+      categoryId: selectedCategoryId,
+      status: selectedStatus,
+      workType: selectedWorkType,
+      ageRange: selectedAgeRange,
+      editorOnly,
+      page: currentPage,
+      pageSize
+    });
+  }, [isHydratedFromUrl, searchQuery, activeQuickFilter, selectedCategoryId, selectedStatus, selectedWorkType, selectedAgeRange, editorOnly, currentPage, pageSize]);
+
+  useEffect(() => {
+    if (!isHydratedFromUrl || isLoading) return;
+    if (books.length === 0) {
+      trackEvent("discovery_no_results", {
+        q: searchQuery || "",
+        quick: activeQuickFilter,
+        categoryId: selectedCategoryId,
+        status: selectedStatus,
+        workType: selectedWorkType,
+        ageRange: selectedAgeRange,
+        editorOnly
+      });
+    }
+  }, [isHydratedFromUrl, isLoading, books.length, searchQuery, activeQuickFilter, selectedCategoryId, selectedStatus, selectedWorkType, selectedAgeRange, editorOnly]);
 
   return (
     <main className="relative overflow-hidden">
@@ -351,7 +557,9 @@ export default function DiscoveryView() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div className="flex flex-wrap gap-2">
               {QUICK_FILTERS.map((f) => (
-                <button key={f.key} onClick={() => { setActiveQuickFilter(f.key); setCurrentPage(1); }}
+                <button key={f.key} onClick={() => { setActiveQuickFilter(f.key); setCurrentPage(1); trackEvent("discovery_quick_filter_change", { quick_filter: f.key }); }}
+                        aria-pressed={activeQuickFilter === f.key}
+                        aria-label={`Hızlı filtre: ${f.label}`}
                         className={`rounded-full px-4 py-1.5 text-xs font-bold transition-colors ${activeQuickFilter === f.key ? "bg-primary text-primary-content" : "bg-base-100/28 text-base-content/75 border border-base-content/15 hover:border-primary/30"}`}>
                   {f.label}
                 </button>
@@ -361,7 +569,7 @@ export default function DiscoveryView() {
             <div className="flex items-center justify-between sm:justify-end gap-6 pt-4 sm:pt-0 border-t border-base-content/5 sm:border-0">
               <div className="flex items-center gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 italic sm:hidden">Gosterim</p>
-                <select aria-label="Sayfa başına eser sayısı" className="select select-bordered select-sm sm:select-xs rounded-lg font-bold bg-base-100/32 min-h-0 h-9 sm:h-7" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
+                <select aria-label="Sayfa başına eser sayısı" className="select select-bordered select-sm sm:select-xs rounded-lg font-bold bg-base-100/32 min-h-0 h-9 sm:h-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
                   {[8, 16, 24, 32, 48, 100].map(v => <option key={v} value={v}>{v} Adet</option>)}
                 </select>
               </div>
@@ -372,6 +580,25 @@ export default function DiscoveryView() {
               </div>
             </div>
           </div>
+
+          {activeFilterChips.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-base-content/12 bg-base-100/24 p-3">
+              {activeFilterChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  aria-label={`Filtreyi kaldır: ${chip.label}`}
+                  onClick={() => {
+                    chip.onRemove();
+                    setCurrentPage(1);
+                  }}
+                  className="rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-bold text-primary hover:bg-primary/20"
+                >
+                  {chip.label} ×
+                </button>
+              ))}
+            </div>
+          ) : null}
 
           <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
             <aside className="space-y-4">
@@ -386,7 +613,7 @@ export default function DiscoveryView() {
                   <div className="space-y-2 max-h-[196px] overflow-y-auto pr-2 custom-scrollbar">
                     {categories.map(c => (
                       <label key={c.id} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="checkbox" className="checkbox checkbox-xs" checked={selectedCategoryId === c.id} 
+                        <input type="radio" name="category-filter" aria-label={`Kategori ${c.name}`} className="radio radio-xs" checked={selectedCategoryId === c.id} 
                                onChange={() => { setSelectedCategoryId(selectedCategoryId === c.id ? null : c.id); setCurrentPage(1); }} />
                         <span className={selectedCategoryId === c.id ? "font-bold text-primary" : "font-medium"}>{c.name}</span>
                       </label>
@@ -399,7 +626,7 @@ export default function DiscoveryView() {
                   <div className="space-y-2">
                     {PROTECTED_STATUSES.map(s => (
                       <label key={s.value} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="checkbox" className="checkbox checkbox-xs" checked={selectedStatus === s.value}
+                        <input type="radio" name="status-filter" aria-label={`Durum ${s.label}`} className="radio radio-xs" checked={selectedStatus === s.value}
                                onChange={() => { setSelectedStatus(selectedStatus === s.value ? null : s.value); setCurrentPage(1); }} />
                         <span className={selectedStatus === s.value ? "font-bold text-primary" : "font-medium"}>{s.label}</span>
                       </label>
@@ -412,7 +639,7 @@ export default function DiscoveryView() {
                   <div className="space-y-2">
                     {WORK_TYPES.map(s => (
                       <label key={s.value} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="checkbox" className="checkbox checkbox-xs" checked={selectedWorkType === s.value}
+                        <input type="radio" name="worktype-filter" aria-label={`Eser tipi ${s.label}`} className="radio radio-xs" checked={selectedWorkType === s.value}
                                onChange={() => { setSelectedWorkType(selectedWorkType === s.value ? null : s.value); setCurrentPage(1); }} />
                         <span className={selectedWorkType === s.value ? "font-bold text-primary" : "font-medium"}>{s.label}</span>
                       </label>
@@ -425,7 +652,7 @@ export default function DiscoveryView() {
                   <div className="space-y-2">
                     {AGE_RANGES.map(s => (
                       <label key={s.value} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="checkbox" className="checkbox checkbox-xs" checked={selectedAgeRange === s.value}
+                        <input type="radio" name="agerange-filter" aria-label={`Yaş aralığı ${s.label}`} className="radio radio-xs" checked={selectedAgeRange === s.value}
                                onChange={() => { setSelectedAgeRange(selectedAgeRange === s.value ? null : s.value); setCurrentPage(1); }} />
                         <span className={selectedAgeRange === s.value ? "font-bold text-primary" : "font-medium"}>{s.label}</span>
                       </label>
@@ -444,20 +671,36 @@ export default function DiscoveryView() {
             </aside>
             
             <div className="space-y-6">
-              {/* Top Pagination */}
-              <div className={`flex min-h-[50px] flex-wrap items-center justify-center gap-1.5 border-b border-base-content/5 pb-6 transition-opacity ${isLoading ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
-                {apiResponse && (
-                  <PaginationControls 
-                    currentPage={currentPage} 
-                    totalPages={apiResponse.totalPages ?? 0} 
-                    hasNextPage={apiResponse.hasNextPage ?? false}
-                    hasPreviousPage={apiResponse.hasPreviousPage ?? false}
-                    onPageChange={(p) => { setCurrentPage(p); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                  />
-                )}
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-base-content/12 bg-base-100/24 px-3 py-2.5 text-xs font-semibold text-base-content/70">
+                <span>
+                  {apiResponse?.totalCount ?? 0} sonuç
+                </span>
+                <span>
+                  Sayfa {apiResponse?.pageNumber ?? currentPage} / {apiResponse?.totalPages ?? 1}
+                </span>
+                <span>
+                  Sayfa başına {apiResponse?.pageSize ?? pageSize}
+                </span>
               </div>
 
-              {error && <div className="rounded-xl bg-error/10 p-4 font-bold text-error border border-error/20">{error}</div>}
+              <div className="flex min-h-[50px] items-center justify-center border-b border-base-content/5 pb-6">
+                <p className="text-xs font-bold text-base-content/50">
+                  Sayfa {apiResponse?.pageNumber ?? currentPage} / {apiResponse?.totalPages ?? 1}
+                </p>
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-error/20 bg-error/10 p-4">
+                  <p className="font-bold text-error">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => void fetchBooks()}
+                    className="btn btn-error btn-sm mt-3 rounded-lg text-error-content"
+                  >
+                    Tekrar Dene
+                  </button>
+                </div>
+              )}
               
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-32 gap-4">
@@ -465,8 +708,29 @@ export default function DiscoveryView() {
                   <p className="font-bold text-base-content/60">Eserler Yukleniyor...</p>
                 </div>
               ) : books.length > 0 ? (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-                  {books.map(b => <BookCard key={b.id} book={b} />)}
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+                    {books.map((b) => <BookCard key={b.id} book={b} onPreview={setPreviewBook} />)}
+                  </div>
+                  <aside className="hidden xl:block">
+                    <div className="sticky top-28 rounded-2xl border border-base-content/12 bg-base-100/40 p-4">
+                      {previewBook ? (
+                        <>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">Hizli Onizleme</p>
+                          <h3 className="mt-2 line-clamp-2 text-base font-black">{previewBook.title}</h3>
+                          <p className="mt-1 text-xs font-semibold text-base-content/65">{previewBook.author} • {previewBook.category}</p>
+                          <p className="mt-3 line-clamp-6 text-sm text-base-content/75">{previewBook.description || "Bu eser icin aciklama bulunmuyor."}</p>
+                          <div className="mt-3 flex items-center justify-between text-xs font-bold text-base-content/70">
+                            <span>{previewBook.chapters} bolum</span>
+                            <span>{formatCompactRead(previewBook.reads)} okunma</span>
+                          </div>
+                          <Link href={`/Books/${previewBook.slug}`} className="btn btn-primary btn-sm mt-4 w-full rounded-xl">Detaya Git</Link>
+                        </>
+                      ) : (
+                        <p className="text-sm font-semibold text-base-content/60">Kart uzerine gelince onizleme burada gorunur.</p>
+                      )}
+                    </div>
+                  </aside>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-dashed border-base-content/20 p-24 text-center font-bold text-base-content/40 italic">Aranan kriterlerde eser bulunamadi.</div>
