@@ -33,6 +33,32 @@ interface ReaderSettings {
   readingMode: 'infinite' | 'paged'; isPinned: boolean; isSiteHeaderVisible: boolean;
 }
 
+function normalizeReaderSettings(raw: unknown, defaults: ReaderSettings): ReaderSettings {
+  if (!raw || typeof raw !== "object") return defaults;
+  const value = raw as Partial<ReaderSettings>;
+
+  const fontFamily = value.fontFamily === "sans" || value.fontFamily === "mono" || value.fontFamily === "serif"
+    ? value.fontFamily
+    : defaults.fontFamily;
+  const maxWidth = value.maxWidth === "narrow" || value.maxWidth === "wide" || value.maxWidth === "normal"
+    ? value.maxWidth
+    : defaults.maxWidth;
+  const readingMode = value.readingMode === "infinite" || value.readingMode === "paged"
+    ? value.readingMode
+    : defaults.readingMode;
+
+  return {
+    fontSize: typeof value.fontSize === "number" && Number.isFinite(value.fontSize) ? value.fontSize : defaults.fontSize,
+    fontFamily,
+    theme: typeof value.theme === "string" && value.theme.trim().length > 0 ? value.theme : defaults.theme,
+    lineHeight: typeof value.lineHeight === "number" && Number.isFinite(value.lineHeight) ? value.lineHeight : defaults.lineHeight,
+    maxWidth,
+    readingMode,
+    isPinned: typeof value.isPinned === "boolean" ? value.isPinned : defaults.isPinned,
+    isSiteHeaderVisible: typeof value.isSiteHeaderVisible === "boolean" ? value.isSiteHeaderVisible : defaults.isSiteHeaderVisible
+  };
+}
+
 export default function ReaderPage() {
   const params = useParams<{ bookSlug: string; chapterSlug: string }>();
   const chapterSlug = params?.chapterSlug;
@@ -82,7 +108,7 @@ export default function ReaderPage() {
         return defaults;
       }
 
-      return { ...defaults, ...JSON.parse(saved) };
+      return normalizeReaderSettings(JSON.parse(saved), defaults);
     } catch (error) {
       console.error(error);
       return defaults;
@@ -115,7 +141,7 @@ export default function ReaderPage() {
           chapterTitle: currentChapter.title,
           chapterOrder: currentChapter.order,
           paragraphId: paragraphId,
-          totalChapters: currentChapter.totalChapters
+          totalChapters: Math.max(currentChapter.totalChapters || 0, 1)
         })
       });
     } catch (err) {
