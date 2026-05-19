@@ -1400,6 +1400,39 @@ function SimpleListingView({
 
   return (
     <div className="overflow-hidden rounded-4xl border border-base-content/5 bg-base-100/30 backdrop-blur-md shadow-xl">
+      <div className="space-y-3 p-4 md:hidden">
+        {isAdding && (
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 text-xs font-bold text-primary">
+            Yeni kayit formu masaustu tablo alaninda acilir. Daha rahat duzenleme icin tableti/yatay ekrani tercih edin.
+          </div>
+        )}
+        {items && Array.isArray(items) && items.map((item) => (
+          <div key={`mobile-${item.id}`} className="rounded-2xl border border-base-content/10 bg-base-100/60 p-3">
+            <div className="text-sm font-black text-base-content/80">{item.name || item.question || item.content}</div>
+            <div className="mt-1 text-[11px] font-semibold text-base-content/45">{item.description || item.authorName || item.answer || "---"}</div>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => { setEditingId(item.id); setEditData(item); }}
+                className="rounded-lg border border-base-content/15 px-2 py-1 text-[10px] font-black uppercase"
+              >
+                Duzenle
+              </button>
+              <button
+                onClick={() => onDelete(item.id)}
+                className="rounded-lg border border-error/25 px-2 py-1 text-[10px] font-black uppercase text-error"
+              >
+                Sil
+              </button>
+            </div>
+          </div>
+        ))}
+        {(!items || items.length === 0) && !isAdding && (
+          <div className="rounded-2xl border border-base-content/10 bg-base-100/60 p-6 text-center text-xs font-black uppercase tracking-widest text-base-content/35">
+            Kayit bulunamadi
+          </div>
+        )}
+      </div>
+      <div className="hidden md:block">
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-base-content/5 bg-base-content/3">
@@ -1483,6 +1516,7 @@ function SimpleListingView({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -1669,7 +1703,25 @@ function FeaturedReviewsView({
       <div className="rounded-xl border border-base-content/10 bg-base-content/5 px-3 py-2 text-[11px] font-semibold text-base-content/60">
         {scopeHint}
       </div>
-      <div className="overflow-x-auto">
+      <div className="space-y-3 md:hidden">
+        {reviews.map((review) => (
+          <div key={`mobile-review-${review.id}`} className="rounded-2xl border border-base-content/10 bg-base-100/60 p-3">
+            <div className="text-sm font-black text-base-content/80">{review.userName || "Anonim"}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-primary">{review.bookTitle || "-"}</div>
+            <p className="mt-2 text-xs text-base-content/65 line-clamp-3">&quot;{review.content}&quot;</p>
+            <div className="mt-2 flex items-center justify-between">
+              <div className="text-xs font-black text-yellow-600">★ {review.rating?.toFixed(1) || "-"}</div>
+              <button
+                onClick={() => onToggleEditorChoice(review.id, true)}
+                className="rounded-lg bg-yellow-500/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-yellow-600"
+              >
+                Kaldir
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
       <table className="w-full text-left">
         <thead>
           <tr className="border-b border-base-content/5 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30">

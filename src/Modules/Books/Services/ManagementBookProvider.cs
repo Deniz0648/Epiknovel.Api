@@ -3,6 +3,7 @@ using Epiknovel.Modules.Books.Domain;
 using Epiknovel.Shared.Core.Interfaces;
 using Epiknovel.Shared.Core.Interfaces.Management;
 using Epiknovel.Shared.Core.Models;
+using Epiknovel.Shared.Core.Events;
 using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Books.Services;
@@ -14,9 +15,10 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
         var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
         if (book == null) return false;
 
-        if (expectedUpdatedAt.HasValue && book.UpdatedAt != expectedUpdatedAt.Value) return false;
+        if (!VersionMatches(book.UpdatedAt, expectedUpdatedAt)) return false;
         book.IsHidden = !isVisible;
         book.UpdatedAt = DateTime.UtcNow;
+        await EnqueueBookUpdatedEventAsync(book.Id, ct);
         await dbContext.SaveChangesAsync(ct);
         return true;
     }
@@ -26,9 +28,10 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
         var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
         if (book == null) return false;
 
-        if (expectedUpdatedAt.HasValue && book.UpdatedAt != expectedUpdatedAt.Value) return false;
+        if (!VersionMatches(book.UpdatedAt, expectedUpdatedAt)) return false;
         book.IsEditorChoice = isEditorChoice;
         book.UpdatedAt = DateTime.UtcNow;
+        await EnqueueBookUpdatedEventAsync(book.Id, ct);
         await dbContext.SaveChangesAsync(ct);
         return true;
     }
@@ -46,6 +49,7 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
                 .SetProperty(c => c.IsDeleted, true)
                 .SetProperty(c => c.DeletedAt, now), ct);
 
+        await EnqueueBookUpdatedEventAsync(book.Id, ct, forceDeleted: true);
         dbContext.Books.Remove(book); // This will be handled by SoftDeleteInterceptor for the book entity itself
         await dbContext.SaveChangesAsync(ct);
         return true;
@@ -283,6 +287,7 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
         book.Tags.Clear();
 
         book.Categories = await dbContext.Categories.Where(c => categoryIds.Contains(c.Id)).ToListAsync(ct);
+        await EnqueueBookUpdatedEventAsync(book.Id, ct);
         await dbContext.SaveChangesAsync(ct);
         return true;
     }
@@ -416,5 +421,44 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
         }
 
         return (Math.Min(100, score), signals);
+    }
+
+    private static bool VersionMatches(DateTime? currentUpdatedAt, DateTime? expectedUpdatedAt)
+    {
+        if (!expectedUpdatedAt.HasValue) return true;
+        if (!currentUpdatedAt.HasValue) return false;
+
+        var currentUtc = DateTime.SpecifyKind(currentUpdatedAt.Value, DateTimeKind.Utc);
+        var expectedUtc = expectedUpdatedAt.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(expectedUpdatedAt.Value, DateTimeKind.Utc)
+            : expectedUpdatedAt.Value.ToUniversalTime();
+
+        var diff = (currentUtc - expectedUtc).Duration();
+        return diff <= TimeSpan.FromSeconds(1);
+    }
+
+    private async Task EnqueueBookUpdatedEventAsync(Guid bookId, CancellationToken ct, bool forceDeleted = false)
+    {
+        var bookSnapshot = await dbContext.Books
+            .IgnoreQueryFilters()
+            .Include(b => b.Categories)
+            .Include(b => b.Tags)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(b => b.Id == bookId, ct);
+
+        if (bookSnapshot == null) return;
+
+        dbContext.EnqueueOutboxMessage(new BookUpdatedEvent(
+            BookId: bookSnapshot.Id,
+            Title: bookSnapshot.Title,
+            Description: bookSnapshot.Description,
+            Slug: bookSnapshot.Slug,
+            CoverImageUrl: bookSnapshot.CoverImageUrl,
+            AuthorName: bookSnapshot.OriginalAuthorName ?? "Yazar",
+            Categories: bookSnapshot.Categories.Select(c => c.Name),
+            Tags: bookSnapshot.Tags.Select(t => t.Name),
+            IsHidden: bookSnapshot.IsHidden,
+            IsDeleted: forceDeleted || bookSnapshot.IsDeleted
+        ));
     }
 }

@@ -21,6 +21,31 @@ type ContinueReadingBook = {
   lastReadParagraphId?: string | null;
 };
 
+function normalizeLibraryItem(item: LibraryItemResponse) {
+  const raw = item as LibraryItemResponse & Record<string, unknown>;
+  const chapterTitle =
+    (raw.lastReadChapterTitle as string | undefined) ||
+    (raw.LastReadChapterTitle as string | undefined) ||
+    (raw.lastReadChapterSlug as string | undefined) ||
+    (raw.LastReadChapterSlug as string | undefined) ||
+    "Bölüm Seçilmedi";
+  const chapterSlug =
+    (raw.lastReadChapterSlug as string | undefined) ||
+    (raw.LastReadChapterSlug as string | undefined) ||
+    "";
+  const progressRaw =
+    (raw.progressPercentage as number | undefined) ??
+    (raw.ProgressPercentage as number | undefined) ??
+    0;
+  const safePercent = Number.isFinite(progressRaw) ? Math.max(0, Math.min(100, Math.round(progressRaw))) : 0;
+  const paragraphId =
+    (raw.lastReadParagraphId as string | undefined) ??
+    (raw.LastReadParagraphId as string | undefined) ??
+    null;
+
+  return { chapterTitle, chapterSlug, safePercent, paragraphId };
+}
+
 const SWIPE_THRESHOLD = 48;
 
 function ContinueReadingCard({ book }: { book: ContinueReadingBook }) {
@@ -286,22 +311,27 @@ export function ContinueReadingSection() {
                 style={{ transform: `translateX(-${activeIndex * 100}%)` }}
               >
                 {visibleBooks.map((item) => (
+                  (() => {
+                    const normalized = normalizeLibraryItem(item);
+                    return (
                   <div key={item.id} className="min-w-full px-1">
                     <ContinueReadingCard
                       book={{
                         title: item.bookTitle,
                         slug: item.bookSlug,
-                        chapter: item.lastReadChapterTitle || item.lastReadChapterSlug || "Bölüm Seçilmedi",
-                        chapterSlug: item.lastReadChapterSlug || "",
-                        percent: Math.round(item.progressPercentage),
+                        chapter: normalized.chapterTitle,
+                        chapterSlug: normalized.chapterSlug,
+                        percent: normalized.safePercent,
                         image: resolveMediaUrl(item.bookCoverImageUrl) || "/covers/cover-placeholder.svg",
                         imageAlt: `${item.bookTitle} kapağı`,
                         blurDataURL: "",
                         status: item.status,
-                        lastReadParagraphId: item.lastReadParagraphId
+                        lastReadParagraphId: normalized.paragraphId
                       }}
                     />
                   </div>
+                    );
+                  })()
                 ))}
               </div>
             </div>
@@ -322,21 +352,26 @@ export function ContinueReadingSection() {
 
           <div className="hidden gap-4 lg:grid lg:grid-cols-2 xl:grid-cols-3">
             {visibleBooks.slice(0, 6).map((item) => (
+              (() => {
+                const normalized = normalizeLibraryItem(item);
+                return (
               <ContinueReadingCard
                 key={item.id}
                 book={{
                   title: item.bookTitle,
                   slug: item.bookSlug,
-                  chapter: item.lastReadChapterTitle || item.lastReadChapterSlug || "Bölüm Seçilmedi",
-                  chapterSlug: item.lastReadChapterSlug || "",
-                  percent: Math.round(item.progressPercentage),
+                  chapter: normalized.chapterTitle,
+                  chapterSlug: normalized.chapterSlug,
+                  percent: normalized.safePercent,
                   image: resolveMediaUrl(item.bookCoverImageUrl) || "/covers/cover-placeholder.svg",
                   imageAlt: `${item.bookTitle} kapağı`,
                   blurDataURL: "",
                   status: item.status,
-                  lastReadParagraphId: item.lastReadParagraphId
+                  lastReadParagraphId: normalized.paragraphId
                 }}
               />
+                );
+              })()
             ))}
           </div>
         </>
