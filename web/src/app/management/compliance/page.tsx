@@ -29,8 +29,9 @@ import {
 } from "lucide-react";
 import { resolveMediaUrl } from "@/lib/api";
 import { toast } from "sonner";
+import { useAuth } from "@/components/providers/auth-provider";
 
-type ContentTab = "books-original" | "books-translated" | "books-editor-choice" | "reviews-editor-choice" | "categories" | "tags" | "quotes" | "faq" | "moderation";
+type ContentTab = "books-original" | "books-translated" | "books-editor-choice" | "reviews-editor-choice" | "categories" | "tags" | "quotes" | "faq";
 type ComplianceBook = {
   id: string;
   slug: string;
@@ -42,6 +43,9 @@ type ComplianceBook = {
   viewCount?: number;
   type?: string;
   createdAt: string;
+  updatedAt?: string | null;
+  priorityScore?: number;
+  prioritySignals?: string[];
 };
 type ListingItem = {
   id: string;
@@ -95,6 +99,12 @@ type ComplianceData = {
   items?: ComplianceBook[];
   categories?: ListingItem[];
   tags?: ListingItem[];
+  totalCount?: number;
+  pageNumber?: number;
+  pageSize?: number;
+  totalPages?: number;
+  hasNextPage?: boolean;
+  hasPreviousPage?: boolean;
 } | ListingItem[] | FeaturedReview[] | null;
 
 const VALID_CONTENT_TABS: ContentTab[] = [
@@ -106,28 +116,51 @@ const VALID_CONTENT_TABS: ContentTab[] = [
   "tags",
   "quotes",
   "faq",
-  "moderation",
 ];
 
 export default function CompliancePage() {
+  const { profile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const activeTab: ContentTab = VALID_CONTENT_TABS.includes(tabParam as ContentTab)
     ? (tabParam as ContentTab)
     : "books-original";
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") ?? "");
+  const [pageNumber, setPageNumber] = useState<number>(Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1));
+  const [pageSize, setPageSize] = useState<number>(() => {
+    const raw = Number.parseInt(searchParams.get("take") ?? "25", 10) || 25;
+    return [10, 25, 50, 100].includes(raw) ? raw : 25;
+  });
+  const [visibilityFilter, setVisibilityFilter] = useState<"all" | "visible" | "hidden">(
+    (searchParams.get("isHidden") === "true" ? "hidden" : searchParams.get("isHidden") === "false" ? "visible" : "all")
+  );
   const [data, setData] = useState<ComplianceData>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [assigningBook, setAssigningBook] = useState<ComplianceBook | null>(null);
   const [reviewingBook, setReviewingBook] = useState<ComplianceBook | null>(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [isFilterSubscribed, setIsFilterSubscribed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return Boolean(window.localStorage.getItem("management:compliance:follow"));
+  });
+  const canModerateContent = Boolean(
+    profile?.permissions?.moderateContent ||
+    profile?.permissions?.adminAccess ||
+    profile?.permissions?.superAdminAccess
+  );
+  const canDeleteBooks = Boolean(
+    profile?.permissions?.adminAccess ||
+    profile?.permissions?.superAdminAccess
+  );
 
   const tabs = [
     { id: "books-original", label: "Ozgun Kitaplar", icon: Book },
     { id: "books-translated", label: "Ceviri Eserler", icon: Book },
     { id: "books-editor-choice", label: "Editorun Secimi", icon: Star },
-    { id: "reviews-editor-choice", label: "One Cikan Yorumlar", icon: MessageSquare },
+    { id: "reviews-editor-choice", label: "One Cikan Incelemeler", icon: MessageSquare },
     { id: "categories", label: "Kategoriler", icon: Layers },
     { id: "tags", label: "Etiketler", icon: TagIcon },
     { id: "quotes", label: "Ozlu Sozler", icon: QuoteIcon },
@@ -136,6 +169,7 @@ export default function CompliancePage() {
 
   const fetchData = React.useCallback(async () => {
     setData(null);
+    setLoadError(null);
     setIsAdding(false);
     setIsLoading(true);
 
@@ -148,12 +182,16 @@ export default function CompliancePage() {
         else if (activeTab === "books-translated") type = "Translation";
         else if (activeTab === "books-editor-choice") isEditorChoice = "true";
 
-        endpoint = `/api/management/compliance/books?search=${searchQuery}`;
+        endpoint = `/api/management/compliance/books?search=${encodeURIComponent(searchQuery)}&page=${pageNumber}&take=${pageSize}`;
         if (type) endpoint += `&type=${type}`;
         if (isEditorChoice) endpoint += `&isEditorChoice=${isEditorChoice}`;
+        if (visibilityFilter === "hidden") endpoint += "&isHidden=true";
+        if (visibilityFilter === "visible") endpoint += "&isHidden=false";
       } else if (activeTab === "categories" || activeTab === "tags") {
         endpoint = `/api/management/compliance/metadata`;
       } else if (activeTab === "reviews-editor-choice") {
+        // NOTE: Bu sekme yalnizca review (inceleme) kayitlarini yonetir.
+        // Book/chapter/inline yorum moderasyonu "Etkilesim Denetimi" modalindadir.
         endpoint = `/api/social/reviews?isEditorChoice=true&size=50`;
       } else {
         endpoint = `/api/management/compliance/${activeTab}`;
@@ -161,8 +199,10 @@ export default function CompliancePage() {
 
       const res = await fetch(endpoint);
       if (!res.ok) {
+        const message = `Veri yuklenemedi (${res.status}).`;
         console.error(`Fetch error: ${res.status} ${res.statusText}`);
-        setData(activeTab.startsWith("books") ? { items: [] } : []);
+        setLoadError(message);
+        toast.error(message);
         return;
       }
 
@@ -173,84 +213,294 @@ export default function CompliancePage() {
         if (json.isSuccess) {
           setData(json.data);
         } else {
-          console.error("API Error:", json.message);
-          setData(activeTab.startsWith("books") ? { items: [] } : []);
+          const message = json.message || "API hatasi olustu.";
+          console.error("API Error:", message);
+          setLoadError(message);
+          toast.error(message);
         }
       } else {
-        // Fallback for direct data or unexpected structures
-        setData(Array.isArray(json) ? json : (activeTab.startsWith("books") ? { items: [] } : []));
+        const message = "Beklenmeyen API yanit formati.";
+        console.error(message, json);
+        setLoadError(message);
+        toast.error(message);
       }
     } catch (err) {
+      const message = "Veri cekilirken baglanti hatasi olustu.";
       console.error("Fetch error:", err);
-      setData(activeTab.startsWith("books") ? { items: [] } : []); // Set safe default on error
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
-  }, [activeTab, searchQuery]);
+  }, [activeTab, searchQuery, pageNumber, pageSize, visibilityFilter]);
 
   React.useEffect(() => {
     const timer = setTimeout(fetchData, 300); // Debounce
     return () => clearTimeout(timer);
   }, [fetchData]);
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", activeTab);
+    if (searchQuery.trim()) params.set("search", searchQuery.trim());
+    else params.delete("search");
+    params.set("page", String(pageNumber));
+    params.set("take", String(pageSize));
+    if (visibilityFilter === "all") params.delete("isHidden");
+    else params.set("isHidden", visibilityFilter === "hidden" ? "true" : "false");
+    router.replace(`/management/compliance?${params.toString()}`, { scroll: false });
+  }, [activeTab, pageNumber, pageSize, router, searchParams, searchQuery, visibilityFilter]);
+
+  React.useEffect(() => {
+    if (!isFilterSubscribed || typeof window === "undefined") return;
+    const payload = JSON.stringify({ activeTab, searchQuery, visibilityFilter, pageSize });
+    const key = "management:compliance:follow";
+    const prev = window.localStorage.getItem(key);
+    if (prev && prev !== payload) {
+      toast.info("Takip edilen filtre seti degisti.");
+    }
+    window.localStorage.setItem(key, payload);
+  }, [activeTab, isFilterSubscribed, pageSize, searchQuery, visibilityFilter]);
+
   async function handleToggleVisibility(bookId: string, currentHidden: boolean) {
+    const nextIsVisible = currentHidden;
+    const needsReason = !nextIsVisible; // gizleme aksiyonu
+    const reason = needsReason
+      ? window.prompt("Bu icerigi neden gizliyorsunuz? (zorunlu)")?.trim()
+      : undefined;
+    if (needsReason && !reason) {
+      toast.error("Gizleme icin islem nedeni zorunludur.");
+      return;
+    }
     try {
       const res = await fetch(`/api/management/compliance/books/${bookId}/visibility`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookId, isVisible: currentHidden }), // Toggle logic
+        body: JSON.stringify({ bookId, isVisible: currentHidden, reason, expectedUpdatedAt: data && !Array.isArray(data) ? (data.items?.find((b) => b.id === bookId)?.updatedAt ?? null) : null }), // Toggle logic
       });
       if (res.ok) {
+        const changedToVisible = currentHidden;
+        const changedToHidden = !currentHidden;
+        const successMessage = changedToVisible ? "Icerik gorunur yapildi." : "Icerik gizlendi.";
+        toast.success(successMessage, {
+          action: {
+            label: "Geri Al",
+            onClick: async () => {
+              try {
+                const undoRes = await fetch(`/api/management/compliance/books/${bookId}/visibility`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    bookId,
+                    isVisible: changedToHidden ? true : false,
+                    expectedUpdatedAt: data && !Array.isArray(data) ? (data.items?.find((b) => b.id === bookId)?.updatedAt ?? null) : null,
+                    reason: "UNDO: yonetici geri al islemi"
+                  }),
+                });
+                if (undoRes.ok) {
+                  toast.success("Degisiklik geri alindi.");
+                  fetchData();
+                } else {
+                  const payload = await undoRes.json().catch(() => null);
+                  toast.error(payload?.message || `Geri alma basarisiz (${undoRes.status}).`);
+                }
+              } catch {
+                toast.error("Geri alma sirasinda baglanti hatasi olustu.");
+              }
+            }
+          }
+        });
         // Refresh data
         fetchData();
+      } else {
+        const payload = await res.json().catch(() => null);
+        const message = payload?.message || `Gorunurluk guncellenemedi (${res.status}).`;
+        toast.error(message);
       }
     } catch (err) {
       console.error("Visibility toggle error:", err);
+      toast.error("Gorunurluk guncellenirken baglanti hatasi olustu.");
     }
   }
 
   async function handleToggleEditorChoice(bookId: string, currentStatus: boolean) {
+    const nextIsEditorChoice = !currentStatus;
+    const reason = nextIsEditorChoice
+      ? window.prompt("Bu icerigi neden one cikariyorsunuz? (zorunlu)")?.trim()
+      : undefined;
+    if (nextIsEditorChoice && !reason) {
+      toast.error("One cikarma icin islem nedeni zorunludur.");
+      return;
+    }
     try {
       const res = await fetch(`/api/management/compliance/books/${bookId}/editor-choice`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookId, isEditorChoice: !currentStatus }),
+        body: JSON.stringify({ bookId, isEditorChoice: !currentStatus, reason, expectedUpdatedAt: data && !Array.isArray(data) ? (data.items?.find((b) => b.id === bookId)?.updatedAt ?? null) : null }),
       });
       if (res.ok) {
+        const becameEditorChoice = !currentStatus;
+        toast.success(becameEditorChoice ? "Editor secimine eklendi." : "Editor seciminden kaldirildi.", {
+          action: {
+            label: "Geri Al",
+            onClick: async () => {
+              try {
+                const undoRes = await fetch(`/api/management/compliance/books/${bookId}/editor-choice`, {
+                  method: "PUT",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    bookId,
+                    isEditorChoice: currentStatus,
+                    expectedUpdatedAt: data && !Array.isArray(data) ? (data.items?.find((b) => b.id === bookId)?.updatedAt ?? null) : null,
+                    reason: "UNDO: yonetici geri al islemi"
+                  }),
+                });
+                if (undoRes.ok) {
+                  toast.success("Degisiklik geri alindi.");
+                  fetchData();
+                } else {
+                  const payload = await undoRes.json().catch(() => null);
+                  toast.error(payload?.message || `Geri alma basarisiz (${undoRes.status}).`);
+                }
+              } catch {
+                toast.error("Geri alma sirasinda baglanti hatasi olustu.");
+              }
+            }
+          }
+        });
         fetchData();
+      } else {
+        const payload = await res.json().catch(() => null);
+        const message = payload?.message || `Editor secimi guncellenemedi (${res.status}).`;
+        toast.error(message);
       }
     } catch (err) {
       console.error("Editor choice toggle error:", err);
+      toast.error("Editor secimi guncellenirken baglanti hatasi olustu.");
     }
   }
 
   async function handleToggleEditorChoiceFromTab(reviewId: string, currentStatus: boolean) {
+    const nextIsEditorChoice = !currentStatus;
+    const reason = nextIsEditorChoice
+      ? window.prompt("Bu incelemeyi neden one cikariyorsunuz? (zorunlu)")?.trim()
+      : undefined;
+    if (nextIsEditorChoice && !reason) {
+      toast.error("One cikarma icin islem nedeni zorunludur.");
+      return;
+    }
     try {
       const res = await fetch(`/api/social/admin/reviews/${reviewId}/editor-choice`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: reviewId, isEditorChoice: !currentStatus }),
+        body: JSON.stringify({ id: reviewId, isEditorChoice: !currentStatus, reason }),
       });
       if (res.ok) {
         fetchData();
+      } else {
+        const payload = await res.json().catch(() => null);
+        const message = payload?.message || `Yorum editor secimi guncellenemedi (${res.status}).`;
+        toast.error(message);
       }
     } catch (err) {
       console.error("Review Editor choice toggle error:", err);
+      toast.error("Yorum editor secimi guncellenirken baglanti hatasi olustu.");
     }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Bu ogeyi silmek istediginizden emin misiniz?")) return;
+    const reason = window.prompt("Bu kaydi neden siliyorsunuz? (zorunlu)")?.trim();
+    if (!reason) {
+      toast.error("Silme icin islem nedeni zorunludur.");
+      return;
+    }
 
     try {
       const endpoint = activeTab.startsWith("books")
         ? `/api/management/compliance/books/${id}` // If delete exists
         : `/api/management/compliance/${activeTab}/${id}`;
 
-      const res = await fetch(endpoint, { method: "DELETE" });
-      if (res.ok) fetchData();
+      const res = await fetch(endpoint, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason,
+          expectedUpdatedAt: data && !Array.isArray(data) ? (data.items?.find((b) => b.id === id)?.updatedAt ?? null) : null
+        })
+      });
+      if (res.ok) {
+        fetchData();
+      } else {
+        const payload = await res.json().catch(() => null);
+        const message = payload?.message || `Silme islemi basarisiz (${res.status}).`;
+        toast.error(message);
+      }
     } catch (err) {
       console.error("Delete error:", err);
+      toast.error("Silme islemi sirasinda baglanti hatasi olustu.");
+    }
+  }
+
+  async function handleBulkAction(action: "hide" | "show" | "editorOn" | "editorOff" | "delete", books: ComplianceBook[]) {
+    if (!books.length) return;
+    const previewTitles = books.slice(0, 5).map((b) => `- ${b.title}`).join("\n");
+    const actionLabel =
+      action === "hide" ? "gizleme" :
+      action === "show" ? "gosterme" :
+      action === "editorOn" ? "one cikarma" :
+      action === "editorOff" ? "one cikarimi kaldirma" :
+      "silme";
+    const previewMessage =
+      `Toplu ${actionLabel} islemi uygulanacak.\n` +
+      `Secili kayit: ${books.length}\n\n` +
+      `Ornek kayitlar:\n${previewTitles}\n` +
+      `${books.length > 5 ? `\n... ve ${books.length - 5} kayit daha` : ""}\n\n` +
+      "Devam etmek istiyor musunuz?";
+    if (!confirm(previewMessage)) return;
+    const requiresReason = action === "hide" || action === "editorOn" || action === "delete";
+    const reason = requiresReason
+      ? window.prompt("Toplu islem nedeni nedir? (zorunlu)")?.trim()
+      : undefined;
+    if (requiresReason && !reason) {
+      toast.error("Bu toplu islem icin neden zorunludur.");
+      return;
+    }
+
+    let success = 0;
+    for (const book of books) {
+      try {
+        let res: Response;
+        if (action === "hide" || action === "show") {
+          res = await fetch(`/api/management/compliance/books/${book.id}/visibility`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookId: book.id, isVisible: action === "show", reason, expectedUpdatedAt: book.updatedAt ?? null })
+          });
+        } else if (action === "editorOn" || action === "editorOff") {
+          res = await fetch(`/api/management/compliance/books/${book.id}/editor-choice`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookId: book.id, isEditorChoice: action === "editorOn", reason, expectedUpdatedAt: book.updatedAt ?? null })
+          });
+        } else {
+          res = await fetch(`/api/management/compliance/books/${book.id}`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason, expectedUpdatedAt: book.updatedAt ?? null })
+          });
+        }
+        if (res.ok) success++;
+      } catch {
+        // continue other items
+      }
+    }
+
+    if (success > 0) {
+      toast.success(`${success}/${books.length} kayit icin islem tamamlandi.`);
+      fetchData();
+    } else {
+      toast.error("Toplu islem basarisiz.");
     }
   }
 
@@ -298,13 +548,40 @@ export default function CompliancePage() {
               placeholder={`${activeTab.startsWith('books') ? 'Kitap adı veya yazar...' : 'Ara...'}`}
               className="h-12 w-full rounded-2xl border border-base-content/10 bg-base-content/5 pl-12 pr-4 text-sm font-bold outline-none transition focus:border-primary/30"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPageNumber(1);
+              }}
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="flex h-12 w-12 items-center justify-center rounded-2xl border border-base-content/10 bg-base-100/5 text-base-content/40 transition hover:bg-base-content/10">
+            <button
+              onClick={() => setIsFiltersOpen((v) => !v)}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl border border-base-content/10 bg-base-100/5 text-base-content/40 transition hover:bg-base-content/10"
+              title="Filtreleri Ac/Kapat"
+            >
               <Filter className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => {
+                const next = !isFilterSubscribed;
+                setIsFilterSubscribed(next);
+                if (typeof window !== "undefined") {
+                  if (next) {
+                    window.localStorage.setItem("management:compliance:follow", JSON.stringify({ activeTab, searchQuery, visibilityFilter, pageSize }));
+                  } else {
+                    window.localStorage.removeItem("management:compliance:follow");
+                  }
+                }
+                toast.success(next ? "Filtre takibi acildi." : "Filtre takibi kapatildi.");
+              }}
+              className={`flex h-12 items-center rounded-2xl border px-3 text-[10px] font-black uppercase tracking-widest ${
+                isFilterSubscribed ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-600" : "border-base-content/10 bg-base-100/5 text-base-content/40"
+              }`}
+              title="Filtre bazli takip"
+            >
+              Takip
             </button>
 
             {(activeTab === "books-translated" || (!activeTab.startsWith("books") && activeTab !== "reviews-editor-choice")) && (
@@ -327,6 +604,59 @@ export default function CompliancePage() {
 
         {/* Tab-Specific Views */}
         <div className="p-6">
+          {isFiltersOpen && (
+            <div className="mb-4 flex items-center justify-between rounded-2xl border border-base-content/10 bg-base-content/5 p-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-bold text-base-content/60 mr-2">Filtre Paneli</p>
+                {activeTab.startsWith("books") && (
+                  <>
+                    <select
+                      className="h-9 rounded-lg border border-base-content/15 bg-base-100 px-2 text-xs font-bold"
+                      value={visibilityFilter}
+                      onChange={(e) => {
+                        setVisibilityFilter(e.target.value as "all" | "visible" | "hidden");
+                        setPageNumber(1);
+                      }}
+                    >
+                      <option value="all">Gorunurluk: Tum</option>
+                      <option value="visible">Gorunurluk: Aktif</option>
+                      <option value="hidden">Gorunurluk: Gizli</option>
+                    </select>
+                    <select
+                      className="h-9 rounded-lg border border-base-content/15 bg-base-100 px-2 text-xs font-bold"
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number.parseInt(e.target.value, 10));
+                        setPageNumber(1);
+                      }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setVisibilityFilter("all");
+                  setPageSize(25);
+                  setPageNumber(1);
+                  setIsFiltersOpen(false);
+                }}
+                className="rounded-lg border border-base-content/10 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-base-content/50 hover:bg-base-content/10"
+              >
+                Temizle
+              </button>
+            </div>
+          )}
+          {loadError && (
+            <div className="mb-4 rounded-2xl border border-error/30 bg-error/10 px-4 py-3 text-xs font-bold text-error">
+              {loadError}
+            </div>
+          )}
           {isLoading ? (
             <div className="flex h-64 items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -336,6 +666,15 @@ export default function CompliancePage() {
               {activeTab.startsWith("books") && (
                 <BookManagementView
                   books={!Array.isArray(data) ? data?.items || [] : []}
+                  pageNumber={!Array.isArray(data) ? data?.pageNumber || pageNumber : pageNumber}
+                  totalPages={!Array.isArray(data) ? data?.totalPages || 1 : 1}
+                  totalCount={!Array.isArray(data) ? data?.totalCount || 0 : 0}
+                  hasNextPage={!Array.isArray(data) ? Boolean(data?.hasNextPage) : false}
+                  hasPreviousPage={!Array.isArray(data) ? Boolean(data?.hasPreviousPage) : false}
+                  onPageChange={(nextPage) => setPageNumber(nextPage)}
+                  onBulkAction={handleBulkAction}
+                  canModerateContent={canModerateContent}
+                  canDeleteBooks={canDeleteBooks}
                   onToggleVisibility={handleToggleVisibility}
                   onToggleEditorChoice={handleToggleEditorChoice}
                   onDelete={handleDelete}
@@ -403,6 +742,15 @@ export default function CompliancePage() {
 
 function BookManagementView({
   books,
+  pageNumber,
+  totalPages,
+  totalCount,
+  hasNextPage,
+  hasPreviousPage,
+  onPageChange,
+  onBulkAction,
+  canModerateContent,
+  canDeleteBooks,
   onToggleVisibility,
   onToggleEditorChoice,
   onEdit,
@@ -411,6 +759,15 @@ function BookManagementView({
   onDelete
 }: {
   books: ComplianceBook[],
+  pageNumber: number,
+  totalPages: number,
+  totalCount: number,
+  hasNextPage: boolean,
+  hasPreviousPage: boolean,
+  onPageChange: (page: number) => void,
+  onBulkAction: (action: "hide" | "show" | "editorOn" | "editorOff" | "delete", books: ComplianceBook[]) => Promise<void>,
+  canModerateContent: boolean,
+  canDeleteBooks: boolean,
   onToggleVisibility: (id: string, hidden: boolean) => void,
   onToggleEditorChoice: (id: string, current: boolean) => void,
   onEdit: (book: ComplianceBook) => void,
@@ -418,6 +775,48 @@ function BookManagementView({
   onReviewSocial: (book: ComplianceBook) => void,
   onDelete: (id: string) => void
 }) {
+  const router = useRouter();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [auditBook, setAuditBook] = useState<ComplianceBook | null>(null);
+  const [sortMode, setSortMode] = useState<"createdAt" | "priority">("createdAt");
+  const [activeRowId, setActiveRowId] = useState<string | null>(null);
+  const booksToRender = React.useMemo(() => {
+    const cloned = [...books];
+    if (sortMode === "priority") {
+      return cloned.sort((a, b) => (b.priorityScore ?? 0) - (a.priorityScore ?? 0));
+    }
+    return cloned.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [books, sortMode]);
+  const getPriorityMeta = (score: number) => {
+    if (score >= 75) return { label: "Kritik", className: "bg-red-500/15 text-red-600 border-red-500/30" };
+    if (score >= 50) return { label: "Yuksek", className: "bg-orange-500/15 text-orange-600 border-orange-500/30" };
+    if (score >= 25) return { label: "Orta", className: "bg-amber-500/15 text-amber-600 border-amber-500/30" };
+    return { label: "Dusuk", className: "bg-emerald-500/15 text-emerald-600 border-emerald-500/30" };
+  };
+  const selectedBooks = books.filter((b) => selectedIds.includes(b.id));
+  const allSelected = booksToRender.length > 0 && selectedIds.length === booksToRender.length;
+  const resolvedActiveRowId = activeRowId && booksToRender.some((b) => b.id === activeRowId)
+    ? activeRowId
+    : (booksToRender[0]?.id ?? null);
+  const activeIndex = booksToRender.findIndex((b) => b.id === resolvedActiveRowId);
+
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      if (!booksToRender.length) return;
+      const idx = activeIndex >= 0 ? activeIndex : 0;
+      const current = booksToRender[idx];
+      if (e.key === "j") setActiveRowId(booksToRender[Math.min(idx + 1, booksToRender.length - 1)].id);
+      if (e.key === "k") setActiveRowId(booksToRender[Math.max(idx - 1, 0)].id);
+      if (e.key === "e") onEdit(current);
+      if (e.key === "h") onToggleVisibility(current.id, current.isHidden);
+      if (e.key === "s") onToggleEditorChoice(current.id, current.isEditorChoice);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeIndex, booksToRender, onEdit, onToggleEditorChoice, onToggleVisibility]);
+
   if (!books || books.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 opacity-30">
@@ -428,19 +827,158 @@ function BookManagementView({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-2xl border border-base-content/10 bg-base-content/5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <p className="text-xs font-bold text-base-content/60">
+          Toplam {totalCount.toLocaleString("tr-TR")} kitap
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => router.push("/management/audit")}
+            className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest"
+            title="Tum denetim kayitlarini ac"
+          >
+            Audit Kayitlari
+          </button>
+          <button
+            onClick={() => setSelectedIds(allSelected ? [] : booksToRender.map((b) => b.id))}
+            className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest"
+          >
+            {allSelected ? "Secimi Kaldir" : "Tumunu Sec"}
+          </button>
+          <select
+            value={sortMode}
+            onChange={(e) => setSortMode(e.target.value as "createdAt" | "priority")}
+            className="h-8 rounded-lg border border-base-content/15 bg-base-100 px-2 text-[10px] font-black uppercase tracking-widest"
+          >
+            <option value="createdAt">Sirala: En Yeni</option>
+            <option value="priority">Sirala: Oncelik Skoru</option>
+          </select>
+          {canModerateContent && (
+            <>
+              <button
+                disabled={selectedBooks.length === 0}
+                onClick={async () => {
+                  await onBulkAction("hide", selectedBooks);
+                  setSelectedIds([]);
+                }}
+                className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+              >
+                Toplu Gizle
+              </button>
+              <button
+                disabled={selectedBooks.length === 0}
+                onClick={async () => {
+                  await onBulkAction("show", selectedBooks);
+                  setSelectedIds([]);
+                }}
+                className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+              >
+                Toplu Goster
+              </button>
+              <button
+                disabled={selectedBooks.length === 0}
+                onClick={async () => {
+                  await onBulkAction("editorOn", selectedBooks);
+                  setSelectedIds([]);
+                }}
+                className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+              >
+                Toplu One Cikar
+              </button>
+            </>
+          )}
+          {canDeleteBooks && (
+            <button
+              disabled={selectedBooks.length === 0}
+              onClick={async () => {
+                await onBulkAction("delete", selectedBooks);
+                setSelectedIds([]);
+              }}
+              className="h-8 rounded-lg border border-error/20 px-3 text-[10px] font-black uppercase tracking-widest text-error disabled:opacity-40"
+            >
+              Toplu Sil
+            </button>
+          )}
+          <button
+            disabled={!hasPreviousPage}
+            onClick={() => onPageChange(Math.max(1, pageNumber - 1))}
+            className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+          >
+            Onceki
+          </button>
+          <span className="text-[10px] font-black uppercase tracking-widest text-base-content/40">
+            Sayfa {pageNumber} / {Math.max(1, totalPages)}
+          </span>
+          <button
+            disabled={!hasNextPage}
+            onClick={() => onPageChange(pageNumber + 1)}
+            className="h-8 rounded-lg border border-base-content/15 px-3 text-[10px] font-black uppercase tracking-widest disabled:opacity-40"
+          >
+            Sonraki
+          </button>
+        </div>
+      </div>
+      <div className="space-y-3 lg:hidden">
+        {booksToRender.map((book) => (
+          <div key={`mobile-${book.id}`} onClick={() => setActiveRowId(book.id)} className={`rounded-2xl border p-3 ${activeRowId === book.id ? "border-primary/40 bg-primary/5" : "border-base-content/10 bg-base-100/40"}`}>
+            <div className="flex items-center gap-3">
+              <div className="h-14 w-10 shrink-0 overflow-hidden rounded-lg bg-base-content/5 border border-base-content/5">
+                {book.coverImageUrl ? (
+                  <Image src={resolveMediaUrl(book.coverImageUrl)} alt={book.title} width={80} height={120} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center"><Book className="h-5 w-5 text-base-content/20" /></div>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-black text-base-content/80">{book.title}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-base-content/40">{book.authorName}</p>
+                <p className="mt-1 text-[10px] font-bold text-base-content/40">{book.viewCount?.toLocaleString("tr-TR")} izlenme</p>
+              </div>
+              <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${getPriorityMeta(book.priorityScore ?? 0).className}`}>{getPriorityMeta(book.priorityScore ?? 0).label}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={() => onEdit(book)} className="rounded-lg border border-base-content/15 px-2 py-1 text-[10px] font-black">Duzenle</button>
+              <button onClick={() => onReviewSocial(book)} className="rounded-lg border border-base-content/15 px-2 py-1 text-[10px] font-black">Etkilesim</button>
+              {canModerateContent && <button onClick={() => onToggleVisibility(book.id, book.isHidden)} className="rounded-lg border border-base-content/15 px-2 py-1 text-[10px] font-black">{book.isHidden ? "Goster" : "Gizle"}</button>}
+              {canModerateContent && <button onClick={() => onToggleEditorChoice(book.id, book.isEditorChoice)} className="rounded-lg border border-base-content/15 px-2 py-1 text-[10px] font-black">Editor</button>}
+              {canDeleteBooks && <button onClick={() => onDelete(book.id)} className="rounded-lg border border-error/30 px-2 py-1 text-[10px] font-black text-error">Sil</button>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto lg:block">
       <table className="w-full text-left">
         <thead>
           <tr className="border-b border-base-content/5 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30">
+            <th className="pb-4 pl-2">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={() => setSelectedIds(allSelected ? [] : booksToRender.map((b) => b.id))}
+              />
+            </th>
             <th className="pb-4 pl-4">Kitap Bilgisi</th>
             <th className="pb-4">Durum</th>
             <th className="pb-4">Istatistik</th>
+            <th className="pb-4">Oncelik</th>
             <th className="pb-4 text-right pr-4">Islemler</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-base-content/5">
-          {books.map((book) => (
-            <tr key={book.id} className="group transition hover:bg-base-content/2">
+          {booksToRender.map((book) => (
+            <tr key={book.id} onClick={() => setActiveRowId(book.id)} className={`group transition hover:bg-base-content/2 ${activeRowId === book.id ? "bg-primary/5" : ""}`}>
+              <td className="py-4 pl-2">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(book.id)}
+                  onChange={() =>
+                    setSelectedIds((prev) =>
+                      prev.includes(book.id) ? prev.filter((id) => id !== book.id) : [...prev, book.id]
+                    )
+                  }
+                />
+              </td>
               <td className="py-4 pl-4">
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-base-content/5 border border-base-content/5 shadow-sm">
@@ -489,22 +1027,41 @@ function BookManagementView({
                   <div className="text-[9px] font-bold text-base-content/25 uppercase tracking-widest">Tarih: {new Date(book.createdAt).toLocaleDateString("tr-TR")}</div>
                 </div>
               </td>
+              <td className="py-4">
+                <div className="flex items-center gap-2">
+                  <div className="text-xs font-black text-base-content/70">{book.priorityScore ?? 0}/100</div>
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest ${
+                      getPriorityMeta(book.priorityScore ?? 0).className
+                    }`}
+                  >
+                    {getPriorityMeta(book.priorityScore ?? 0).label}
+                  </span>
+                </div>
+                <div className="mt-1 text-[9px] font-bold text-base-content/35 line-clamp-2" title={(book.prioritySignals || []).join(", ")}>
+                  {(book.prioritySignals || []).slice(0, 2).join(" • ") || "-"}
+                </div>
+              </td>
               <td className="py-4 pr-4">
                 <div className="flex items-center justify-end gap-2">
-                  <button
-                    onClick={() => onToggleVisibility(book.id, book.isHidden)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${book.isHidden ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
-                    title={book.isHidden ? "Goster" : "Gizle"}
-                  >
-                    {book.isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={() => onToggleEditorChoice(book.id, book.isEditorChoice)}
-                    className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${book.isEditorChoice ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-base-content/5 text-base-content/40 hover:bg-yellow-500/10 hover:text-yellow-500'}`}
-                    title={book.isEditorChoice ? "Editorun Seciminden Kaldir" : "Editorun Secimi Yap"}
-                  >
-                    <Star className={`h-4 w-4 ${book.isEditorChoice ? 'fill-current' : ''}`} />
-                  </button>
+                  {canModerateContent && (
+                    <>
+                      <button
+                        onClick={() => onToggleVisibility(book.id, book.isHidden)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${book.isHidden ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20' : 'bg-green-500/10 text-green-500 hover:bg-green-500/20'}`}
+                        title={book.isHidden ? "Goster" : "Gizle"}
+                      >
+                        {book.isHidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                      <button
+                        onClick={() => onToggleEditorChoice(book.id, book.isEditorChoice)}
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg transition ${book.isEditorChoice ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20' : 'bg-base-content/5 text-base-content/40 hover:bg-yellow-500/10 hover:text-yellow-500'}`}
+                        title={book.isEditorChoice ? "Editorun Seciminden Kaldir" : "Editorun Secimi Yap"}
+                      >
+                        <Star className={`h-4 w-4 ${book.isEditorChoice ? 'fill-current' : ''}`} />
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={() => onReviewSocial(book)}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-base-content/5 text-base-content/40 hover:bg-primary/20 hover:text-primary transition"
@@ -529,18 +1086,118 @@ function BookManagementView({
                     <Edit2 className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => onDelete(book.id)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-base-content/5 text-base-content/40 hover:bg-red-500/10 hover:text-red-500 transition"
-                    title="Sil"
+                    onClick={() => setAuditBook(book)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-base-content/5 text-base-content/40 hover:bg-info/20 hover:text-info transition"
+                    title="Bu kitap icin son islemler"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Clock className="h-4 w-4" />
                   </button>
+                  <button
+                    onClick={() => router.push(`/management/audit?search=${encodeURIComponent(book.title)}`)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-base-content/5 text-base-content/40 hover:bg-info/20 hover:text-info transition"
+                    title="Bu kitap icin audit"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                  {canDeleteBooks && (
+                    <button
+                      onClick={() => onDelete(book.id)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-base-content/5 text-base-content/40 hover:bg-red-500/10 hover:text-red-500 transition"
+                      title="Sil"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      </div>
+      {auditBook && (
+        <BookAuditModal
+          book={auditBook}
+          onClose={() => setAuditBook(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function BookAuditModal({ book, onClose }: { book: ComplianceBook; onClose: () => void }) {
+  type BookAuditLog = {
+    id: string;
+    action: string;
+    module: string;
+    state: number;
+    createdAt: string;
+    userId?: string;
+    endpoint?: string;
+    method?: string;
+    primaryKeys?: string;
+  };
+  const [logs, setLogs] = useState<BookAuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          take: "10",
+          entityName: "Book",
+          primaryKeys: book.id,
+        });
+        const res = await fetch(`/api/management/audit-logs?${params.toString()}`);
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.isSuccess) {
+          setError(json?.message || "Audit kayitlari alinamadi.");
+          return;
+        }
+        setLogs(Array.isArray(json.data) ? json.data : []);
+      } catch {
+        setError("Audit kayitlari alinirken baglanti hatasi olustu.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [book.id]);
+
+  return (
+    <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-base-300/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full max-w-3xl rounded-[2rem] border border-base-content/10 bg-base-100 p-6 shadow-2xl">
+        <button onClick={onClose} className="absolute right-4 top-4 h-9 w-9 rounded-xl bg-base-content/5 text-base-content/40 hover:bg-base-content/10">
+          <X className="mx-auto h-4 w-4" />
+        </button>
+        <h3 className="text-lg font-black uppercase tracking-wider text-base-content/80">Son Audit Islemleri</h3>
+        <p className="mt-1 text-xs font-bold text-base-content/50">{book.title}</p>
+        <div className="mt-4 space-y-2 max-h-[55vh] overflow-y-auto pr-1">
+          {loading && <p className="text-xs font-bold text-base-content/40">Yukleniyor...</p>}
+          {!loading && error && <p className="text-xs font-bold text-error">{error}</p>}
+          {!loading && !error && logs.length === 0 && (
+            <p className="text-xs font-bold text-base-content/40">Bu kitap icin audit kaydi bulunamadi.</p>
+          )}
+          {!loading && !error && logs.map((log) => (
+            <div key={log.id} className="rounded-xl border border-base-content/10 bg-base-content/5 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-black text-base-content/80">{log.action}</div>
+                <div className="text-[10px] font-bold text-base-content/40">{new Date(log.createdAt).toLocaleString("tr-TR")}</div>
+              </div>
+              <div className="mt-1 text-[10px] font-bold text-base-content/50">
+                Modul: {log.module} | Durum: {log.state} | Kullanici: {log.userId ? `...${log.userId.slice(-6)}` : "Sistem"}
+              </div>
+              <div className="text-[10px] font-bold text-base-content/40">
+                {log.method || "-"} {log.endpoint || "-"}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -894,10 +1551,15 @@ function AssignMembersModal({ book, onClose }: { book: ComplianceBook, onClose: 
         body: JSON.stringify({ members: assignedMembers })
       });
       if (res.ok) {
+        toast.success("Atamalar kaydedildi.");
         onClose();
+      } else {
+        const payload = await res.json().catch(() => null);
+        toast.error(payload?.message || `Atama kaydedilemedi (${res.status}).`);
       }
     } catch (err) {
       console.error("Save assignment error:", err);
+      toast.error("Atama kaydedilirken baglanti hatasi olustu.");
     } finally {
       setIsSaving(false);
     }
@@ -991,6 +1653,8 @@ function FeaturedReviewsView({
   reviews: FeaturedReview[],
   onToggleEditorChoice: (id: string, current: boolean) => void,
 }) {
+  const scopeHint = "Bu alan sadece inceleme (review) kayitlarini kapsar. Diger yorum tipleri Etkilesim Denetimi modalindan yonetilir.";
+
   if (!reviews || reviews.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-32 opacity-20">
@@ -1001,7 +1665,11 @@ function FeaturedReviewsView({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-3">
+      <div className="rounded-xl border border-base-content/10 bg-base-content/5 px-3 py-2 text-[11px] font-semibold text-base-content/60">
+        {scopeHint}
+      </div>
+      <div className="overflow-x-auto">
       <table className="w-full text-left">
         <thead>
           <tr className="border-b border-base-content/5 text-[10px] font-black uppercase tracking-[0.2em] text-base-content/30">
@@ -1049,6 +1717,7 @@ function FeaturedReviewsView({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }
@@ -1059,6 +1728,22 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
   const [activity, setActivity] = useState<SocialActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [userIdFilter, setUserIdFilter] = useState("");
+  const [contentIdFilter, setContentIdFilter] = useState("");
+  const [spoilerFilter, setSpoilerFilter] = useState<"all" | "true" | "false">("all");
+  const [hiddenFilter, setHiddenFilter] = useState<"all" | "true" | "false">("all");
+
+  const buildActivityUrl = React.useCallback(() => {
+    const params = new URLSearchParams();
+    if (keyword.trim()) params.set("keyword", keyword.trim());
+    if (userIdFilter.trim()) params.set("userId", userIdFilter.trim());
+    if (contentIdFilter.trim()) params.set("contentId", contentIdFilter.trim());
+    if (spoilerFilter !== "all") params.set("isSpoiler", spoilerFilter);
+    if (hiddenFilter !== "all") params.set("isHidden", hiddenFilter);
+    params.set("t", String(Date.now()));
+    return `/api/social/admin/books/${book.id}/activity?${params.toString()}`;
+  }, [book.id, contentIdFilter, hiddenFilter, keyword, spoilerFilter, userIdFilter]);
 
   useEffect(() => {
     async function fetchActivity() {
@@ -1066,7 +1751,7 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
       setActivity(null);
       setErrorMsg(null);
       try {
-        const res = await fetch(`/api/social/admin/books/${book.id}/activity?t=${Date.now()}`);
+        const res = await fetch(buildActivityUrl());
         const json = await res.json();
         
         // Esnek kontrol: Veri json.data icinde de olabilir, dogrudan json icinde de olabilir
@@ -1093,7 +1778,7 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
       }
     }
     fetchActivity();
-  }, [book.id]);
+  }, [book.id, buildActivityUrl]);
 
   async function handleToggleReviewEditorChoice(id: string, currentStatus: boolean) {
     try {
@@ -1110,9 +1795,13 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
           );
           return next;
         });
+      } else {
+        const payload = await res.json().catch(() => null);
+        toast.error(payload?.message || `Editor secimi guncellenemedi (${res.status}).`);
       }
     } catch (err) {
       console.error("Toggle review editor choice error:", err);
+      toast.error("Editor secimi guncellenirken baglanti hatasi olustu.");
     }
   }
 
@@ -1128,10 +1817,12 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
         toast.success(json.message);
         // Refresh activity
         if (book) {
-          const res = await fetch(`/api/social/admin/books/${book.id}/activity`);
+          const res = await fetch(buildActivityUrl());
           const data = await res.json();
           if (data.isSuccess) setActivity(data.data);
         }
+      } else {
+        toast.error(json?.message || "Islem basarisiz.");
       }
     } catch {
       toast.error("İşlem başarısız.");
@@ -1168,18 +1859,12 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
                 <Clock className="h-3 w-3" /> {new Date(item.createdAt).toLocaleDateString()}
               </span>
             </div>
-            <div
-              className={`text-xs leading-relaxed text-base-content/80 prose prose-sm prose-invert max-w-none prose-p:my-0.5 prose-strong:text-white ${item.isSpoiler ? "blur-[2px] hover:blur-0 transition-all cursor-help" : ""}`}
+            <p
+              className={`text-xs leading-relaxed text-base-content/80 whitespace-pre-wrap break-words ${item.isSpoiler ? "blur-[2px] hover:blur-0 transition-all cursor-help" : ""}`}
               title={item.isSpoiler ? "Spoiler içeriği görmek için üzerine gelin" : ""}
-              dangerouslySetInnerHTML={{
-                __html: item.content
-                  ?.replace(/&lt;/g, '<')
-                  ?.replace(/&gt;/g, '>')
-                  ?.replace(/&quot;/g, '"')
-                  ?.replace(/&#39;/g, "'")
-                  ?.replace(/&amp;/g, '&') || ""
-              }}
-            />
+            >
+              {item.content || ""}
+            </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => handleModerate(item.id, item.isHidden ? 1 : 0)}
@@ -1287,6 +1972,47 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
               </button>
             ))}
           </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="Kelime ara..."
+              className="h-10 rounded-xl border border-base-content/10 bg-base-content/5 px-3 text-xs font-bold outline-none focus:border-primary/30"
+            />
+            <input
+              type="text"
+              value={userIdFilter}
+              onChange={(e) => setUserIdFilter(e.target.value)}
+              placeholder="UserId (GUID)"
+              className="h-10 rounded-xl border border-base-content/10 bg-base-content/5 px-3 text-xs font-bold outline-none focus:border-primary/30"
+            />
+            <input
+              type="text"
+              value={contentIdFilter}
+              onChange={(e) => setContentIdFilter(e.target.value)}
+              placeholder="ContentId (GUID)"
+              className="h-10 rounded-xl border border-base-content/10 bg-base-content/5 px-3 text-xs font-bold outline-none focus:border-primary/30"
+            />
+            <select
+              value={spoilerFilter}
+              onChange={(e) => setSpoilerFilter(e.target.value as "all" | "true" | "false")}
+              className="h-10 rounded-xl border border-base-content/10 bg-base-content/5 px-3 text-xs font-bold outline-none focus:border-primary/30"
+            >
+              <option value="all">Spoiler: Tum</option>
+              <option value="true">Spoiler: Evet</option>
+              <option value="false">Spoiler: Hayir</option>
+            </select>
+            <select
+              value={hiddenFilter}
+              onChange={(e) => setHiddenFilter(e.target.value as "all" | "true" | "false")}
+              className="h-10 rounded-xl border border-base-content/10 bg-base-content/5 px-3 text-xs font-bold outline-none focus:border-primary/30"
+            >
+              <option value="all">Gizli: Tum</option>
+              <option value="true">Gizli: Evet</option>
+              <option value="false">Gizli: Hayir</option>
+            </select>
+          </div>
         </div>
 
         <div className="custom-scrollbar flex-1 overflow-y-auto p-8 pt-0">
@@ -1313,7 +2039,23 @@ function SocialActivityModal({ book, onClose }: { book: ComplianceBook; onClose:
               <p className="text-xs font-black uppercase tracking-widest">
                 {errorMsg || "Veriler Yüklenemedi"}
               </p>
-              <button onClick={() => window.location.reload()} className="mt-4 text-[10px] underline font-bold">Sayfayı Yenile</button>
+              <button
+                onClick={() => {
+                  setErrorMsg(null);
+                  setIsLoading(true);
+                  fetch(`/api/social/admin/books/${book.id}/activity?t=${Date.now()}`)
+                    .then((res) => res.json())
+                    .then((json) => {
+                      if (json?.isSuccess && json?.data) setActivity(json.data);
+                      else setErrorMsg(json?.message || "Veriler yuklenemedi.");
+                    })
+                    .catch(() => setErrorMsg("Sunucuya baglanirken bir hata olustu."))
+                    .finally(() => setIsLoading(false));
+                }}
+                className="mt-4 text-[10px] underline font-bold"
+              >
+                Tekrar Dene
+              </button>
             </div>
           )}
         </div>

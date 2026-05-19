@@ -24,6 +24,13 @@ public class UpdateTagEndpoint(IManagementBookProvider bookProvider) : Endpoint<
 
     public override async Task HandleAsync(UpdateTagRequest req, CancellationToken ct)
     {
+        var routeId = Route<Guid>("Id");
+        if (routeId == Guid.Empty || req.Id == Guid.Empty || routeId != req.Id)
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Route Id ve payload Id eslesmiyor."), 400, ct);
+            return;
+        }
+
         var success = await bookProvider.UpdateTagAsync(req.Id, req.Name, req.Slug, ct);
         if (success)
             await Send.ResponseAsync(Result<string>.Success("Etiket guncellendi."), 200, ct);

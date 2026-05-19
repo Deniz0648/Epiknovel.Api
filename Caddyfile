@@ -55,6 +55,19 @@ logs.epiknovel.com {
     reverse_proxy seq:80
 }
 
+# Sunucu Sağlığı (Beszel)
+monitor.epiknovel.com {
+    import common
+
+    # Zorunlu erişim kontrolü: kullanıcı adı + bcrypt hash (env'den)
+    # Örnek: BESZEL_BASIC_AUTH_HASH=$2a$14$...
+    basicauth {
+        {$BESZEL_BASIC_AUTH_USER} {$BESZEL_BASIC_AUTH_HASH}
+    }
+
+    reverse_proxy beszel:8090
+}
+
 # Spor Kursları - Harici Uygulama
 sporkurslari.com, www.sporkurslari.com {
     import common

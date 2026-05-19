@@ -9,27 +9,31 @@ namespace Epiknovel.Modules.Books.Services;
 
 public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvider userAccountProvider) : IManagementBookProvider
 {
-    public async Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, CancellationToken ct = default)
+    public async Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, DateTime? expectedUpdatedAt, CancellationToken ct = default)
     {
         var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
         if (book == null) return false;
 
+        if (expectedUpdatedAt.HasValue && book.UpdatedAt != expectedUpdatedAt.Value) return false;
         book.IsHidden = !isVisible;
+        book.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(ct);
         return true;
     }
 
-    public async Task<bool> ToggleEditorChoiceAsync(Guid bookId, bool isEditorChoice, CancellationToken ct = default)
+    public async Task<bool> ToggleEditorChoiceAsync(Guid bookId, bool isEditorChoice, DateTime? expectedUpdatedAt, CancellationToken ct = default)
     {
         var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
         if (book == null) return false;
 
+        if (expectedUpdatedAt.HasValue && book.UpdatedAt != expectedUpdatedAt.Value) return false;
         book.IsEditorChoice = isEditorChoice;
+        book.UpdatedAt = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(ct);
         return true;
     }
 
-    public async Task<bool> DeleteBookAsync(Guid bookId, CancellationToken ct = default)
+    public async Task<bool> DeleteBookAsync(Guid bookId, DateTime? expectedUpdatedAt, CancellationToken ct = default)
     {
         var book = await dbContext.Books.IgnoreQueryFilters().FirstOrDefaultAsync(b => b.Id == bookId, ct);
         if (book == null) return false;
@@ -87,6 +91,8 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
                 authorName = authorNames.GetValueOrDefault(b.AuthorId) ?? "Yazar";
             }
 
+            var (priorityScore, prioritySignals) = CalculatePriorityScore(b);
+
             return new ManagementBookDto(
                 b.Id, 
                 b.Title, 
@@ -97,7 +103,10 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
                 b.IsEditorChoice, 
                 b.ViewCount,
                 b.CoverImageUrl,
-                b.CreatedAt);
+                b.CreatedAt,
+                b.UpdatedAt,
+                priorityScore,
+                prioritySignals);
         }).ToList();
 
         return Result<PagedResult<ManagementBookDto>>.Success(PagedResult<ManagementBookDto>.Create(dtos, totalCount, page, pageSize));
@@ -333,5 +342,79 @@ public class ManagementBookProvider(BooksDbContext dbContext, IUserAccountProvid
             .Replace("'", "")
             .Replace("\"", "")
             .Trim('-');
+    }
+
+    private static (int Score, List<string> Signals) CalculatePriorityScore(Book book)
+    {
+        var score = 0;
+        var signals = new List<string>();
+        var now = DateTime.UtcNow;
+
+        if (book.IsHidden)
+        {
+            score += 35;
+            signals.Add("Gizli icerik");
+        }
+
+        if (book.CreatedAt >= now.AddHours(-24))
+        {
+            score += 20;
+            signals.Add("Son 24 saatte olusturuldu");
+        }
+
+        if (book.ViewCount >= 10000)
+        {
+            score += 20;
+            signals.Add("Yuksek goruntulenme");
+        }
+        else if (book.ViewCount >= 1000)
+        {
+            score += 10;
+            signals.Add("Artan goruntulenme");
+        }
+
+        if (book.Type == BookType.Translation)
+        {
+            score += 5;
+            signals.Add("Ceviri eser");
+        }
+
+        if (book.ContentRating == ContentRating.Mature)
+        {
+            score += 12;
+            signals.Add("Mature icerik");
+        }
+
+        if (book.Status == BookStatus.Draft && !book.IsHidden)
+        {
+            score += 15;
+            signals.Add("Taslak gorunur durumda");
+        }
+
+        if (book.Status == BookStatus.Cancelled && !book.IsHidden)
+        {
+            score += 8;
+            signals.Add("Iptal edilmis ama gorunur");
+        }
+
+        if (book.VoteCount >= 50 && book.AverageRating <= 2.5)
+        {
+            score += 15;
+            signals.Add("Dusuk puan + yuksek etkileşim");
+        }
+
+        if (book.ViewCount >= 5000 && book.AverageRating <= 2.0)
+        {
+            score += 10;
+            signals.Add("Yuksek trafik + kotu degerlendirme");
+        }
+
+        if (book.IsEditorChoice)
+        {
+            score = Math.Max(0, score - 10);
+            signals.Add("Editor secimi (oncelik dusurme)");
+        }
+
+        return (Math.Min(100, score), signals);
     }
 }

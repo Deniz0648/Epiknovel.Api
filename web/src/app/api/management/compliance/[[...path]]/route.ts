@@ -72,7 +72,10 @@ async function handleProxyRequest(request: NextRequest, method: string) {
       body
     });
 
-    const response = NextResponse.json(data);
+    const response = NextResponse.json({
+      isSuccess: true,
+      data
+    });
     applyRefreshedTokens(response, tokens?.refreshedTokens);
     return response;
   } catch (error) {

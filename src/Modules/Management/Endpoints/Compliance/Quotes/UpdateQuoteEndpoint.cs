@@ -17,6 +17,9 @@ public class UpdateQuoteRequest
 [AuditLog("Update Quote")]
 public class UpdateQuoteEndpoint(ManagementDbContext dbContext) : Endpoint<UpdateQuoteRequest, Result<string>>
 {
+    private const int MaxQuoteContentLength = 2000;
+    private const int MaxAuthorNameLength = 120;
+
     public override void Configure()
     {
         Put("/management/compliance/quotes/{Id}");
@@ -25,6 +28,32 @@ public class UpdateQuoteEndpoint(ManagementDbContext dbContext) : Endpoint<Updat
 
     public override async Task HandleAsync(UpdateQuoteRequest req, CancellationToken ct)
     {
+        var routeId = Route<Guid>("Id");
+        if (routeId == Guid.Empty || req.Id == Guid.Empty || routeId != req.Id)
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Route Id ve payload Id eslesmiyor."), 400, ct);
+            return;
+        }
+
+        var content = (req.Content ?? string.Empty).Trim();
+        var authorName = string.IsNullOrWhiteSpace(req.AuthorName) ? "Anonim" : req.AuthorName.Trim();
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Soz icerigi bos olamaz."), 400, ct);
+            return;
+        }
+        if (content.Length > MaxQuoteContentLength)
+        {
+            await Send.ResponseAsync(Result<string>.Failure($"Soz en fazla {MaxQuoteContentLength} karakter olabilir."), 400, ct);
+            return;
+        }
+        if (authorName.Length > MaxAuthorNameLength)
+        {
+            await Send.ResponseAsync(Result<string>.Failure($"Yazar adi en fazla {MaxAuthorNameLength} karakter olabilir."), 400, ct);
+            return;
+        }
+
         var quote = await dbContext.DailyQuotes.FirstOrDefaultAsync(x => x.Id == req.Id, ct);
         if (quote == null)
         {
@@ -32,8 +61,8 @@ public class UpdateQuoteEndpoint(ManagementDbContext dbContext) : Endpoint<Updat
             return;
         }
 
-        quote.Content = req.Content ?? string.Empty;
-        quote.AuthorName = req.AuthorName ?? string.Empty;
+        quote.Content = content;
+        quote.AuthorName = authorName;
 
         await dbContext.SaveChangesAsync(ct);
         await Send.ResponseAsync(Result<string>.Success("Soz guncellendi."), 200, ct);

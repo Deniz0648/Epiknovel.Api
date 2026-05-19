@@ -6,7 +6,7 @@ import { applyRefreshedTokens, getAuthenticatedTokens, clearAuthCookies } from "
 export async function GET(request: NextRequest) {
   try {
     const params = new URLSearchParams();
-    const allowedKeys = ["cursor", "take", "userId", "module", "action", "traceId", "state"];
+    const allowedKeys = ["cursor", "take", "userId", "module", "action", "traceId", "state", "entityName", "primaryKeys"];
 
     for (const key of allowedKeys) {
       const value = request.nextUrl.searchParams.get(key);

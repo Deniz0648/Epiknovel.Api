@@ -109,6 +109,40 @@ services:
     volumes:
       - seq_data:/data
 
+  # 🩺 Sunucu Sağlığı (Beszel Hub)
+  beszel:
+    image: ghcr.io/henrygd/beszel:latest
+    profiles: ["ops"]
+    restart: always
+    container_name: epiknovel_beszel
+    expose:
+      - "8090"
+    environment:
+      - TZ=Europe/Istanbul
+    volumes:
+      - beszel_data:/beszel_data
+
+  # 🚫 SSH saldırılarını izleme ve banlama (Fail2ban)
+  fail2ban:
+    image: crazymax/fail2ban:latest
+    profiles: ["ops"]
+    restart: always
+    container_name: epiknovel_fail2ban
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      - TZ=Europe/Istanbul
+      - F2B_DB_PURGE_AGE=14d
+      - F2B_LOG_LEVEL=INFO
+    volumes:
+      - ./ops/fail2ban/jail.d:/data/jail.d:ro
+      - /var/log:/var/log:ro
+      - /var/lib/fail2ban:/data
+    depends_on:
+      - caddy
+
 volumes:
   postgres_data_v18:
   redis_data:
@@ -116,3 +150,4 @@ volumes:
   caddy_data:
   caddy_config:
   seq_data:
+  beszel_data:

@@ -3,6 +3,7 @@ using Epiknovel.Shared.Core.Constants;
 using Epiknovel.Shared.Core.Interfaces.Management;
 using Epiknovel.Shared.Core.Models;
 using FastEndpoints;
+using Microsoft.EntityFrameworkCore;
 
 namespace Epiknovel.Modules.Management.Endpoints.Compliance.Tags;
 
@@ -17,11 +18,21 @@ public class DeleteTagEndpoint(IManagementBookProvider bookProvider) : EndpointW
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var id = Route<Guid>("Id");
-        var success = await bookProvider.DeleteTagAsync(id, ct);
-        if (success)
-            await Send.ResponseAsync(Result<string>.Success("Etiket basariyla silindi."), 200, ct);
-        else
-            await Send.ResponseAsync(Result<string>.Failure("Etiket bulunamadi."), 404, ct);
+        try
+        {
+            var id = Route<Guid>("Id");
+            var success = await bookProvider.DeleteTagAsync(id, ct);
+            if (success)
+                await Send.ResponseAsync(Result<string>.Success("Etiket basariyla silindi."), 200, ct);
+            else
+                await Send.ResponseAsync(Result<string>.Failure("Etiket bulunamadi."), 404, ct);
+        }
+        catch (DbUpdateException)
+        {
+            await Send.ResponseAsync(
+                Result<string>.Failure("Etiket bagli kayitlar nedeniyle silinemedi. Once iliskili kitap baglantilarini kaldirin."),
+                409,
+                ct);
+        }
     }
 }

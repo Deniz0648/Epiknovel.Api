@@ -10,6 +10,7 @@ public class UpdateBookVisibilityRequest
 {
     public Guid BookId { get; set; }
     public bool IsVisible { get; set; }
+    public DateTime? ExpectedUpdatedAt { get; set; }
 }
 
 [AuditLog("Update Book Visibility")]
@@ -23,11 +24,18 @@ public class UpdateBookVisibilityEndpoint(IManagementBookProvider bookProvider) 
 
     public override async Task HandleAsync(UpdateBookVisibilityRequest req, CancellationToken ct)
     {
-        var success = await bookProvider.SetBookVisibilityAsync(req.BookId, req.IsVisible, ct);
+        var routeBookId = Route<Guid>("BookId");
+        if (routeBookId == Guid.Empty || req.BookId == Guid.Empty || routeBookId != req.BookId)
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Route BookId ve payload BookId eslesmiyor."), 400, ct);
+            return;
+        }
+
+        var success = await bookProvider.SetBookVisibilityAsync(req.BookId, req.IsVisible, req.ExpectedUpdatedAt, ct);
 
         if (success)
             await Send.ResponseAsync(Result<string>.Success($"Kitap gorunurlugu {(req.IsVisible ? "aktif" : "gizli")} olarak guncellendi."), 200, ct);
         else
-            await Send.ResponseAsync(Result<string>.Failure("Kitap bulunamadi veya guncellenemedi."), 404, ct);
+            await Send.ResponseAsync(Result<string>.Failure("Kayit degisti. Lutfen yenileyip tekrar deneyin."), 409, ct);
     }
 }

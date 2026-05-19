@@ -17,6 +17,8 @@ public class GetAuditLogsRequest
     public string? Action { get; set; }
     public string? TraceId { get; set; }
     public AuditEntityState? State { get; set; }
+    public string? EntityName { get; set; }
+    public string? PrimaryKeys { get; set; }
 }
 
 public class AuditLogDto
@@ -75,6 +77,12 @@ public class GetAuditLogsEndpoint(ManagementDbContext dbContext) : Endpoint<GetA
 
         if (req.State.HasValue)
             query = query.Where(a => a.State == req.State.Value);
+
+        if (!string.IsNullOrWhiteSpace(req.EntityName))
+            query = query.Where(a => a.EntityName.Contains(req.EntityName));
+
+        if (!string.IsNullOrWhiteSpace(req.PrimaryKeys))
+            query = query.Where(a => a.PrimaryKeys != null && a.PrimaryKeys.Contains(req.PrimaryKeys));
 
         var logs = await query
             .OrderByDescending(a => a.CreatedAt)

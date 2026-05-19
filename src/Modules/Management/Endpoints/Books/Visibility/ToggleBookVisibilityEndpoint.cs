@@ -30,7 +30,7 @@ public class ToggleBookVisibilityEndpoint(IManagementBookProvider bookProvider) 
 
     public override async Task HandleAsync(ToggleBookVisibilityRequest req, CancellationToken ct)
     {
-        var success = await bookProvider.SetBookVisibilityAsync(req.BookId, req.IsVisible, ct);
+        var success = await bookProvider.SetBookVisibilityAsync(req.BookId, req.IsVisible, null, ct);
         
         if (success)
         {

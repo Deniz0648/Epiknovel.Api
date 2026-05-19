@@ -1,5 +1,4 @@
 import { MetadataRoute } from 'next';
-import { backendApiRequest } from '@/lib/backend-api';
 
 type SitemapBook = {
   slug: string;
@@ -24,12 +23,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   try {
-    // Kitaplari dinamik olarak ekle
-    // Not: Build sirasinda backend ayakta degilse burasi hata verebilir.
-    // Bu yüzden try-catch icinde ve fallback mekanizmali olmali.
-    const books = await backendApiRequest<SitemapBook[]>('/Books/list?take=1000', {
-        next: { revalidate: 3600 }
+    const backendBaseUrl = process.env.BACKEND_BASE_URL || "http://epiknovel_api:8080/api";
+    const res = await fetch(`${backendBaseUrl}/Books/list?take=1000`, {
+      next: { revalidate: 3600 },
+      cache: "force-cache",
     });
+    if (!res.ok) throw new Error(`Sitemap books fetch failed: ${res.status}`);
+    const books = await res.json() as SitemapBook[];
 
     if (Array.isArray(books)) {
       const bookRoutes = books.map((book) => ({

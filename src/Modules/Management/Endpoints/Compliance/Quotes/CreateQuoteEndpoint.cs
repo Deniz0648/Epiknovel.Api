@@ -16,6 +16,9 @@ public class CreateQuoteRequest
 [AuditLog("Create Management Quote")]
 public class CreateQuoteEndpoint(ManagementDbContext dbContext) : Endpoint<CreateQuoteRequest, Result<string>>
 {
+    private const int MaxQuoteContentLength = 2000;
+    private const int MaxAuthorNameLength = 120;
+
     public override void Configure()
     {
         Post("/management/compliance/quotes");
@@ -24,10 +27,29 @@ public class CreateQuoteEndpoint(ManagementDbContext dbContext) : Endpoint<Creat
 
     public override async Task HandleAsync(CreateQuoteRequest req, CancellationToken ct)
     {
+        var content = (req.Content ?? string.Empty).Trim();
+        var authorName = string.IsNullOrWhiteSpace(req.AuthorName) ? "Anonim" : req.AuthorName.Trim();
+
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Ozlu soz icerigi bos olamaz."), 400, ct);
+            return;
+        }
+        if (content.Length > MaxQuoteContentLength)
+        {
+            await Send.ResponseAsync(Result<string>.Failure($"Ozlu soz en fazla {MaxQuoteContentLength} karakter olabilir."), 400, ct);
+            return;
+        }
+        if (authorName.Length > MaxAuthorNameLength)
+        {
+            await Send.ResponseAsync(Result<string>.Failure($"Yazar adi en fazla {MaxAuthorNameLength} karakter olabilir."), 400, ct);
+            return;
+        }
+
         var quote = new DailyQuote
         {
-            Content = req.Content,
-            AuthorName = req.AuthorName,
+            Content = content,
+            AuthorName = authorName,
             IsActive = true
         };
 

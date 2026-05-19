@@ -326,17 +326,21 @@ export default function DiscoveryView() {
     const nextAgeRange = searchParams.get("ageRange");
     const nextEditorOnly = searchParams.get("editorOnly") === "1";
 
-    setSearchQuery(q);
-    setDebouncedSearchQuery(q);
-    setActiveQuickFilter(nextQuick);
-    setPageSize(allowedPageSizes.has(nextPageSize) ? nextPageSize : 16);
-    setCurrentPage(nextCurrentPage);
-    setSelectedCategoryId(nextCategoryId || null);
-    setSelectedStatus(nextStatus !== null ? Number.parseInt(nextStatus, 10) : null);
-    setSelectedWorkType(nextWorkType !== null ? Number.parseInt(nextWorkType, 10) : null);
-    setSelectedAgeRange(nextAgeRange !== null ? Number.parseInt(nextAgeRange, 10) : null);
-    setEditorOnly(nextEditorOnly);
-    setIsHydratedFromUrl(true);
+    const timer = window.setTimeout(() => {
+      setSearchQuery(q);
+      setDebouncedSearchQuery(q);
+      setActiveQuickFilter(nextQuick);
+      setPageSize(allowedPageSizes.has(nextPageSize) ? nextPageSize : 16);
+      setCurrentPage(nextCurrentPage);
+      setSelectedCategoryId(nextCategoryId || null);
+      setSelectedStatus(nextStatus !== null ? Number.parseInt(nextStatus, 10) : null);
+      setSelectedWorkType(nextWorkType !== null ? Number.parseInt(nextWorkType, 10) : null);
+      setSelectedAgeRange(nextAgeRange !== null ? Number.parseInt(nextAgeRange, 10) : null);
+      setEditorOnly(nextEditorOnly);
+      setIsHydratedFromUrl(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [searchParams, quickFilterSet]);
 
   useEffect(() => {

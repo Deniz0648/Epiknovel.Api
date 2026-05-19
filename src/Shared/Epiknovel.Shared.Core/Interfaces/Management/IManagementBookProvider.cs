@@ -2,14 +2,28 @@ using Epiknovel.Shared.Core.Models;
 
 namespace Epiknovel.Shared.Core.Interfaces.Management;
 
-public record ManagementBookDto(Guid Id, string Title, string Slug, string AuthorName, string Type, bool IsHidden, bool IsEditorChoice, long ViewCount, string? CoverImageUrl, DateTime CreatedAt);
+public record ManagementBookDto(
+    Guid Id,
+    string Title,
+    string Slug,
+    string AuthorName,
+    string Type,
+    bool IsHidden,
+    bool IsEditorChoice,
+    long ViewCount,
+    string? CoverImageUrl,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt,
+    int PriorityScore = 0,
+    List<string>? PrioritySignals = null
+);
 public record ManagementSimpleDto(Guid Id, string Name, string Slug, string? Description = null, string? IconUrl = null);
 
 public interface IManagementBookProvider
 {
-    Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, CancellationToken ct = default);
-    Task<bool> ToggleEditorChoiceAsync(Guid bookId, bool isEditorChoice, CancellationToken ct = default);
-    Task<bool> DeleteBookAsync(Guid bookId, CancellationToken ct = default);
+    Task<bool> SetBookVisibilityAsync(Guid bookId, bool isVisible, DateTime? expectedUpdatedAt, CancellationToken ct = default);
+    Task<bool> ToggleEditorChoiceAsync(Guid bookId, bool isEditorChoice, DateTime? expectedUpdatedAt, CancellationToken ct = default);
+    Task<bool> DeleteBookAsync(Guid bookId, DateTime? expectedUpdatedAt, CancellationToken ct = default);
     Task<Result<PagedResult<ManagementBookDto>>> GetBooksAsync(string? type, bool? isHidden, bool? isEditorChoice, string? searchTerm, int page, int pageSize, CancellationToken ct = default);
     
     // Categories

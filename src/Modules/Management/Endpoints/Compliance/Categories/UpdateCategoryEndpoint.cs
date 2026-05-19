@@ -26,6 +26,13 @@ public class UpdateCategoryEndpoint(IManagementBookProvider bookProvider) : Endp
 
     public override async Task HandleAsync(UpdateCategoryRequest req, CancellationToken ct)
     {
+        var routeId = Route<Guid>("Id");
+        if (routeId == Guid.Empty || req.Id == Guid.Empty || routeId != req.Id)
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Route Id ve payload Id eslesmiyor."), 400, ct);
+            return;
+        }
+
         var success = await bookProvider.UpdateCategoryAsync(req.Id, req.Name, req.Description, req.IconUrl, req.Slug, ct);
         if (success)
             await Send.ResponseAsync(Result<string>.Success("Kategori guncellendi."), 200, ct);

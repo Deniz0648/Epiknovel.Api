@@ -59,6 +59,11 @@ public class Endpoint(SocialDbContext dbContext, IMediator mediator, Epiknovel.S
             };
             dbContext.Reviews.Add(review);
         }
+        if (review is null)
+        {
+            await Send.ResponseAsync(Result<Guid>.Failure("Inceleme nesnesi olusturulamadi."), 500, ct);
+            return;
+        }
 
         // 4. İncelemeyi Kaydet (XSS Koruması)
         var sanitizer = new Ganss.Xss.HtmlSanitizer();

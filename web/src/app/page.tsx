@@ -4,6 +4,8 @@ import { SimpleHero } from "@/components/home/simple-hero";
 import { MostReadRow } from "@/components/home/most-read-row";
 import { RecommendationsRow } from "@/components/home/recommendations-row";
 import { HomeAnalyticsBeacon } from "@/components/home/home-analytics-beacon";
+
+const BUILD_TIME_NOW_MS = Date.now();
 import { backendApiRequest } from "@/lib/backend-api";
 import { resolveMediaUrl } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
@@ -247,14 +249,6 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Se
     )
   ).slice(0, 6);
 
-  const statusMap: Record<string, string> = {
-    Ongoing: "Devam Ediyor",
-    Completed: "Tamamlandı",
-    Hiatus: "Ara Verdi",
-    Dropped: "Bırakıldı",
-    Unknown: "Belirsiz"
-  };
-
   const baseBooks = [...mostReadItems, ...recommendationItems];
 
   const matchesLength = (chapterCount: number) => {
@@ -348,8 +342,7 @@ export default async function Home({ searchParams }: { searchParams?: Promise<Se
     date: timeAgo(a.publishedAt || a.createdAt)
   }));
 
-  const now = Date.now();
-  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+  const sevenDaysAgo = BUILD_TIME_NOW_MS - 7 * 24 * 60 * 60 * 1000;
   const weeklyNewChapters = data.updates.filter((u) => {
     const ts = Date.parse(u.publishedAt);
     return Number.isFinite(ts) && ts >= sevenDaysAgo;

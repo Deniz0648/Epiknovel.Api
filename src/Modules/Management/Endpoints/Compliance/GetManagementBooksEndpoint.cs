@@ -19,6 +19,9 @@ public class GetManagementBooksRequest
 [AuditLog("View Management Books")]
 public class GetManagementBooksEndpoint(IManagementBookProvider bookProvider) : Endpoint<GetManagementBooksRequest, Result<PagedResult<ManagementBookDto>>>
 {
+    private const int MaxTake = 100;
+    private const int MaxSearchLength = 120;
+
     public override void Configure()
     {
         Get("/management/compliance/books");
@@ -27,7 +30,12 @@ public class GetManagementBooksEndpoint(IManagementBookProvider bookProvider) : 
 
     public override async Task HandleAsync(GetManagementBooksRequest req, CancellationToken ct)
     {
-        var result = await bookProvider.GetBooksAsync(req.Type, req.IsHidden, req.IsEditorChoice, req.Search, req.Page, req.Take, ct);
+        var safePage = req.Page < 1 ? 1 : req.Page;
+        var safeTake = req.Take < 1 ? 25 : Math.Min(req.Take, MaxTake);
+        var safeSearch = string.IsNullOrWhiteSpace(req.Search)
+            ? null
+            : req.Search.Trim()[..Math.Min(req.Search.Trim().Length, MaxSearchLength)];
+        var result = await bookProvider.GetBooksAsync(req.Type, req.IsHidden, req.IsEditorChoice, safeSearch, safePage, safeTake, ct);
         await Send.ResponseAsync(result, 200, ct);
     }
 }

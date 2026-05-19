@@ -24,7 +24,14 @@ public class UpdateReviewEditorChoiceEndpoint(SocialDbContext dbContext) : Endpo
 
     public override async Task HandleAsync(UpdateReviewEditorChoiceRequest req, CancellationToken ct)
     {
-        // Önce İncelemelerde ara
+        var routeId = Route<Guid>("Id");
+        if (routeId == Guid.Empty || req.Id == Guid.Empty || routeId != req.Id)
+        {
+            await Send.ResponseAsync(Result<string>.Failure("Route Id ve payload Id eslesmiyor."), 400, ct);
+            return;
+        }
+
+        // Sadece inceleme kaydı güncellenir.
         var review = await dbContext.Reviews.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
         if (review != null)
         {
@@ -33,17 +40,6 @@ public class UpdateReviewEditorChoiceEndpoint(SocialDbContext dbContext) : Endpo
             await Send.ResponseAsync(Result<string>.Success("İnceleme durumu başarıyla güncellendi."), 200, ct);
             return;
         }
-
-        // Bulunamazsa Yorumlarda ara
-        var comment = await dbContext.Comments.IgnoreQueryFilters().FirstOrDefaultAsync(x => x.Id == req.Id, ct);
-        if (comment != null)
-        {
-            comment.IsEditorChoice = req.IsEditorChoice;
-            await dbContext.SaveChangesAsync(ct);
-            await Send.ResponseAsync(Result<string>.Success("Yorum durumu başarıyla güncellendi."), 200, ct);
-            return;
-        }
-
-        await Send.NotFoundAsync(ct);
+        await Send.ResponseAsync(Result<string>.Failure("Inceleme bulunamadi."), 404, ct);
     }
 }

@@ -13,6 +13,11 @@ namespace Epiknovel.Modules.Social.Endpoints.Admin.Comments;
 public class GetBookSocialActivityRequest
 {
     public Guid BookId { get; set; }
+    public Guid? UserId { get; set; }
+    public Guid? ContentId { get; set; }
+    public string? Keyword { get; set; }
+    public bool? IsSpoiler { get; set; }
+    public bool? IsHidden { get; set; }
 }
 
 public class BookSocialActivityDto
@@ -59,6 +64,11 @@ public class GetBookSocialActivityEndpoint(SocialDbContext dbContext, IBookProvi
                 .AsNoTracking()
                 .IgnoreQueryFilters()
                 .Where(r => r.BookId == req.BookId)
+                .Where(r => !req.UserId.HasValue || r.UserId == req.UserId.Value)
+                .Where(r => !req.ContentId.HasValue || r.Id == req.ContentId.Value)
+                .Where(r => !req.IsSpoiler.HasValue || r.IsSpoiler == req.IsSpoiler.Value)
+                .Where(r => !req.IsHidden.HasValue || r.IsHidden == req.IsHidden.Value)
+                .Where(r => string.IsNullOrWhiteSpace(req.Keyword) || EF.Functions.ILike(r.Content, $"%{req.Keyword.Trim()}%"))
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new SocialItemDto
                 {
@@ -77,6 +87,11 @@ public class GetBookSocialActivityEndpoint(SocialDbContext dbContext, IBookProvi
                 .AsNoTracking()
                 .IgnoreQueryFilters()
                 .Where(c => c.BookId == req.BookId || (c.ChapterId != null && chapterIds.Contains(c.ChapterId.Value)))
+                .Where(c => !req.UserId.HasValue || c.UserId == req.UserId.Value)
+                .Where(c => !req.ContentId.HasValue || c.Id == req.ContentId.Value)
+                .Where(c => !req.IsSpoiler.HasValue || c.IsSpoiler == req.IsSpoiler.Value)
+                .Where(c => !req.IsHidden.HasValue || c.IsHidden == req.IsHidden.Value)
+                .Where(c => string.IsNullOrWhiteSpace(req.Keyword) || EF.Functions.ILike(c.Content, $"%{req.Keyword.Trim()}%"))
                 .OrderByDescending(c => c.CreatedAt)
                 .Select(c => new SocialItemDto
                 {
@@ -98,6 +113,11 @@ public class GetBookSocialActivityEndpoint(SocialDbContext dbContext, IBookProvi
                 .AsNoTracking()
                 .IgnoreQueryFilters()
                 .Where(ic => chapterIds.Contains(ic.ChapterId))
+                .Where(ic => !req.UserId.HasValue || ic.UserId == req.UserId.Value)
+                .Where(ic => !req.ContentId.HasValue || ic.Id == req.ContentId.Value)
+                .Where(ic => !req.IsSpoiler.HasValue || ic.IsSpoiler == req.IsSpoiler.Value)
+                .Where(ic => !req.IsHidden.HasValue || ic.IsHidden == req.IsHidden.Value)
+                .Where(ic => string.IsNullOrWhiteSpace(req.Keyword) || EF.Functions.ILike(ic.Content, $"%{req.Keyword.Trim()}%"))
                 .OrderByDescending(ic => ic.CreatedAt)
                 .Select(ic => new SocialItemDto
                 {
