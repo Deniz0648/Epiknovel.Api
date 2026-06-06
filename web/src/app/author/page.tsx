@@ -44,6 +44,55 @@ type ApiEnvelope<T> = {
   data?: T;
 };
 
+type AuthorInsightsResponse = {
+  books: MyBookListItem[];
+  chaptersByBook: Array<{
+    bookId: string;
+    bookSlug: string;
+    items: Array<{
+      id: string;
+      title: string;
+      slug: string;
+      status: string | number;
+      viewCount?: number;
+      createdAt: string;
+      publishedAt?: string;
+    }>;
+  }>;
+  auditLogs: Array<{
+    tableName?: string;
+    operation?: string;
+    createdAt?: string;
+    keyValues?: string;
+    oldValues?: string;
+    newValues?: string;
+    changedColumns?: string;
+  }>;
+  backendInsights?: {
+    funnel?: {
+      bookViews: number;
+      chapterOpens: number;
+      chapterCompletions: number;
+      votes: number;
+    };
+    revisionTimeline?: Array<{
+      createdAt: string;
+      module: string;
+      action: string;
+      entityName: string;
+      state: string;
+      changedColumns?: string;
+      primaryKeys?: string;
+    }>;
+    funnelDaily?: Array<{
+      date: string;
+      chapterOpens: number;
+      chapterCompletions: number;
+      votes: number;
+    }>;
+  } | null;
+};
+
 
 function getStatusProps(status: MyBookListItem["status"] | string | number) {
   // Hem string hem integer değerleri karşıla
@@ -101,17 +150,26 @@ function AuthorPanelContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [searchInput, setSearchInput] = useState("");
-  const [query, setQuery] = useState("");
-  const [status, setStatus] = useState("");
-  const [bookType, setBookType] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState(() => searchParams.get("q") ?? "");
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const [status, setStatus] = useState(() => searchParams.get("status") ?? "");
+  const [bookType, setBookType] = useState(() => searchParams.get("type") ?? "");
+  const [page, setPage] = useState(() => {
+    const initialPage = Number(searchParams.get("page") ?? "1");
+    return Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1;
+  });
+  const [pageSize, setPageSize] = useState(() => {
+    const initialPageSize = Number(searchParams.get("pageSize") ?? "10");
+    return [10, 20, 50].includes(initialPageSize) ? initialPageSize : 10;
+  });
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
   const [deletedBooks, setDeletedBooks] = useState<MyBookListItem[]>([]);
   const [isTrashLoading, setIsTrashLoading] = useState(false);
+  const [trashQuery, setTrashQuery] = useState(() => searchParams.get("trashQ") ?? "");
+  const [selectedDeletedBookIds, setSelectedDeletedBookIds] = useState<string[]>([]);
+  const [confirmRestoreIds, setConfirmRestoreIds] = useState<string[] | null>(null);
 
   // Gelirlerim State
   const [walletBalance, setWalletBalance] = useState<WalletBalanceDto | null>(null);
@@ -125,6 +183,16 @@ function AuthorPanelContent() {
   const [legalSlug, setLegalSlug] = useState<string | null>(null);
   const [paidTermsAccepted, setPaidTermsAccepted] = useState(false);
   const [isPaidModalOpen, setIsPaidModalOpen] = useState(false);
+  const [insightsBookFilter, setInsightsBookFilter] = useState("");
+  const [insightsData, setInsightsData] = useState<AuthorInsightsResponse | null>(null);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+  const [insightsBookId, setInsightsBookId] = useState("");
+  const [insightsAction, setInsightsAction] = useState("");
+  const [insightsEntity, setInsightsEntity] = useState("");
+  const [insightsStartDate, setInsightsStartDate] = useState("");
+  const [insightsEndDate, setInsightsEndDate] = useState("");
+  const [showAllFunnelRows, setShowAllFunnelRows] = useState(false);
+  const [showAllTimelineRows, setShowAllTimelineRows] = useState(false);
 
   useEffect(() => {
     if (isSessionLoading) return;
@@ -136,6 +204,26 @@ function AuthorPanelContent() {
     const timer = setTimeout(() => { setQuery(searchInput); setPage(1); }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", activeTab);
+
+    if (searchInput.trim()) params.set("q", searchInput.trim());
+    else params.delete("q");
+    if (status) params.set("status", status);
+    else params.delete("status");
+    if (bookType) params.set("type", bookType);
+    else params.delete("type");
+    if (page > 1) params.set("page", String(page));
+    else params.delete("page");
+    if (pageSize !== 10) params.set("pageSize", String(pageSize));
+    else params.delete("pageSize");
+    if (trashQuery.trim()) params.set("trashQ", trashQuery.trim());
+    else params.delete("trashQ");
+
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [activeTab, searchInput, status, bookType, page, pageSize, trashQuery, pathname, router, searchParams]);
 
   useEffect(() => {
     let isMountedLocal = true;
@@ -163,7 +251,10 @@ function AuthorPanelContent() {
           setError(null);
         }
       } catch {
-        if (isMountedLocal) setError("Eserler yüklenirken bir hata oluştu.");
+        if (isMountedLocal) {
+          setError("Eserler yüklenirken bir hata oluştu.");
+          if (isDeleted) toast.error({ description: "Çöp kutusu verisi alınamadı." });
+        }
       } finally {
         if (isMountedLocal) {
           setIsLoading(false);
@@ -216,6 +307,36 @@ function AuthorPanelContent() {
       loadPaidStatus();
     }
   }, [activeTab, profile, earningsPage]);
+
+  useEffect(() => {
+    if (activeTab !== "insights" || !hasAuthorPanelAccess(profile)) return;
+    let mounted = true;
+    const loadInsights = async () => {
+      setIsInsightsLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("days", "30");
+        if (insightsBookId) params.set("bookId", insightsBookId);
+        if (insightsAction.trim()) params.set("action", insightsAction.trim());
+        if (insightsEntity.trim()) params.set("entity", insightsEntity.trim());
+        if (insightsStartDate) params.set("startDate", insightsStartDate);
+        if (insightsEndDate) params.set("endDate", insightsEndDate);
+        const res = await fetch(`/api/author/insights?${params.toString()}`, { method: "GET", cache: "no-store" });
+        const json = await res.json();
+        if (!mounted) return;
+        if (!res.ok || !json?.isSuccess) throw new Error(json?.message || "Insights alınamadı.");
+        setInsightsData(json.data as AuthorInsightsResponse);
+      } catch (err) {
+        if (mounted) toast.error({ description: err instanceof Error ? err.message : "Insights alınamadı." });
+      } finally {
+        if (mounted) setIsInsightsLoading(false);
+      }
+    };
+    loadInsights();
+    return () => {
+      mounted = false;
+    };
+  }, [activeTab, profile, insightsBookId, insightsAction, insightsEntity, insightsStartDate, insightsEndDate]);
 
   const handleSubmitPaidApplication = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -290,6 +411,87 @@ function AuthorPanelContent() {
     return { totalViews: views, avgRating: avg.toFixed(1), totalVotes: votes };
   }, [books]);
 
+  const filteredDeletedBooks = useMemo(() => {
+    const q = trashQuery.trim().toLowerCase();
+    if (!q) return deletedBooks;
+    return deletedBooks.filter((book) =>
+      book.title.toLowerCase().includes(q) ||
+      book.slug.toLowerCase().includes(q)
+    );
+  }, [deletedBooks, trashQuery]);
+
+  const insightsBooks = insightsData?.books ?? books;
+
+  const contentHealth = useMemo(() => {
+    const total = insightsBooks.length;
+    const missingCover = insightsBooks.filter((b) => !b.coverImageUrl).length;
+    const missingDescription = insightsBooks.filter((b) => !b.description || b.description.trim().length < 80).length;
+    const lowEngagement = insightsBooks.filter((b) => (b.viewCount ?? 0) < 500 && (b.voteCount ?? 0) < 5).length;
+    return { total, missingCover, missingDescription, lowEngagement };
+  }, [insightsBooks]);
+
+  const funnel = useMemo(() => {
+    const backendFunnel = insightsData?.backendInsights?.funnel;
+    if (backendFunnel) {
+      const readToVote = backendFunnel.bookViews > 0 ? (backendFunnel.votes / backendFunnel.bookViews) * 100 : 0;
+      const catalogConversion = books.length > 0 ? (backendFunnel.votes / books.length) * 100 : 0;
+      return {
+        discovered: backendFunnel.bookViews,
+        voteCount: backendFunnel.votes,
+        ratedBooks: backendFunnel.chapterOpens,
+        readToVote,
+        catalogConversion,
+        chapterCompletions: backendFunnel.chapterCompletions,
+      };
+    }
+    const discovered = insightsBooks.reduce((sum, b) => sum + (b.viewCount ?? 0), 0);
+    const voteCount = insightsBooks.reduce((sum, b) => sum + (b.voteCount ?? 0), 0);
+    const ratedBooks = insightsBooks.filter((b) => (b.voteCount ?? 0) > 0).length;
+    const readToVote = discovered > 0 ? (voteCount / discovered) * 100 : 0;
+    const catalogConversion = insightsBooks.length > 0 ? (ratedBooks / insightsBooks.length) * 100 : 0;
+    return { discovered, voteCount, ratedBooks, readToVote, catalogConversion, chapterCompletions: 0 };
+  }, [insightsBooks, insightsData?.backendInsights?.funnel, books.length]);
+
+  const abIdeas = useMemo(() => {
+    return insightsBooks
+      .map((b) => {
+        const views = b.viewCount ?? 0;
+        const votes = b.voteCount ?? 0;
+        const score = views > 0 ? votes / views : 0;
+        return {
+          id: b.id,
+          title: b.title,
+          slug: b.slug,
+          score,
+          suggestion:
+            views > 1500 && score < 0.01
+              ? "Kapak varyant testi önerilir"
+              : views > 800 && score < 0.015
+              ? "Başlık + kapak kombine testi önerilir"
+              : "Mevcut kreatif korunabilir",
+        };
+      })
+      .sort((a, b) => a.score - b.score)
+      .slice(0, 5);
+  }, [insightsBooks]);
+
+  const changeHistoryRows = useMemo(() => {
+    const q = insightsBookFilter.trim().toLowerCase();
+    return insightsBooks
+      .filter((b) => !q || b.title.toLowerCase().includes(q) || b.slug.toLowerCase().includes(q))
+      .map((b) => ({
+        id: b.id,
+        title: b.title,
+        slug: b.slug,
+        createdAt: b.createdAt,
+        updatedAt: b.updatedAt,
+        status: getStatusProps(b.status).label,
+      }))
+      .sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt));
+  }, [insightsBooks, insightsBookFilter]);
+  const funnelDailyRows = insightsData?.backendInsights?.funnelDaily ?? [];
+  const revisionTimelineRows = insightsData?.backendInsights?.revisionTimeline ?? [];
+
   if (isSessionLoading) return (
     <div className="min-h-screen flex items-center justify-center bg-base-100">
       <span className="loading loading-spinner loading-lg text-primary"></span>
@@ -298,19 +500,23 @@ function AuthorPanelContent() {
 
 
 
-  const handleRestoreBook = async (id: string) => {
+  const handleRestoreBooks = async (ids: string[]) => {
     try {
-      if (!confirm("Bu eseri geri yüklemek istediğinize emin misiniz?")) return;
-
-      await restoreBook(id);
+      if (ids.length === 0) return;
+      setIsTrashLoading(true);
+      await Promise.all(ids.map((id) => restoreBook(id)));
 
       // Çöp kutusunu yenile
       const response = await getMyBooks({ pageNumber: 1, pageSize: 50, OnlyDeleted: true });
       setDeletedBooks(response.items);
+      setSelectedDeletedBookIds((prev) => prev.filter((id) => !ids.includes(id)));
 
-      alert("Eser başarıyla geri yüklendi.");
+      toast.success({ description: ids.length === 1 ? "Eser geri yüklendi." : `${ids.length} eser geri yüklendi.` });
     } catch (err) {
-      alert("Geri yükleme sırasında bir hata oluştu: " + (err instanceof Error ? err.message : "Bilinmeyen hata"));
+      toast.error({ description: "Geri yükleme sırasında bir hata oluştu: " + (err instanceof Error ? err.message : "Bilinmeyen hata") });
+    } finally {
+      setIsTrashLoading(false);
+      setConfirmRestoreIds(null);
     }
   };
 
@@ -356,35 +562,44 @@ function AuthorPanelContent() {
         </section>
 
         {/* Sekme Seçici (Tabs) */}
-        <div className={`flex flex-wrap items-center gap-1.5 p-1.5 rounded-[1.8rem] ${glassStyle} w-fit mx-auto lg:mx-0`}>
+        <div className={`mx-auto w-full rounded-[1.8rem] p-1.5 ${glassStyle} lg:mx-0 lg:w-fit`}>
+          <div className="no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1">
           <button
             onClick={() => setActiveTab("stats")}
-            className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "stats" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition-all sm:px-5 sm:py-2.5 sm:text-xs sm:tracking-widest ${activeTab === "stats" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
               }`}
           >
             <BarChart3 className="w-4 h-4" /> Dashboard
           </button>
           <button
             onClick={() => setActiveTab("works")}
-            className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "works" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition-all sm:px-5 sm:py-2.5 sm:text-xs sm:tracking-widest ${activeTab === "works" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
               }`}
           >
             <LayoutGrid className="w-4 h-4" /> Eserlerim
           </button>
           <button
             onClick={() => setActiveTab("earnings")}
-            className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "earnings" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition-all sm:px-5 sm:py-2.5 sm:text-xs sm:tracking-widest ${activeTab === "earnings" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
               }`}
           >
             <Wallet className="w-4 h-4" /> Gelirlerim
           </button>
           <button
             onClick={() => setActiveTab("trash")}
-            className={`flex items-center gap-2.5 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${activeTab === "trash" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition-all sm:px-5 sm:py-2.5 sm:text-xs sm:tracking-widest ${activeTab === "trash" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
               }`}
           >
             <Trash2 className="w-4 h-4" /> Çöp Kutusu
           </button>
+          <button
+            onClick={() => setActiveTab("insights")}
+            className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition-all sm:px-5 sm:py-2.5 sm:text-xs sm:tracking-widest ${activeTab === "insights" ? "bg-primary text-primary-content shadow-lg shadow-primary/20" : "hover:bg-base-100/40 text-base-content/50"
+              }`}
+          >
+            <Zap className="w-4 h-4" /> Insights
+          </button>
+          </div>
         </div>
 
         {activeTab === "stats" && (
@@ -961,20 +1176,60 @@ function AuthorPanelContent() {
                 <Loader2 className="w-10 h-10 animate-spin text-primary" />
                 <p className="text-[11px] font-black uppercase tracking-[0.3em] italic">Yükleniyor...</p>
               </div>
-            ) : deletedBooks.length === 0 ? (
+            ) : filteredDeletedBooks.length === 0 ? (
               <div className={`py-40 flex flex-col items-center justify-center gap-6 rounded-4xl border-dashed ${glassStyle} opacity-60`}>
                 <div className="w-24 h-24 rounded-full bg-base-content/5 flex items-center justify-center">
                   <Trash2 className="w-12 h-12 text-base-content/20" />
                 </div>
                 <div className="text-center space-y-2">
                   <h2 className="text-xl font-black uppercase italic tracking-tighter">Çöp Kutusu Boş</h2>
-                  <p className="text-xs font-bold uppercase tracking-widest text-base-content/40 italic">Burada henüz silinmiş bir eseriniz bulunmuyor.</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-base-content/40 italic">
+                    {trashQuery ? "Aramaya uygun silinmiş eser bulunamadı." : "Burada henüz silinmiş bir eseriniz bulunmuyor."}
+                  </p>
                 </div>
               </div>
             ) : (
+              <>
+              <div className={`p-4 rounded-3xl ${glassStyle} flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>
+                <input
+                  type="text"
+                  placeholder="Çöp kutusunda ara..."
+                  value={trashQuery}
+                  onChange={(e) => setTrashQuery(e.target.value)}
+                  className="input input-bordered h-11 w-full rounded-xl bg-base-100/40 text-sm font-semibold sm:max-w-sm"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedDeletedBookIds(filteredDeletedBooks.map((b) => b.id))}
+                    className="btn btn-ghost btn-sm rounded-xl"
+                  >
+                    Tümünü Seç
+                  </button>
+                  <button
+                    onClick={() => setSelectedDeletedBookIds([])}
+                    className="btn btn-ghost btn-sm rounded-xl"
+                  >
+                    Seçimi Temizle
+                  </button>
+                  <button
+                    onClick={() => setConfirmRestoreIds(selectedDeletedBookIds)}
+                    disabled={selectedDeletedBookIds.length === 0}
+                    className="btn btn-primary btn-sm rounded-xl"
+                  >
+                    Seçilileri Geri Yükle ({selectedDeletedBookIds.length})
+                  </button>
+                </div>
+              </div>
+              {error && (
+                <div className="alert alert-error rounded-2xl">
+                  <span>{error}</span>
+                  <button onClick={() => setPage((p) => p)} className="btn btn-xs rounded-lg">Tekrar Dene</button>
+                </div>
+              )}
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {deletedBooks.map((book) => {
+                {filteredDeletedBooks.map((book) => {
                   const statusInfo = getStatusProps(book.status);
+                  const selected = selectedDeletedBookIds.includes(book.id);
                   return (
                     <article key={book.id} className={`group relative overflow-hidden rounded-4xl border border-base-content/10 transition-all hover:border-primary/30 ${glassStyle} hover:shadow-2xl hover:shadow-primary/5`}>
                       <div className="flex gap-5 p-6">
@@ -987,6 +1242,18 @@ function AuthorPanelContent() {
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
                           <div>
+                            <label className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-base-content/60">
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-xs"
+                                checked={selected}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedDeletedBookIds((prev) => [...prev, book.id]);
+                                  else setSelectedDeletedBookIds((prev) => prev.filter((id) => id !== book.id));
+                                }}
+                              />
+                              Seç
+                            </label>
                             <h3 className="text-sm font-black tracking-tight line-clamp-1 opacity-70 italic group-hover:text-primary transition-colors">{book.title}</h3>
                             <div className="flex items-center gap-2 mt-2">
                               <span className={`px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${statusInfo.color} opacity-60`}>
@@ -995,7 +1262,7 @@ function AuthorPanelContent() {
                             </div>
                           </div>
                           <button
-                            onClick={() => handleRestoreBook(book.id)}
+                            onClick={() => setConfirmRestoreIds([book.id])}
                             className="btn btn-primary btn-sm h-10 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] shadow-lg shadow-primary/20 hover:shadow-primary/40 active:scale-95 transition-all"
                           >
                             Geri Getir
@@ -1006,7 +1273,162 @@ function AuthorPanelContent() {
                   );
                 })}
               </div>
+              </>
             )}
+          </div>
+        )}
+        {activeTab === "insights" && (
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {isInsightsLoading && (
+              <div className={`rounded-3xl p-4 ${glassStyle} flex items-center gap-3`}>
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <p className="text-xs font-bold uppercase tracking-widest text-base-content/60">Insights yükleniyor...</p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className={`rounded-3xl p-4 ${glassStyle}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">İçerik Sağlığı</p>
+                <p className="mt-2 text-sm font-bold">Kapaksız: {contentHealth.missingCover} / Açıklaması zayıf: {contentHealth.missingDescription}</p>
+                <p className="mt-1 text-xs text-base-content/60">Düşük etkileşimli eser: {contentHealth.lowEngagement}</p>
+              </div>
+              <div className={`rounded-3xl p-4 ${glassStyle}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Funnel</p>
+                <p className="mt-2 text-sm font-bold">Keşif: {funnel.discovered.toLocaleString("tr-TR")} görüntüleme</p>
+                <p className="mt-1 text-xs text-base-content/60">Okuma to Oy: %{funnel.readToVote.toFixed(2)}</p>
+                <p className="mt-1 text-xs text-base-content/60">Chapter Completion: {funnel.chapterCompletions.toLocaleString("tr-TR")}</p>
+              </div>
+              <div className={`rounded-3xl p-4 ${glassStyle}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40">Katalog Dönüşümü</p>
+                <p className="mt-2 text-sm font-bold">Oy alan eser: {funnel.ratedBooks} / {books.length}</p>
+                <p className="mt-1 text-xs text-base-content/60">Dönüşüm: %{funnel.catalogConversion.toFixed(1)}</p>
+              </div>
+            </div>
+
+            <details className={`rounded-3xl p-4 ${glassStyle}`}>
+              <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-widest text-base-content/70">Timeline Filtreleri</summary>
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-5">
+                <select className="select select-bordered" value={insightsBookId} onChange={(e) => setInsightsBookId(e.target.value)}>
+                  <option value="">Tüm Kitaplar</option>
+                  {insightsBooks.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
+                </select>
+                <input className="input input-bordered" placeholder="Action" value={insightsAction} onChange={(e) => setInsightsAction(e.target.value)} />
+                <input className="input input-bordered" placeholder="Entity" value={insightsEntity} onChange={(e) => setInsightsEntity(e.target.value)} />
+                <input className="input input-bordered" type="date" value={insightsStartDate} onChange={(e) => setInsightsStartDate(e.target.value)} />
+                <input className="input input-bordered" type="date" value={insightsEndDate} onChange={(e) => setInsightsEndDate(e.target.value)} />
+              </div>
+            </details>
+
+            <section className={`rounded-3xl p-4 ${glassStyle}`}>
+              <h3 className="text-sm font-black uppercase tracking-widest text-base-content/70">Günlük Funnel (Chart-Ready)</h3>
+              <div className="mt-4 overflow-x-auto">
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Chapter Open</th>
+                      <th>Completion</th>
+                      <th>Vote</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(showAllFunnelRows ? funnelDailyRows : funnelDailyRows.slice(0, 7)).map((d, idx) => (
+                      <tr key={`${d.date}-${idx}`}>
+                        <td>{d.date}</td>
+                        <td>{d.chapterOpens}</td>
+                        <td>{d.chapterCompletions}</td>
+                        <td>{d.votes}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {funnelDailyRows.length > 7 ? (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllFunnelRows((prev) => !prev)}
+                    className="btn btn-ghost btn-xs rounded-lg"
+                  >
+                    {showAllFunnelRows ? "Daha Az Göster" : `Tümünü Gör (${funnelDailyRows.length})`}
+                  </button>
+                </div>
+              ) : null}
+            </section>
+
+            <details className={`rounded-3xl p-4 ${glassStyle}`}>
+              <summary className="cursor-pointer list-none text-sm font-black uppercase tracking-widest text-base-content/70">A/B Test Önerileri</summary>
+              <h3 className="text-sm font-black uppercase tracking-widest text-base-content/70">A/B Test Önerileri</h3>
+              <div className="mt-4 space-y-2">
+                {abIdeas.length === 0 ? (
+                  <p className="text-xs text-base-content/60">Öneri üretecek yeterli eser verisi yok.</p>
+                ) : (
+                  abIdeas.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-xl border border-base-content/10 bg-base-100/40 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-bold">{item.title}</p>
+                        <p className="text-[11px] text-base-content/60">{item.suggestion}</p>
+                      </div>
+                      <Link href={`/author/${item.slug}/edit`} className="btn btn-ghost btn-xs rounded-lg">Düzenle</Link>
+                    </div>
+                  ))
+                )}
+              </div>
+            </details>
+
+            <section className={`rounded-3xl p-4 ${glassStyle}`}>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-black uppercase tracking-widest text-base-content/70">Eser Değişiklik Geçmişi</h3>
+                <input
+                  type="text"
+                  placeholder="Eser ara..."
+                  value={insightsBookFilter}
+                  onChange={(e) => setInsightsBookFilter(e.target.value)}
+                  className="input input-bordered h-10 w-full rounded-xl bg-base-100/40 text-sm sm:max-w-xs"
+                />
+              </div>
+              <div className="mt-4 overflow-x-auto">
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Eser</th>
+                      <th>Durum</th>
+                      <th>Oluşturulma</th>
+                      <th>Son Güncelleme</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(revisionTimelineRows.length
+                      ? (showAllTimelineRows ? revisionTimelineRows : revisionTimelineRows.slice(0, 10)).map((item, idx) => (
+                          <tr key={`${item.createdAt}-${idx}`}>
+                            <td className="font-semibold">{item.entityName}</td>
+                            <td>{item.action}</td>
+                            <td>{item.createdAt ? new Date(item.createdAt).toLocaleString("tr-TR") : "-"}</td>
+                            <td>{item.state}</td>
+                          </tr>
+                        ))
+                      : (showAllTimelineRows ? changeHistoryRows : changeHistoryRows.slice(0, 10)).map((row) => (
+                          <tr key={row.id}>
+                            <td className="font-semibold">{row.title}</td>
+                            <td>{row.status}</td>
+                            <td>{row.createdAt ? new Date(row.createdAt).toLocaleString("tr-TR") : "-"}</td>
+                            <td>{row.updatedAt ? new Date(row.updatedAt).toLocaleString("tr-TR") : "-"}</td>
+                          </tr>
+                        )))}
+                  </tbody>
+                </table>
+              </div>
+              {((revisionTimelineRows.length > 10) || (revisionTimelineRows.length === 0 && changeHistoryRows.length > 10)) ? (
+                <div className="mt-3 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowAllTimelineRows((prev) => !prev)}
+                    className="btn btn-ghost btn-xs rounded-lg"
+                  >
+                    {showAllTimelineRows ? "Daha Az Göster" : "Tüm Geçmişi Gör"}
+                  </button>
+                </div>
+              ) : null}
+            </section>
           </div>
         )}
 
@@ -1165,6 +1587,28 @@ function AuthorPanelContent() {
         isOpen={!!legalSlug} 
         onClose={() => setLegalSlug(null)} 
       />
+      <AnimatePresence>
+        {confirmRestoreIds && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-base-300/70" onClick={() => setConfirmRestoreIds(null)} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="relative w-full max-w-md rounded-3xl border border-base-content/10 bg-base-100 p-6 shadow-2xl"
+            >
+              <h3 className="text-lg font-black">Geri Yükleme Onayı</h3>
+              <p className="mt-2 text-sm text-base-content/70">
+                {confirmRestoreIds.length === 1 ? "Bu eseri geri yüklemek istiyor musun?" : `${confirmRestoreIds.length} eseri geri yüklemek istiyor musun?`}
+              </p>
+              <div className="mt-6 flex justify-end gap-2">
+                <button onClick={() => setConfirmRestoreIds(null)} className="btn btn-ghost rounded-xl">Vazgeç</button>
+                <button onClick={() => handleRestoreBooks(confirmRestoreIds)} className="btn btn-primary rounded-xl">Onayla</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

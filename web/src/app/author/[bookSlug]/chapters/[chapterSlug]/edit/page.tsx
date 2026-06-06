@@ -14,8 +14,7 @@ export default async function EditChapterPage({ params }: { params: Promise<{ bo
   const apiUrl = process.env.NEXT_INTERNAL_API_URL || "http://epiknovel_api:8080/api"
 
   // Fetch Chapter Details
-  // Backend reader-side endpoint: /api/books/chapters/{Slug}
-  const res = await fetch(`${apiUrl}/books/chapters/${chapterSlug}`, {
+  const res = await fetch(`${apiUrl}/books/${encodeURIComponent(bookSlug)}/chapters/${chapterSlug}`, {
     headers: { Authorization: `Bearer ${session.accessToken}` },
     cache: 'no-store'
   })

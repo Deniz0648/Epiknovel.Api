@@ -8,6 +8,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\Epiknovel.Shared.Infrastructure\Epiknovel.Shared.Infrastructure.csproj" />
+    <ProjectReference Include="..\Books\Epiknovel.Modules.Books.csproj" />
+    <ProjectReference Include="..\Social\Epiknovel.Modules.Social.csproj" />
   </ItemGroup>
 
   <ItemGroup>

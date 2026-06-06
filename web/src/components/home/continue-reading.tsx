@@ -36,6 +36,8 @@ function normalizeLibraryItem(item: LibraryItemResponse) {
   const progressRaw =
     (raw.progressPercentage as number | undefined) ??
     (raw.ProgressPercentage as number | undefined) ??
+    (typeof raw.progressPercentage === "string" ? Number(raw.progressPercentage) : undefined) ??
+    (typeof raw.ProgressPercentage === "string" ? Number(raw.ProgressPercentage) : undefined) ??
     0;
   const safePercent = Number.isFinite(progressRaw) ? Math.max(0, Math.min(100, Math.round(progressRaw))) : 0;
   const paragraphId =
@@ -158,7 +160,8 @@ export function ContinueReadingSection() {
     async function loadLibrary() {
       setIsFetchingBooks(true);
       try {
-        const data = await getLibraryList({ status: activeTab, size: 6 });
+        const statusCode = activeTab === "Reading" ? 0 : 3;
+        const data = await getLibraryList({ status: statusCode, size: 6 });
         if (!isCancelled) {
           setBooks(data);
           setActiveIndex(0);
@@ -201,7 +204,7 @@ export function ContinueReadingSection() {
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Link href="/Books" className="btn btn-ghost rounded-full px-7 font-black">
-            Popüler Kitaplar
+            Keşfe Git
           </Link>
           <Link href="/login" className="btn btn-primary rounded-full px-7 font-black">
             Giriş Yap

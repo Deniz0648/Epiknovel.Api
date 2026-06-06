@@ -30,7 +30,7 @@ public class Endpoint(
 
     public override void Configure()
     {
-        Get("/books/chapters/{Slug}");
+        Get("/books/{BookSlug}/chapters/{Slug}");
         AllowAnonymous();
         Summary(s => {
             s.Summary = "Bir kitabın bölüm içeriğini getirir.";
@@ -56,8 +56,8 @@ public class Endpoint(
         // Eğer bölüm Published ise cache'den gelir, yoksa DB'den çekilip cache'lenir.
         // Taslaklar (Draft) DB'den çekilir ama cache'lenmez (shouldCache predicate).
         var response = await chapterCache.GetOrAddAsync(
-            req.Slug,
-            async () => await FetchChapterFromDbAsync(req.Slug, ct),
+            $"book:{req.BookSlug}:chapter:{req.Slug}",
+            async () => await FetchChapterFromDbAsync(req.BookSlug, req.Slug, ct),
             res => res.Status == ChapterStatus.Published);
 
         if (response == null)
@@ -190,11 +190,11 @@ public class Endpoint(
         res.TotalChapters = await baseNavQuery.CountAsync(ct);
     }
 
-    private async Task<Response?> FetchChapterFromDbAsync(string slug, CancellationToken ct)
+    private async Task<Response?> FetchChapterFromDbAsync(string bookSlug, string chapterSlug, CancellationToken ct)
     {
         // DB ve Navigasyon işlemleri bu factory içinde Thundering Herd korumalı çalışır
         var chapter = await dbContext.Chapters
-            .Where(x => x.Slug == slug && !x.Book.IsHidden)
+            .Where(x => x.Book.Slug == bookSlug && x.Slug == chapterSlug && !x.Book.IsHidden)
             .Select(c => new 
             {
                 c.Id,

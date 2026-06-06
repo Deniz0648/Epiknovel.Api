@@ -5,11 +5,22 @@ import { applyRefreshedTokens, clearAuthCookies, performAuthenticatedIdentityReq
 export async function GET(request: NextRequest) {
   try {
     const params = request.nextUrl.searchParams.toString();
+    console.log(`[API_PROXY][social/library][GET] query=${params || "(none)"}`);
     const result = await performAuthenticatedIdentityRequest<unknown>(
       `/social/library${params ? `?${params}` : ""}`,
       { method: "GET" },
       request.headers,
     );
+    if (Array.isArray(result.data)) {
+      const first = result.data[0] as Record<string, unknown> | undefined;
+      console.log(
+        `[API_PROXY][social/library][GET] items=${result.data.length} sample=${JSON.stringify(first ?? {})}`
+      );
+    } else {
+      console.log(
+        `[API_PROXY][social/library][GET] non-array payload type=${typeof result.data} payload=${JSON.stringify(result.data)}`
+      );
+    }
 
     const response = NextResponse.json({ isSuccess: true, data: result.data });
     applyRefreshedTokens(response, result.refreshedTokens);

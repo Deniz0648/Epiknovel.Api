@@ -1,6 +1,7 @@
 import { apiRequest } from "@/lib/api";
 
 export type ReadingStatus = "Reading" | "Completed" | "Dropped" | "OnHold" | "PlanToRead";
+export type ReadingStatusCode = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type LibraryItemResponse = {
   id: string;
@@ -19,12 +20,12 @@ export type LibraryItemResponse = {
 };
 
 export async function getLibraryList(request?: {
-  status?: ReadingStatus;
+  status?: ReadingStatus | ReadingStatusCode;
   page?: number;
   size?: number;
 }) {
   const searchParams = new URLSearchParams();
-  if (request?.status) searchParams.set("status", request.status);
+  if (request?.status !== undefined) searchParams.set("status", String(request.status));
   if (request?.page) searchParams.set("page", String(request.page));
   if (request?.size) searchParams.set("size", String(request.size));
 

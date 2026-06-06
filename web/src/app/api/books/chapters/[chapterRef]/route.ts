@@ -10,8 +10,15 @@ type RouteContext = {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { chapterRef } = await context.params;
+    const bookSlug = request.nextUrl.searchParams.get("bookSlug");
+    if (!bookSlug) {
+      return NextResponse.json(
+        { isSuccess: false, message: "bookSlug zorunludur." },
+        { status: 400 },
+      );
+    }
     const tokens = await getAuthenticatedTokens();
-    const data = await backendApiRequest<unknown>(`/books/chapters/${chapterRef}`, {
+    const data = await backendApiRequest<unknown>(`/books/${bookSlug}/chapters/${chapterRef}`, {
       method: "GET",
       token: tokens?.accessToken ?? null,
       headers: buildProxyHeaders(request.headers),

@@ -21,6 +21,18 @@ import { resolveMediaUrl } from "@/lib/api";
 type ManagedBook = MyBookListItem;
 type ManagedChapter = MyChapterListItem;
 
+function normalizeChapterStatus(status: ManagedChapter["status"] | number | string): 0 | 1 | 2 {
+  if (typeof status === "number") {
+    if (status === 1 || status === 2) return status;
+    return 0;
+  }
+
+  const normalized = String(status).trim().toLowerCase();
+  if (normalized === "1" || normalized === "published") return 1;
+  if (normalized === "2" || normalized === "scheduled") return 2;
+  return 0;
+}
+
 export default function BookManagementPage() {
   const { bookSlug } = useParams() as { bookSlug: string };
   const [book, setBook] = useState<ManagedBook | null>(null);
@@ -212,7 +224,7 @@ export default function BookManagementPage() {
                   bookSlug={book.slug}
                   initialChapters={chapters.map(c => ({
                     ...c,
-                    status: c.status === "Published" ? 1 : c.status === "Scheduled" ? 2 : 0
+                    status: normalizeChapterStatus(c.status)
                   }))}
                   onOrderSaved={() => loadChapters(currentPage, searchQuery)}
                 />

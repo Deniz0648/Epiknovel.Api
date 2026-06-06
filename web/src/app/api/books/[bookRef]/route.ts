@@ -10,6 +10,12 @@ type RouteContext = {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { bookRef } = await context.params;
+    if (!bookRef?.trim()) {
+      return NextResponse.json(
+        { isSuccess: false, message: "bookRef zorunludur." },
+        { status: 400 },
+      );
+    }
     const tokens = await getAuthenticatedTokens();
     const data = await backendApiRequest<unknown>(`/books/${bookRef}`, {
       method: "GET",
@@ -32,6 +38,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
     const { bookRef } = await context.params;
+    if (!bookRef?.trim()) {
+      return NextResponse.json(
+        { isSuccess: false, message: "bookRef zorunludur." },
+        { status: 400 },
+      );
+    }
     const body = await request.text();
     const result = await performAuthenticatedIdentityRequest<unknown>(
       `/books/${bookRef}`,
@@ -61,6 +73,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const { bookRef } = await context.params;
+    if (!bookRef?.trim()) {
+      return NextResponse.json(
+        { isSuccess: false, message: "bookRef zorunludur." },
+        { status: 400 },
+      );
+    }
     const result = await performAuthenticatedIdentityRequest<unknown>(
       `/books/${bookRef}`,
       {

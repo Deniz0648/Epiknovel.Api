@@ -5,6 +5,7 @@ namespace Epiknovel.Modules.Books.Endpoints.GetChapter;
 
 public class Request
 {
+    public string BookSlug { get; set; } = string.Empty;
     public string Slug { get; set; } = string.Empty;
 }
 

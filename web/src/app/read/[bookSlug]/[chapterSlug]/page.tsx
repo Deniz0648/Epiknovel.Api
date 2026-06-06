@@ -61,6 +61,7 @@ function normalizeReaderSettings(raw: unknown, defaults: ReaderSettings): Reader
 
 export default function ReaderPage() {
   const params = useParams<{ bookSlug: string; chapterSlug: string }>();
+  const bookSlug = params?.bookSlug;
   const chapterSlug = params?.chapterSlug;
   const searchParams = useSearchParams();
   const { profile, isLoading: isAuthLoading } = useAuth();
@@ -184,12 +185,12 @@ export default function ReaderPage() {
 
   useEffect(() => {
     async function loadFirstChapter() {
-      if (isAuthLoading || !chapterSlug) return;
+      if (isAuthLoading || !chapterSlug || !bookSlug) return;
       if (chapters.some(c => c.slug === chapterSlug)) return;
 
       try {
         setIsLoading(true);
-        const data = await apiRequest<ChapterDetail>(`/books/chapters/${chapterSlug}`);
+        const data = await apiRequest<ChapterDetail>(`/books/${encodeURIComponent(bookSlug)}/chapters/${chapterSlug}`);
         setChapters([data]);
         void fetchParagraphCommentCounts(data.id);
 
@@ -224,7 +225,7 @@ export default function ReaderPage() {
         .then(res => setCoinBalance(res.coinBalance))
         .catch(console.error);
     }
-  }, [chapterSlug, isAuthLoading, searchParams, profile, chapters, fetchParagraphCommentCounts]);
+  }, [bookSlug, chapterSlug, isAuthLoading, searchParams, profile, chapters, fetchParagraphCommentCounts]);
 
   const loadNextChapter = useCallback(async () => {
     const lastChapter = chapters[chapters.length - 1];
@@ -232,7 +233,7 @@ export default function ReaderPage() {
     try {
       loadingRef.current = true;
       setIsNextLoading(true);
-      const data = await apiRequest<ChapterDetail>(`/books/chapters/${lastChapter.nextChapterSlug}`);
+      const data = await apiRequest<ChapterDetail>(`/books/${encodeURIComponent(lastChapter.bookSlug)}/chapters/${lastChapter.nextChapterSlug}`);
 
       skipNextUrlUpdate.current = true;
       window.history.replaceState(null, "", `/read/${data.bookSlug}/${data.slug}`);
@@ -256,7 +257,7 @@ export default function ReaderPage() {
       toast.success("Bölüm kilidi başarıyla açıldı!");
 
       // Satın alınan bölümü en güncel haliyle çek
-      const data = await apiRequest<ChapterDetail>(`/books/chapters/${chapterSlug}`);
+      const data = await apiRequest<ChapterDetail>(`/books/${encodeURIComponent(chapters[0]?.bookSlug || bookSlug || "")}/chapters/${chapterSlug}`);
 
       // State içindeki ilgili bölümü güncelle (Diğer bölümleri bozmadan)
       setChapters(prev => prev.map(c => c.id === chapterId ? data : c));

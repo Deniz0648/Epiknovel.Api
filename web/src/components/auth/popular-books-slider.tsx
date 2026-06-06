@@ -37,22 +37,21 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
   useEffect(() => {
     async function loadPopularBooks() {
       try {
-        // Parametreleri kucuk harf yaparak proxy rotasiyla uyumlu hale getir (Ana sayfa ile ayni sorgu)
         const res = await apiRequest<{ items: PopularBookApiItem[] }>("/books?sortBy=viewCount&sortDescending=true&pageSize=6");
         const items = res.items || [];
-        
+
         const mappedBooks = items.map((item) => {
           const viewCount = item.viewCount ?? 0;
 
           return {
-          id: item.slug,
-          title: item.title,
-          category: item.categoryNames?.[0] || "Genel",
-          description: item.description,
-          image: resolveMediaUrl(item.coverImageUrl) || "/hero-cover.svg",
-          rating: (item.averageRating || 0).toFixed(1),
-          reads: viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount.toString(),
-          slug: item.slug
+            id: item.slug,
+            title: item.title,
+            category: item.categoryNames?.[0] || "Genel",
+            description: item.description,
+            image: resolveMediaUrl(item.coverImageUrl) || "/hero-cover.svg",
+            rating: (item.averageRating || 0).toFixed(1),
+            reads: viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}K` : viewCount.toString(),
+            slug: item.slug
           };
         });
         setBooks(mappedBooks);
@@ -95,11 +94,11 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
       <div className="mt-4 flex flex-1 flex-col items-center gap-4">
         <Link href={href} className="glass-frame relative block aspect-2/3 w-full max-w-50 overflow-hidden p-1.5">
           <div className="relative h-full w-full overflow-hidden rounded-2xl">
-            <BookCover 
-              src={activeBook.image} 
-              alt={activeBook.title} 
-              className="h-full w-full transition duration-500 group-hover:scale-110" 
-              sizes="25vw" 
+            <BookCover
+              src={activeBook.image}
+              alt={activeBook.title}
+              className="h-full w-full transition duration-500 group-hover:scale-110"
+              sizes="25vw"
             />
           </div>
         </Link>
@@ -137,8 +136,7 @@ export function PopularBooksSlider({ className = "" }: { className?: string }) {
               type="button"
               aria-label={`${index + 1}. kitap`}
               onClick={() => setActiveIndex(index)}
-              className={`h-2.5 rounded-full transition-all ${index === activeIndex ? "w-7 bg-primary" : "w-2.5 bg-base-content/30"
-                }`}
+              className={`h-2.5 rounded-full transition-all ${index === activeIndex ? "w-7 bg-primary" : "w-2.5 bg-base-content/30"}`}
             />
           ))}
         </div>

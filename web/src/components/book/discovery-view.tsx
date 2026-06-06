@@ -39,6 +39,11 @@ type Book = {
   description: string;
 };
 
+type FilterOption = {
+  value: string | number;
+  label: string;
+};
+
 type ApiCategory = {
   id: string;
   name: string;
@@ -194,6 +199,7 @@ function PaginationControls({
   onPageChange: (page: number) => void;
 }) {
   if (!totalPages || totalPages <= 0) return null;
+  const compactMode = totalPages > 7;
   return (
     <>
       {/* First Page */}
@@ -216,7 +222,7 @@ function PaginationControls({
         <ChevronLeft className="h-4 w-4" />
       </button>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 md:gap-1.5">
         {(() => {
           const range: (number | string)[] = [];
 
@@ -242,7 +248,7 @@ function PaginationControls({
               <button
                 key={idx}
                 onClick={() => onPageChange(p)}
-                className={`btn btn-sm h-10 w-10 rounded-xl border-none transition-all ${
+                className={`btn btn-sm h-9 w-9 rounded-xl border-none p-0 text-xs transition-all md:h-10 md:w-10 md:text-sm ${
                   currentPage === p
                     ? "bg-primary font-black text-primary-content shadow-lg shadow-primary/25"
                     : "bg-base-100/32 font-bold hover:bg-base-100/50"
@@ -253,7 +259,7 @@ function PaginationControls({
             ) : (
               <span
                 key={idx}
-                className="flex h-10 w-8 items-center justify-center text-sm font-black opacity-30"
+                className="hidden h-9 w-5 items-center justify-center text-xs font-black opacity-30 md:flex md:h-10 md:w-8 md:text-sm"
               >
                 {p}
               </span>
@@ -266,7 +272,7 @@ function PaginationControls({
       <button
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={!hasNextPage}
-        className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+        className={`btn btn-sm rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20 ${compactMode ? "h-9 w-9 md:h-10 md:w-10" : "h-10 w-10"}`}
         title="Sonraki Sayfa"
       >
         <ChevronRight className="h-4 w-4" />
@@ -276,12 +282,51 @@ function PaginationControls({
       <button
         onClick={() => onPageChange(totalPages)}
         disabled={currentPage === totalPages}
-        className="btn btn-sm h-10 w-10 rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20"
+        className={`btn btn-sm rounded-xl border-base-content/10 bg-base-100/32 p-0 transition-all hover:bg-primary hover:text-primary-content disabled:opacity-20 ${compactMode ? "h-9 w-9 md:h-10 md:w-10" : "h-10 w-10"}`}
         title="Son Sayfa"
       >
         <ChevronsRight className="h-4 w-4" />
       </button>
     </>
+  );
+}
+
+function FilterSection({
+  title,
+  name,
+  options,
+  selectedValue,
+  onToggle,
+  ariaLabelPrefix,
+  maxHeightClass = ""
+}: {
+  title: string;
+  name: string;
+  options: FilterOption[];
+  selectedValue: string | number | null;
+  onToggle: (value: string | number) => void;
+  ariaLabelPrefix: string;
+  maxHeightClass?: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-base-content/12 bg-base-100/24 p-4">
+      <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-base-content/40">{title}</p>
+      <div className={`space-y-2 ${maxHeightClass}`}>
+        {options.map((option) => (
+          <label key={String(option.value)} className="flex cursor-pointer items-center gap-2.5 text-sm transition-colors hover:text-primary">
+            <input
+              type="radio"
+              name={name}
+              aria-label={`${ariaLabelPrefix} ${option.label}`}
+              className="radio radio-xs"
+              checked={selectedValue === option.value}
+              onChange={() => onToggle(option.value)}
+            />
+            <span className={selectedValue === option.value ? "font-bold text-primary" : "font-medium"}>{option.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -558,7 +603,7 @@ export default function DiscoveryView() {
             </label>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap gap-2">
               {QUICK_FILTERS.map((f) => (
                 <button key={f.key} onClick={() => { setActiveQuickFilter(f.key); setCurrentPage(1); trackEvent("discovery_quick_filter_change", { quick_filter: f.key }); }}
@@ -570,17 +615,17 @@ export default function DiscoveryView() {
               ))}
             </div>
             
-            <div className="flex items-center justify-between sm:justify-end gap-6 pt-4 sm:pt-0 border-t border-base-content/5 sm:border-0">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-base-content/5 pt-4 sm:justify-end sm:gap-6 sm:border-0 sm:pt-0">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-base-content/30 italic sm:hidden">Gosterim</p>
                 <select aria-label="Sayfa başına eser sayısı" className="select select-bordered select-sm sm:select-xs rounded-lg font-bold bg-base-100/32 min-h-0 h-9 sm:h-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}>
                   {[8, 16, 24, 32, 48, 100].map(v => <option key={v} value={v}>{v} Adet</option>)}
                 </select>
               </div>
               
-              <div className="flex flex-col items-end sm:items-start leading-none">
-                 <span className="text-lg sm:text-sm font-black text-primary italic">{apiResponse?.totalCount || 0}</span>
-                 <span className="text-[9px] font-black uppercase tracking-tighter text-base-content/40">Toplam Eser</span>
+              <div className="ml-auto hidden flex-col items-end leading-none sm:ml-0 sm:flex sm:items-start">
+                <span className="text-lg font-black italic text-primary">{apiResponse?.totalCount || 0}</span>
+                <span className="text-[9px] font-black uppercase tracking-tighter text-base-content/40">Toplam Eser</span>
               </div>
             </div>
           </div>
@@ -604,7 +649,7 @@ export default function DiscoveryView() {
             </div>
           ) : null}
 
-          <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
             <aside className="space-y-4">
               <button type="button" onClick={() => setIsFiltersOpen(!isFiltersOpen)} className="glass-frame flex w-full items-center justify-between p-3.5 lg:hidden">
                 <div className="flex items-center gap-2.5"><Filter className="h-4.5 w-4.5 text-primary" /><span className="text-sm font-bold">Filtreler</span></div>
@@ -612,57 +657,58 @@ export default function DiscoveryView() {
               </button>
 
               <div className={`${isFiltersOpen ? "flex" : "hidden"} flex-col gap-4 lg:flex`}>
-                <div className="rounded-2xl border border-base-content/12 bg-base-100/24 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-3">Kategori</p>
-                  <div className="space-y-2 max-h-[196px] overflow-y-auto pr-2 custom-scrollbar">
-                    {categories.map(c => (
-                      <label key={c.id} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="radio" name="category-filter" aria-label={`Kategori ${c.name}`} className="radio radio-xs" checked={selectedCategoryId === c.id} 
-                               onChange={() => { setSelectedCategoryId(selectedCategoryId === c.id ? null : c.id); setCurrentPage(1); }} />
-                        <span className={selectedCategoryId === c.id ? "font-bold text-primary" : "font-medium"}>{c.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <FilterSection
+                  title="Kategori"
+                  name="category-filter"
+                  ariaLabelPrefix="Kategori"
+                  selectedValue={selectedCategoryId}
+                  onToggle={(value) => {
+                    const nextValue = String(value);
+                    setSelectedCategoryId(selectedCategoryId === nextValue ? null : nextValue);
+                    setCurrentPage(1);
+                  }}
+                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                  maxHeightClass="max-h-[196px] overflow-y-auto pr-2 custom-scrollbar"
+                />
 
-                <div className="rounded-2xl border border-base-content/12 bg-base-100/24 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-3">Durum</p>
-                  <div className="space-y-2">
-                    {PROTECTED_STATUSES.map(s => (
-                      <label key={s.value} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="radio" name="status-filter" aria-label={`Durum ${s.label}`} className="radio radio-xs" checked={selectedStatus === s.value}
-                               onChange={() => { setSelectedStatus(selectedStatus === s.value ? null : s.value); setCurrentPage(1); }} />
-                        <span className={selectedStatus === s.value ? "font-bold text-primary" : "font-medium"}>{s.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <FilterSection
+                  title="Durum"
+                  name="status-filter"
+                  ariaLabelPrefix="Durum"
+                  selectedValue={selectedStatus}
+                  onToggle={(value) => {
+                    const nextValue = Number(value);
+                    setSelectedStatus(selectedStatus === nextValue ? null : nextValue);
+                    setCurrentPage(1);
+                  }}
+                  options={PROTECTED_STATUSES.map((s) => ({ value: s.value, label: s.label }))}
+                />
 
-                <div className="rounded-2xl border border-base-content/12 bg-base-100/24 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-3">Eser Tipi</p>
-                  <div className="space-y-2">
-                    {WORK_TYPES.map(s => (
-                      <label key={s.value} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="radio" name="worktype-filter" aria-label={`Eser tipi ${s.label}`} className="radio radio-xs" checked={selectedWorkType === s.value}
-                               onChange={() => { setSelectedWorkType(selectedWorkType === s.value ? null : s.value); setCurrentPage(1); }} />
-                        <span className={selectedWorkType === s.value ? "font-bold text-primary" : "font-medium"}>{s.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <FilterSection
+                  title="Eser Tipi"
+                  name="worktype-filter"
+                  ariaLabelPrefix="Eser tipi"
+                  selectedValue={selectedWorkType}
+                  onToggle={(value) => {
+                    const nextValue = Number(value);
+                    setSelectedWorkType(selectedWorkType === nextValue ? null : nextValue);
+                    setCurrentPage(1);
+                  }}
+                  options={WORK_TYPES.map((s) => ({ value: s.value, label: s.label }))}
+                />
 
-                <div className="rounded-2xl border border-base-content/12 bg-base-100/24 p-4">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-3">Yas Araligi</p>
-                  <div className="space-y-2">
-                    {AGE_RANGES.map(s => (
-                      <label key={s.value} className="flex cursor-pointer items-center gap-2.5 text-sm hover:text-primary transition-colors">
-                        <input type="radio" name="agerange-filter" aria-label={`Yaş aralığı ${s.label}`} className="radio radio-xs" checked={selectedAgeRange === s.value}
-                               onChange={() => { setSelectedAgeRange(selectedAgeRange === s.value ? null : s.value); setCurrentPage(1); }} />
-                        <span className={selectedAgeRange === s.value ? "font-bold text-primary" : "font-medium"}>{s.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <FilterSection
+                  title="Yas Araligi"
+                  name="agerange-filter"
+                  ariaLabelPrefix="Yaş aralığı"
+                  selectedValue={selectedAgeRange}
+                  onToggle={(value) => {
+                    const nextValue = Number(value);
+                    setSelectedAgeRange(selectedAgeRange === nextValue ? null : nextValue);
+                    setCurrentPage(1);
+                  }}
+                  options={AGE_RANGES.map((s) => ({ value: s.value, label: s.label }))}
+                />
 
                 <label className="flex cursor-pointer items-center gap-2.5 rounded-2xl border border-base-content/12 bg-base-100/24 p-4 hover:bg-base-100/32 transition-colors">
                   <input type="checkbox" className="checkbox checkbox-xs" checked={editorOnly} onChange={(e) => { setEditorOnly(e.target.checked); setCurrentPage(1); }} />
@@ -675,22 +721,16 @@ export default function DiscoveryView() {
             </aside>
             
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-base-content/12 bg-base-100/24 px-3 py-2.5 text-xs font-semibold text-base-content/70">
+              <div className="grid grid-cols-1 gap-1.5 rounded-2xl border border-base-content/12 bg-base-100/24 px-3 py-2.5 text-xs font-semibold text-base-content/70 sm:grid-cols-3 sm:gap-2">
                 <span>
                   {apiResponse?.totalCount ?? 0} sonuç
                 </span>
-                <span>
+                <span className="sm:text-center">
                   Sayfa {apiResponse?.pageNumber ?? currentPage} / {apiResponse?.totalPages ?? 1}
                 </span>
-                <span>
+                <span className="sm:text-right">
                   Sayfa başına {apiResponse?.pageSize ?? pageSize}
                 </span>
-              </div>
-
-              <div className="flex min-h-[50px] items-center justify-center border-b border-base-content/5 pb-6">
-                <p className="text-xs font-bold text-base-content/50">
-                  Sayfa {apiResponse?.pageNumber ?? currentPage} / {apiResponse?.totalPages ?? 1}
-                </p>
               </div>
 
               {error && (
@@ -741,7 +781,7 @@ export default function DiscoveryView() {
               )}
 
               {/* Bottom Pagination */}
-              <div className={`flex min-h-[60px] flex-wrap items-center justify-center gap-1.5 pt-10 border-t border-base-content/5 transition-opacity ${isLoading ? "opacity-40 pointer-events-none" : "opacity-100"}`}>
+              <div className={`flex min-h-[60px] flex-wrap items-center justify-center gap-1.5 border-t border-base-content/5 pt-8 transition-opacity sm:pt-10 ${isLoading ? "pointer-events-none opacity-40" : "opacity-100"}`}>
                 {apiResponse && (
                   <PaginationControls 
                     currentPage={currentPage} 

@@ -14,6 +14,12 @@ type BookLookupResponse = {
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const { bookRef } = await context.params;
+    if (!bookRef?.trim()) {
+      return NextResponse.json(
+        { isSuccess: false, message: "bookRef zorunludur." },
+        { status: 400 },
+      );
+    }
     const query = request.nextUrl.searchParams.toString();
     const tokens = await getAuthenticatedTokens();
     const book = await backendApiRequest<BookLookupResponse>(`/books/${bookRef}`, {
